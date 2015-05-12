@@ -1,2 +1,2 @@
 # JSDO
-JavaScript Implementation of the CloudDataObject
+JavaScript Implementation of the CloudDataObject used by Progress OpenEdge and Rollbase.
