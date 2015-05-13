@@ -1,12 +1,10 @@
-JSDO Project Template
+JSDO Mobile Project Template
 ===============
 <a href="https://platform.telerik.com/#appbuilder/clone/https%3A%2F%2Fgithub.com%2FIcenium%2Fsample-contacts" target="_blank"><img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png" alt="Try in AppBuilder" title="Try in AppBuilder" /></a>
 
 This template can be used in the Telerik Platform to build a Hybrid Mobile App using the JSDO libraries.
+The template supports anonymous, form and basic authentication to an OpenEdge or Rollbase server using the JSDO Session management and a JSDO catalog. The connection information
 
-## Template Overview
-
-For more implementation details, review [main.js](contacts sample/scripts/main.js) and the code comments inside.
 
 ## Cloning the Sample
 
