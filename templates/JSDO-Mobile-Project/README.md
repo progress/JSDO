@@ -1,6 +1,6 @@
 JSDO Mobile Project Template
 ===============
-<a href="https://platform.telerik.com/#appbuilder/clone/https%3A%2F%2Fgithub.com%2FCloudDataObject%2FJSDO%2Ftemplates%2FJSDO-Mobile-Project" target="_blank"><img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png" alt="Try in AppBuilder" title="Try in AppBuilder" /></a>
+<a href="https://platform.telerik.com/#appbuilder/clone/https%3A%2F%2Fgithub.com%2FCloudDataObject%2FJSDO%2Fsrc" target="_blank"><img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png" alt="Try in AppBuilder" title="Try in AppBuilder" /></a>
 
 This template can be used in the Telerik Platform to build a Hybrid Mobile App using the JSDO libraries.
 The template supports anonymous, form and basic authentication to an OpenEdge or Rollbase server using the JSDO Session management and a JSDO catalog. The connection information is specified in the scripts/jsdoSettings.json file.
