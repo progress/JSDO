@@ -8,7 +8,7 @@ Each template includes the JSDO libraries and bootstrap code to build a Hybrid M
 
 You can use this template in Telerik AppBuilder, explore and modify the code, and build and run it on Android, iOS and Windows Phone 8 devices.
 
-Clone a template by selecting the <img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png" alt="Try in AppBuilder" title="Try in AppBuilder" /> button.
+Clone a template by selecting the <img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png"/> button.
 
 
 
