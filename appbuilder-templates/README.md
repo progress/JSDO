@@ -8,9 +8,7 @@ Each template includes the JSDO libraries and bootstrap code to build a Hybrid M
 
 You can use this template in Telerik AppBuilder, explore and modify the code, and build and run it on Android, iOS and Windows Phone 8 devices.
 
-Clone a template by selecting the <img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png"/> button.
-
-
+Clone a template by selecting the <img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png"/> button in the selected template.
 
 ### Use the template in the AppBuilder in-browser client
 
@@ -18,7 +16,7 @@ Clone a template by selecting the <img src="http://docs.telerik.com/platform/app
 1. In the account dashboard, click the workspace in which you want to develop your application.
 1. Click **Create project**.
 1. Select **AppBuilder Hybrid project**.
-1. Select **Start from sample project**.
+1. Select **Start from blank project**.
 1. Select **Core APIs**.
 1. Select **Contacts**.
 1. (Optional) Rename the project.
