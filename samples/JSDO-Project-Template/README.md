@@ -1,24 +1,10 @@
-sample-contacts
+JSDO Project Template
 ===============
 <a href="https://platform.telerik.com/#appbuilder/clone/https%3A%2F%2Fgithub.com%2FIcenium%2Fsample-contacts" target="_blank"><img src="http://docs.telerik.com/platform/appbuilder/sample-apps/images/try-in-appbuilder.png" alt="Try in AppBuilder" title="Try in AppBuilder" /></a>
 
-This sample application demonstrates the usage of the Apache Cordova Contacts core plugin.
+This template can be used in the Telerik Platform to build a Hybrid Mobile App using the JSDO libraries.
 
-## The Contacts Apache Cordova Plugin
-
-With the Contacts plugin, you can access the contacts database of the mobile device. You can add new entries to the database, search in the existing contacts and select entries from the database.
-
-## Sample Overview
-
-This sample shows how to use the methods of the Contacts plugin. It lets you create new contacts and find, clone and delete existing entries in the database. A text box prints information about your last operation.
-
-This sample shows how to use the following plugin objects and methods.
-
-* `navigator.contacts`: A global object that provides access to the contacts database of the device. The object becomes available after the `deviceready` event.
-* `navigator.contacts.create`: Creates a new `contact` object but does not save it in the contacts database. The object is saved later using the `save` method. The method is synchronous.
-* `navigator.contacts.find`: Queries the contacts database and returns an array of `contact` objects. The method is asynchronous.
-
-> Always attach a `deviceready` event first to ensure that Apache Cordova is fully loaded. The `deviceready` event fires when Apache Cordova is fully loaded. After the `deviceready` has fired, you can safely attach other events.
+## Template Overview
 
 For more implementation details, review [main.js](contacts sample/scripts/main.js) and the code comments inside.
 
