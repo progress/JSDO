@@ -5,7 +5,7 @@ The JSDO is a free and open-source full-featured implementation that can be used
 
 <!-- [![Build Status](https://travis-ci.org/telerik/kendo-ui-core.svg?branch=master)](https://travis-ci.org/telerik/kendo-ui-core) -->
 
-## JSDO is available in the following prebuilt minified packages
+The JSDO is available in the following prebuilt minified packages
 
 | Component | Purpose | 
 | ------- | ------ | 
