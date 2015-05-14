@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html> 
+<head>
+    <title></title>
+    <meta charset="utf-8" />
+    <link href="kendo/styles/kendo.mobile.all.min.css" rel="stylesheet" />    
+    <link href="css/base.css" rel="stylesheet" />    
+    <script src="cordova.js"></script>
+    <script src="kendo/js/jquery.min.js"></script>
+    <script src="kendo/js/kendo.mobile.min.js"></script>  
+    <script src="lib/progress.all.min.js"></script>
+    <script src="scripts/baseApp.js"></script>    
+    <script src="scripts/jsdoSettings.js"></script>        
+    <script src="scripts/app.js"></script>
+    <script src="scripts/login.js"></script>
+    <script src="scripts/list.js"></script>
+</head>
+<body>
+
+    <!--Layout-->
+    <div data-role="layout" data-id="tabstrip-layout">
+        <!--Header-->
+        <div data-role="header">
+            <div data-role="navbar">
+                <span data-role="view-title"></span>
+            </div>
+        </div>
+        
+        <!-- application views will be rendered here -->
+
+        <!--Footer-->
+        <div data-role="footer">
+            <div data-role="tabstrip" id="navigateTab">
+                <a href="views/home.html" data-icon="home">Home</a>
+				<a href="views/login.html" data-icon="contacts" id="loginIcon">Login</a>
+                <a href="views/list.html" data-icon="search">List</a>
+             </div>
+        </div>
+    </div>
+
+</body>
+</html>

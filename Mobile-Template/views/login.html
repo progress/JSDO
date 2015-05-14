@@ -1,0 +1,41 @@
+<script src="scripts/login.js"></script>
+
+<!--Login view-->
+    <div id="login"
+         data-role="view"  
+         data-title="Login" 
+         data-before-show="myApp.loginModel.onBeforeShow" 
+         data-model="myApp.loginModel">         
+ 
+         <div>
+            <ul id="logout" data-role="listview" data-style="inset">
+				<li>
+            		<h3 id = "welcome">Welcome, <span data-bind="    text: username"></span>!</h3>                    
+            		<input style="width: 100%" id="logout" type="submit" data-role="button" data-bind="click: logout, visible: isLoggedIn" value="Logout" class="login-button" />                    
+                </li>                
+			</ul>
+        </div>
+   		<form data-bind="events: { keyup: checkEnter }">
+            <img src="styles/images/Progress_RGB.png" id = "loginIcon" style="width: 100%;"/>
+            <h3 data-bind="invisible: isLoggedIn", id = "credentials">Enter your credentials:</h3>
+            <ul id="login" data-role="listview" data-style="inset">
+                <li>                
+                    <label>User:
+                        <input type="text" id='username' style="width: 70%"data-bind="value: username" />
+                    </label>
+                </li>  
+                <li>
+                    <label>Password:
+                        <input type="password" id='password' style="width: 70%" data-bind="value: password" />                    
+                    </label>
+                </li> 
+
+                <li>
+		            <input style="width: 100%" id="login" type="submit" data-role="button" data-bind="click: login, invisible: isLoggedIn" value="Login" class="login-button" />
+                </li>
+                
+            </ul>   
+
+        </form>        
+        
+       </div>   

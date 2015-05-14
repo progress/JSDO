@@ -1,0 +1,40 @@
+{
+  "ProjectName": "Mobile JSDO Template",
+  "ProjectGuid": "dfc0cbd5-e6b4-4823-9071-690d14e07227",
+  "projectVersion": 1,
+  "AppIdentifier": "com.telerik.sessionMobile",
+  "DisplayName": "sessionMobile",
+  "Author": "",
+  "Description": "sessionMobile",
+  "BundleVersion": "1.0",
+  "AndroidVersionCode": "1",
+  "iOSDeviceFamily": [
+    "1",
+    "2"
+  ],
+  "iOSBackgroundMode": [],
+  "ProjectTypeGuids": "{070BCB52-5A75-4F8C-A973-144AF0EAFCC9}",
+  "FrameworkVersion": "3.7.0",
+  "AndroidPermissions": [],
+  "DeviceOrientations": [
+    "Portrait",
+    "Landscape"
+  ],
+  "AndroidHardwareAcceleration": "True",
+  "iOSStatusBarStyle": "Default",
+  "Framework": "Cordova",
+  "WP8TileTitle": "",
+  "WP8Publisher": "",
+  "WP8Capabilities": [],
+  "WP8Requirements": [],
+  "WP8PublisherID": "{1516a44b-6397-47fe-9b2c-7e0d80d240da}",
+  "WP8ProductID": "{07ee8641-849e-4c5c-9c17-4cb1142e4c10}",
+  "WPSdk": "8.0",
+  "WP8SupportedResolutions": [
+    "ID_RESOLUTION_WVGA",
+    "ID_RESOLUTION_WXGA",
+    "ID_RESOLUTION_HD720P"
+  ],
+  "WP8WindowsPublisherName": "CN=Telerik",
+  "WP8PackageIdentityName": "1234Telerik.com.telerik.sessionMobile"
+}

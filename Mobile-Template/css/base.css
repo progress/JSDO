@@ -1,0 +1,9 @@
+#list div.km-content {
+    background: #fcfcfc;
+}
+
+#my-list {
+    border: solid;
+    border-width: 0px 0px 1px 0px;
+    border-color: rgba(0, 0, 0, 0.1);
+}
