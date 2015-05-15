@@ -6,8 +6,8 @@ The JSDO is a free and open-source full-featured implementation that can be used
 
 | Source File| Purpose | 
 | ---------- | ------- | 
-| [progress.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.js) | The JSDO core |
-| [progress.session.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.session.js) | The JSDO session management |
+| [progress.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.js) | JSDO core |
+| [progress.session.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.session.js) | JSDO session management |
 | [progress.util.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.util.js) | Helper classes for the JSDO |
 | [progress.data.kendo.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.kendo.js) | Kendo UI DataSource for the JSDO |
 
