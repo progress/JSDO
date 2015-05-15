@@ -32,8 +32,6 @@ If you want to implement a new feature yourself, consider submitting it to the <
 
 Contribute to the Code Base
 ===
-First, read our <a href="https://github.com/CloudDataObject/JSDO/blob/master/for-developers.md">developers documentation</a>.
-
 Before you submit a Pull Request, consider the following guidelines.
 
 * Search <a href="https://github.com/CloudDataObject/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
@@ -50,19 +48,7 @@ Before you submit a Pull Request, consider the following guidelines.
     git submodule update
 ```
 * Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a> so you will have to branch from our master branch.
-```bash
-    git checkout -b my-fix-branch master
-```
-* Create your patch and include appropriate test cases.
-* Build your changes locally.
-```bash
-    grunt
-```
-* Ensure all the tests pass.
-```bash
-    grunt ts:devall
-    npm test
-```
+
 * Commit your changes and create a descriptive commit message (the commit message is used to generate release notes).
 ```bash
     git commit -a
@@ -101,4 +87,4 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 
 [Back to Top][1]
 
-[1]: #contribute-to-the-telerik-appbuilder-command-line-interface
+[1]: #contribute-to-the-jsdo
