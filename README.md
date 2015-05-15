@@ -11,6 +11,8 @@ The JSDO is a free and open-source full-featured implementation that can be used
 | [progress.jsdo.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.jsdo.js) | The JSDO core components (JSDO, Session, Util classes) |
 | [progress.jsdo.min.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.jsdo.min.js) | The JSDO core components (JSDO, Session, Util classes) minified for deployment |
 
+<a href="https://github.com/CloudDataObject/JSDO/zipball/master" class="btn">Download JSDO .zip</a>
+
 <!-- [![Build Status](https://travis-ci.org/telerik/kendo-ui-core.svg?branch=master)](https://travis-ci.org/telerik/kendo-ui-core) -->
 </br>
 </br>
