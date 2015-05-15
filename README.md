@@ -1,6 +1,6 @@
 # JSDO
 JavaScript Implementation of the CloudDataObject (CDO).
-The JSDO is implemented according to the CDO specification. It provides transactional data management for web and mobile clients written in JavaScript. Samples and project templates the work with Progress OpenEdge and Rollbase servers can be found user [CloudDataObject](https://github.com/CloudDataObject) 
+The JSDO is implemented according to the CDO specification. It provides transactional data management for web and mobile clients written in JavaScript. Samples and project templates that work with Progress OpenEdge and Rollbase servers can be found at  [CloudDataObject](https://github.com/CloudDataObject).
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
