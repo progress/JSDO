@@ -86,5 +86,3 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```
 
 [Back to Top][1]
-
-[1]: #contribute-to-the-jsdo
