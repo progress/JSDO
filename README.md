@@ -13,8 +13,8 @@ The JSDO is a free and open-source full-featured implementation that can be used
 
 | Lib File| Purpose | 
 | ------- | ------- | 
-| [progress.all.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.all.js) | The JSDO core components plus the Kendo UI DataSource for JSDO |
-| [progress.all.min.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.all.min.js) | The JSDO core components plus the Kendo UI DataSource for JSDO minified for deployment |
+| [progress.all.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.all.js) | The JSDO plus the Kendo UI DataSource for JSDO |
+| [progress.all.min.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.all.min.js) | The JSDO plus the Kendo UI DataSource for JSDO minified for deployment |
 | [progress.jsdo.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.jsdo.js) | The JSDO core components (JSDO, Session, Util classes) |
 | [progress.jsdo.min.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.jsdo.min.js) | The JSDO core components (JSDO, Session, Util classes) minified for deployment |
 
