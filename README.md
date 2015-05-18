@@ -21,6 +21,8 @@ The JSDO is a free and open-source full-featured implementation that can be used
 ###Download<a name="download"></a>
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy</a> to a zip file.
 
+The JSDO is used by hybrid mobile and web apps to access OpenEdge and Rollbase servers. Other implementations include a client in a mobile Hybrid App (a variation of the browser client), a Telerik® NativeScript client, a Node.js server, and a Java server. The JSDO has successfully been used with servers other than OpenEdge such as Node.js to export data created / aggregated in Modulus™ to a Progress® Rollbase Application.
+
 <!-- [![Build Status](https://travis-ci.org/telerik/kendo-ui-core.svg?branch=master)](https://travis-ci.org/telerik/kendo-ui-core) -->
 </br>
 </br>
