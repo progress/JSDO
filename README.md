@@ -17,7 +17,7 @@ The JSDO is a free and open-source full-featured implementation that can be used
 | [progress.all.min.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.all.min.js) | The JSDO plus the Kendo UI DataSource for JSDO minified for deployment |
 | [progress.jsdo.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.jsdo.js) | The JSDO core components (JSDO, Session, Util classes) |
 | [progress.jsdo.min.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.jsdo.min.js) | The JSDO core components (JSDO, Session, Util classes) minified for deployment |
-</br>
+
 The JSDO is used by hybrid mobile and web apps to access OpenEdge and Rollbase servers. Other implementations include a client in a mobile Hybrid App (a variation of the browser client), a Telerik® NativeScript client, a Node.js server, and a Java server. The JSDO has successfully been used with servers other than OpenEdge such as Node.js to export data created / aggregated in Modulus™ to a Progress® Rollbase Application.
 
 ###Download<a name="download"></a>
