@@ -18,7 +18,7 @@ limitations under the License.
 // Version: 4.0.0-20
 
 /*
- * kendo.data.kendo.js
+ * progress.data.kendo.js
  */
 
 /*global jQuery, kendo, progress*/
