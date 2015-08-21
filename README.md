@@ -24,6 +24,11 @@ The JSDO can be used by hybrid mobile apps, mobile web apps and web browser apps
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy</a> to a zip file.
 <!-- [![Build Status](https://travis-ci.org/telerik/kendo-ui-core.svg?branch=master)](https://travis-ci.org/telerik/kendo-ui-core) -->
 
+###Documentation
+Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
+
+
+
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
