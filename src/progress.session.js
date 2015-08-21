@@ -1,4 +1,7 @@
+
 /* 
+progress.session.js    Version: 4.1.0-7
+
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,22 +18,16 @@ limitations under the License.
 
  */
 
-
-// Version: 4.0.0-13
-
-/*
- * progress.session.js
- */
-
-
 (function () {
 
     /* define these if not defined yet - they may already be defined if
      progress.js was included first */
-    if (typeof progress == 'undefined')
+    if (typeof progress === "undefined") {
         progress = {};
-    if (typeof progress.data == 'undefined')
+    }
+    if (typeof progress.data === "undefined") {
         progress.data = {};
+    }
 
     progress.data.ServicesManager = {};
     progress.data.ServicesManager._services = [];
@@ -412,9 +409,9 @@ limitations under the License.
                                                     value = objParam[name];
                                                 if (!value)
                                                     value = "";
-												if (typeof(value) === "object") {
-													value = JSON.stringify(value);
-												}
+                                                if (typeof(value) === "object") {
+                                                    value = JSON.stringify(value);
+                                                }
                                                 url = url.replace(
                                                     new RegExp('{' + name + '}', 'g'),
                                                     encodeURIComponent(value));
@@ -555,6 +552,130 @@ limitations under the License.
             });
     };
 
+    /* 
+        An object that maintains the X-CLIENT-PROPS header string
+        The data for the string is stored in the internal variable named contextObject and is
+        always up to date. The internal var contextString isn't created until the first time it's
+        needed (the first get of the contextHeader property), and then it's updated an cached
+        A call to setContext or setContextProperty updates contextObject but sets contextString to
+        null, which signals that it needs to be updated. If contextObject is an empty object,
+        contextString is set to undefined to indicate that no header is to be sent
+     */
+    progress.data.ContextProperties = function() {
+        var contextObject = {},
+            contextString; // if null, contextObject has been changed but string wasn't updated yet
+            
+            //  the string to be sent in the X-CLIENT-PROPS header (unless Session.xClientProps has been set)
+        Object.defineProperty(this, 'contextHeader',
+            {
+                get: function () {
+                    var header;
+                    
+                    if (contextString === null) {  // needs to be updated
+                        header = JSON.stringify( contextObject );
+                        if (header === "{}") {
+                            contextString = undefined;
+                        }
+                        else {
+                            contextString = header;
+                        }
+                    }                        
+                    // else (contextString === undefined || has a usable value) 
+
+                    return contextString;
+                },
+                enumerable: true
+            });
+
+        /* determine whether the property is already present, and -
+            add it if it's not present
+            remove it if propertyValue is explicitly passed as undefined
+            otherwise replace its value (even if the new value is null or "")
+        */
+        this.setContextProperty = function( propertyName, propertyValue) {
+            if (arguments.length < 2) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'Session', 
+                                                           'setContextProperty', 2)); 
+            }
+            if (arguments.length !== 2) {
+                // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", "Session",
+                                                          "setContextProperty", 2)); 
+            }
+            if (typeof propertyName !== "string") {
+                // {1}: Parameter {1} must be of type {3} in {4} call.
+                throw new Error(progress.data._getMsgText("jsdoMSG121", 'Session', 1, 'string',
+                                                          'setContextProperty')); 
+            }
+
+            if ( propertyValue === undefined ) {
+                delete contextObject[propertyName]; // OK if it doesn't exist -- no error
+            }
+            else {
+                contextObject[propertyName] = propertyValue;
+            }
+            contextString = null; // must be updated on next get of this.contextHeader
+        };
+
+        this.setContext = function( context ) {
+            var prop;
+
+            if (arguments.length < 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'Session', 'setContext', 1)); 
+            }
+            if (arguments.length > 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'Session', 'setContext', 1)); 
+            }
+            if ( typeof context == "object" ) {
+                /* Copy the properties of the context passed in as an argument into
+                 * an internal contextObject. (Note that if the context object passed in
+                 * has a prototype, this code copies them, too)
+                 */
+                contextObject = {};
+                for (prop in context) {
+                    if( context.hasOwnProperty(prop) )  {
+                        if (typeof context[prop] !== "function" ) {
+                            contextObject[prop] = context[prop];
+                        }
+                    }
+                }
+            }
+            else if ( (context === undefined) || (context === null) ) {
+                contextObject = {};
+            }
+            else {
+                // {1}: Parameter {1} must be of type {3} in {4} call.
+                throw new Error(progress.data._getMsgText("jsdoMSG121", 'Session', 1, 'Object',
+                                                          'setContextProperty')); 
+            }
+            contextString = null; // must be updated on next get of this.contextHeader
+        };
+        
+        this.getContext = function( ) {
+            if (arguments.length > 0) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'Session', 'getContext', 0)); 
+            }
+            return contextObject;
+        };
+        
+        this.getContextProperty = function( propertyName) {
+            if (arguments.length < 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'Session', 'getContextProperty', 1)); 
+            }
+            if (arguments.length > 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'Session', 'getContextProperty', 1)); 
+            }
+            return contextObject[propertyName];
+        };
+        
+    };  // end of ContextProperties
+    
     /*
      * Manages authentication and session ID information for a service.
      *
@@ -573,16 +694,24 @@ limitations under the License.
         if ((typeof Object.defineProperty) == 'function') {
             defPropSupported = true;
         }
+        
+        var myself = this,
+            isUserAgentiOS = false,  // checked just below this var statement
+            defaultiOSBasicAuthTimeout = 4000,
+            deviceIsOnline = true,  // online until proven offline
+            restApplicationIsOnline = false,  // was the Mobile Web Application that this Session object
+                                              // connects to online the last time it was checked?
+                                              // (value is always false if session is not logged in)
+            oepingAvailable = false,
+            defaultPartialPingURI = "/rest/_oeping",
+            partialPingURI = defaultPartialPingURI;
 
-        var myself = this;
-        var deviceIsOnline = true;  // online until proven offline
-        var restApplicationIsOnline = false;  // was the Mobile Web Application
-        // that this Session object connects to online
-        // the last time it was checked?  (offline until logged in )
-        var oepingAvailable = false;
-        var defaultPartialPingURI = "/rest/_oeping";
-        var partialPingURI = defaultPartialPingURI;
-
+        if (typeof navigator  !== "undefined") {
+            if (typeof navigator.userAgent !== "undefined") {
+                isUserAgentiOS = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)/i);
+            }
+        }
+        
         this._onlineHandler = function () {
             deviceIsOnline = true;
             myself.trigger("online", myself, null);
@@ -728,7 +857,9 @@ limitations under the License.
             Object.defineProperty(this, 'connected',
                 {
                     get: function () {
-                        return restApplicationIsOnline && deviceIsOnline;
+                        return     (this.loginResult === progress.data.Session.LOGIN_SUCCESS)
+                                && restApplicationIsOnline 
+                                && deviceIsOnline;
                     },
                     enumerable: true
                 });
@@ -765,9 +896,18 @@ limitations under the License.
                         }
                     },
                     enumerable: true
-                }
-            );
+                });
 
+            var _contextProperties = new progress.data.ContextProperties();
+            Object.defineProperty( this, 
+                                   "_contextProperties",
+                                   {  
+                                       get: function () {
+                                            return _contextProperties;
+                                       },
+                                       enumerable: false
+                                   }
+                                 );
         }
         else {
             this.userName = null;
@@ -857,7 +997,7 @@ limitations under the License.
 
         function setClientContextIDfromXHR(xhr, sessionObject) {
             if (xhr) {
-                setClientContextID(xhr.getResponseHeader("X-CLIENT-CONTEXT-ID"), sessionObject);
+                setClientContextID(getResponseHeaderNoError(xhr, "X-CLIENT-CONTEXT-ID"), sessionObject);
             }
         }
 
@@ -877,6 +1017,40 @@ limitations under the License.
             else {
                 sessionObject.lastSessionXHR = xhr;
             }
+        }
+
+        /*
+            When using CORS, if the client asks for a response header that is not among 
+            the headers exposed by the Web application, the user agent may write an error
+            to the console, e.g., "REFUSED TO GET UNSAFE HEADER". This function checks for 
+            a given response header in a way that will avoid the error message. It does this
+            by requesting all headers and then checking to see whether the desired header
+            is present (it will not be present, even if the server sent it, if the server has not
+            also allowed that header). The function caches the string returned by getAllResponseHeaders
+            by storing it on the xhr that was used in the request. It does the caching in
+            case there is another header to be checked.
+          */
+        function getResponseHeaderNoError(xhr, headerName) {
+            var allHeaders = xhr._pdsResponseHeaders,
+                regExp;
+
+            if (allHeaders === undefined) {
+                allHeaders = xhr.getAllResponseHeaders();
+                if ( allHeaders ) {
+                    xhr._pdsResponseHeaders = allHeaders;
+                }
+                else {
+                    xhr._pdsResponseHeaders = null;
+                }
+            }
+            if ( allHeaders ) {
+                regExp = new RegExp("^" + headerName + ":", "m");
+                if ( allHeaders.match(regExp) ) {
+                    return xhr.getResponseHeader(headerName);
+                }
+            }
+
+            return null;
         }
 
         // "Methods"
@@ -916,10 +1090,9 @@ limitations under the License.
             if (this.clientContextId && (this.clientContextId !== "0")) {
                 xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", this.clientContextId);
             }
-            if (this.xClientProps) {
-                xhr.setRequestHeader("X-CLIENT-PROPS", this.xClientProps);
-            }
-
+            // set X-CLIENT-PROPS header
+            setRequestHeaderFromContextProps(this, xhr);
+            
             if (typeof this.onOpenRequest === 'function') {
                 var params = {
                     "xhr": xhr,
@@ -953,6 +1126,8 @@ limitations under the License.
             var xhr = this;
             var result;
             var errorObject;
+            
+            clearTimeout(xhr._requestTimeout); // for the iOS Basic Auth bug
 
             if (xhr.readyState == 4) {
                 result = null;
@@ -988,7 +1163,8 @@ limitations under the License.
                 isAsync = false,
                 args = [],
                 deferred,
-                jsdosession;
+                jsdosession,
+                iOSBasicAuthTimeout;
 
             pwSave = null;   // in case these are left over from a previous login
             unameSave = null;
@@ -1022,6 +1198,15 @@ limitations under the License.
                         */ 
                         deferred = arguments[0].deferred;
                         jsdosession = arguments[0].jsdosession;
+                        
+                        iOSBasicAuthTimeout = arguments[0].iOSBasicAuthTimeout;
+                        if ( typeof iOSBasicAuthTimeout === 'undefined' ) {
+                            iOSBasicAuthTimeout = defaultiOSBasicAuthTimeout;
+                        }
+                        else if (iOSBasicAuthTimeout && (typeof iOSBasicAuthTimeout != 'number')) {
+                            throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'login', 
+                                'The iOSBasicAuthTimeout argument was invalid.'));
+                        }
                     }
                 }
                 else {
@@ -1100,9 +1285,8 @@ limitations under the License.
 
                 xhr.setRequestHeader("Cache-Control", "no-cache");
                 xhr.setRequestHeader("Pragma", "no-cache");
-                if (this.xClientProps) {
-                    xhr.setRequestHeader("X-CLIENT-PROPS", this.xClientProps);
-                }
+                // set X-CLIENT-PROPS header
+                setRequestHeaderFromContextProps(this, xhr);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                     _addWithCredentialsAndAccept(xhr, 
                         "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
@@ -1117,6 +1301,15 @@ limitations under the License.
                     else {
                         xhr.onResponseFn = this._processLoginResult;
                         xhr.onResponseProcessedFn = this._loginComplete;
+                    }
+                    if (    this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC 
+                         && isUserAgentiOS
+                         && iOSBasicAuthTimeout > 0 ) { 
+                        xhr._requestTimeout = setTimeout(  function (){
+                                                        clearTimeout(xhr._requestTimeout);
+                                                        xhr.abort();
+                                                    }, 
+                                                    iOSBasicAuthTimeout);
                     }
                     xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                     xhr._deferred = deferred;  // in case the caller is a JSDOSession
@@ -1145,6 +1338,7 @@ limitations under the License.
                 xhr.send(null);
             }
             catch (e) {
+                clearTimeout(xhr._requestTimeout);                
                 setLoginHttpStatus(xhr.status, this);
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
                 unameSave = null;
@@ -1218,7 +1412,9 @@ limitations under the License.
 
             if (contentType && contentType.indexOf("application/json") >= 0) {
                 handleJSONLoginResponse(params);
-                if (!params.statusFromjson || params.statusFromjson === 401) {
+                if (    !params.statusFromjson 
+                     || (params.statusFromjson >= 400 && params.statusFromjson < 500) 
+                   )  {
                     needAuth = true;
                 }
                 else {
@@ -1250,7 +1446,7 @@ limitations under the License.
                 args.xhr = xhr;
                 params.xhr = xhr;
 
-                // need to transfer any properties that the Sessioon code stored in the
+                // need to transfer any properties that the Session code stored in the
                 // the xhr that need to persist across the 2 requests made by a our
                 // login implementation for Form auth
                 xhr.pdsession = oldXHR.pdsession;
@@ -1261,9 +1457,8 @@ limitations under the License.
                 xhr.open('POST', theSession.serviceURI + "/static/auth/j_spring_security_check",xhr._isAsync);
                 xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                 xhr.setRequestHeader("Cache-Control", "max-age=0");
-                if (theSession.xClientProps) {
-                    xhr.setRequestHeader("X-CLIENT-PROPS", theSession.xClientProps);
-                }
+                // set X-CLIENT-PROPS header
+                setRequestHeaderFromContextProps(theSession, xhr);
 
                 _addWithCredentialsAndAccept(xhr, "application/json");
 
@@ -1339,7 +1534,7 @@ limitations under the License.
                 }
             }
             else {
-                if (xhr.status == 200 || xhr.status === 0) {
+                if (xhr.status === 200) {
                     // Was the response actually the login failure page or the login page itself (in case
                     // the appSecurity config file sets the login failure url so the server sends the login
                     // page again)? If so, call it an error because the credentials apparently failed to be
@@ -1367,9 +1562,10 @@ limitations under the License.
              * this.loginResult.
              */
             var pdsession = xhr.pdsession;
+                
             setLoginHttpStatus(xhr.status, xhr.pdsession);
 
-            if (pdsession.loginHttpStatus == 200) {
+            if (pdsession.loginHttpStatus === 200) {
                 setLoginResult(progress.data.Session.LOGIN_SUCCESS, pdsession);
                 restApplicationIsOnline = true;
                 setUserName(unameSave, pdsession);
@@ -1392,6 +1588,7 @@ limitations under the License.
                 }
             }
             setLastSessionXHR(xhr, pdsession);
+            updateContextPropsFromResponse(pdsession, xhr);
 
             // null the temporary credentials variables
             unameSave = null;
@@ -1417,7 +1614,6 @@ limitations under the License.
                 xhr,
                 deferred,
                 jsdosession;
-
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                 throw new Error("Attempted to call logout when there is no active session.");
             }
@@ -1472,9 +1668,8 @@ limitations under the License.
                     }
 
                     xhr.setRequestHeader("Accept", "application/json");
-                    if (this.xClientProps) {
-                        xhr.setRequestHeader("X-CLIENT-PROPS", this.xClientProps);
-                    }
+                    // set X-CLIENT-PROPS header
+                    setRequestHeaderFromContextProps(this, xhr);
 
                     if (typeof this.onOpenRequest === 'function') {
                         setLastSessionXHR(xhr, this);
@@ -1538,10 +1733,8 @@ limitations under the License.
             if (xhr._anonymousLogoutOK) {
                 logoutSucceeded = true;
             }
-            else if ((xhr.status != 200) && (xhr.status !== 0)) {
+            else if (xhr.status !== 200) {
                 /* Determine whether an error returned from the server is really an error
-                 * Errors on logout from any auth model will go through here, but
-                 * only Basic requires checking.
                  */
                 if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
                     /* If the Auth model is Basic, we probably got back a 404 Not found.
@@ -1557,11 +1750,17 @@ limitations under the License.
                         throw new Error("Error logging out, HTTP status = " + xhr.status);
                     }
                 }
+                else {
+                    // for Form auth, any error on logout is an error
+                    logoutSucceeded = false;
+                    throw new Error("Error logging out, HTTP status = " + xhr.status);                    
+                }
             }
             else {
                 logoutSucceeded = true;
             }
 
+            updateContextPropsFromResponse(pdsession, xhr);
             pdsession._reinitializeAfterLogout(pdsession, logoutSucceeded);
         };
 
@@ -1571,7 +1770,9 @@ limitations under the License.
             setClientContextID(null, pdsession);
             setUserName(null, pdsession);
             _password = null;
+
             if (success) {
+                restApplicationIsOnline = false;
                 oepingAvailable = false;
                 partialPingURI = defaultPartialPingURI;
                 setLastSessionXHR(null, pdsession);
@@ -1590,6 +1791,7 @@ limitations under the License.
                 xhr,
                 deferred,
                 jsdosession,
+                iOSBasicAuthTimeout,
                 catalogIndex;
 
             // check whether the args were passed in a single object. If so, copy them
@@ -1625,6 +1827,15 @@ limitations under the License.
                         throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
                             'The async argument was invalid.'));
                     }
+                    iOSBasicAuthTimeout = arguments[0].iOSBasicAuthTimeout;
+                    if ( typeof iOSBasicAuthTimeout == 'undefined' ) {
+                        iOSBasicAuthTimeout = defaultiOSBasicAuthTimeout;
+                    }
+                    else if (iOSBasicAuthTimeout && (typeof iOSBasicAuthTimeout != 'number')) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
+                            'The iOSBasicAuthTimeout argument was invalid.'));
+                    }
+                    
                     /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
                         deferred, jsdosession, and catalogIndex and we need to eventually attach them to the 
                         XHR we use so that the promise created by the JSDOSession will work correctly
@@ -1700,9 +1911,8 @@ limitations under the License.
              */
             xhr.setRequestHeader("Cache-Control", "no-cache");
             xhr.setRequestHeader("Pragma", "no-cache");
-            if (this.xClientProps) {
-                xhr.setRequestHeader("X-CLIENT-PROPS", this.xClientProps);
-            }
+            // set X-CLIENT-PROPS header
+            setRequestHeaderFromContextProps(this, xhr);
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                 _addWithCredentialsAndAccept(xhr, "application/json");
             }
@@ -1711,6 +1921,16 @@ limitations under the License.
                 xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                 xhr.onResponseFn = this._processAddCatalogResult;
                 xhr.onResponseProcessedFn = this._addCatalogComplete;
+                
+                if (    this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC
+                     && isUserAgentiOS
+                     && iOSBasicAuthTimeout ) { 
+                    xhr._requestTimeout = setTimeout(  function (){
+                                                    clearTimeout(xhr._requestTimeout);
+                                                    xhr.abort();
+                                                }, 
+                                                iOSBasicAuthTimeout);
+                }                
                 
                 // in case the caller is a JSDOSession
                 xhr._jsdosession = jsdosession;
@@ -1751,12 +1971,14 @@ limitations under the License.
             var _catalogHttpStatus = xhr.status;
             var theSession = xhr.pdsession;
             var servicedata;
-            var catalogURI = xhr._catalogURI;
+            var catalogURI = xhr._catalogURI,
+                serviceURL;
 
             setLastSessionXHR(xhr, theSession);
-            if ((_catalogHttpStatus == 200) || (_catalogHttpStatus === 0)) {
+            updateContextPropsFromResponse(theSession, xhr);
+            
+            if ((_catalogHttpStatus == 200) || (_catalogHttpStatus === 0) && xhr.responseText) {
                 servicedata = theSession._parseCatalog(xhr);
-                var serviceURL;
                 try {
                     progress.data.ServicesManager.addCatalog(servicedata, theSession);
                 }
@@ -1937,8 +2159,9 @@ limitations under the License.
          *
          */
         this._checkServiceResponse = function (xhr, success, request) {
-            var offlineReason = null;
-            var wasOnline = this.connected;
+            var offlineReason = null,
+                wasOnline = this.connected;
+            updateContextPropsFromResponse(this, xhr);
 
             /* first of all, if there are no subscriptions to offline or online events, don't
              * bother -- we don't want to run the risk of messing things up by calling ping
@@ -2027,6 +2250,7 @@ limitations under the License.
              * are available
              */
             if (xhr.status >= 200 && xhr.status < 300) {
+                updateContextPropsFromResponse(this, xhr);
                 if (oepingAvailable) {
                     try {
                         pingResponseJSON = JSON.parse(xhr.responseText);
@@ -2162,9 +2386,8 @@ limitations under the License.
                 }
                 xhr.setRequestHeader("Cache-Control", "no-cache");
                 xhr.setRequestHeader("Pragma", "no-cache");
-                if (this.xClientProps) {
-                    xhr.setRequestHeader("X-CLIENT-PROPS", this.xClientProps);
-                }
+                // set X-CLIENT-PROPS header
+                setRequestHeaderFromContextProps(this, xhr);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                     _addWithCredentialsAndAccept(xhr, 
                         "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
@@ -2445,6 +2668,45 @@ limitations under the License.
 
         }
 
+        function setRequestHeaderFromContextProps(session, xhr) {
+            if (session.xClientProps) {
+                xhr.setRequestHeader("X-CLIENT-PROPS", session.xClientProps);
+            }
+            else if (session._contextProperties.contextHeader !== undefined) {
+                xhr.setRequestHeader("X-CLIENT-PROPS", session._contextProperties.contextHeader);
+            }
+        }
+        
+        function updateContextPropsFromResponse(session, xhr) {
+            /* determine whether the response contains an X-CLIENT_PROPS header and, if so, 
+               set the Session's context
+             */
+            var contextString,
+                context;
+                
+            if (xhr) {
+                contextString = getResponseHeaderNoError(xhr, "X-CLIENT-PROPS");
+                if (contextString) {
+                    try {
+                        context = JSON.parse( contextString );
+                    }
+                    catch(e) {
+                    }
+                    if (typeof context === "object") {
+                        session._contextProperties.setContext( context );
+                    }
+                    else {
+                        //{1}: A server response included an invalid {2} header.
+                        throw new Error(progress.data._getMsgText("jsdoMSG123", 'Session', 'X-CLIENT-PROPS'));
+                    }
+                }
+                else if (contextString === "") {
+                    // If header is "", clear the X-CLIENT-PROPS context, 
+                    session._contextProperties.setContext( {} );
+                }
+                // if header is absent (getResponseHeader will return null), don't change _contextProperties
+            }
+        }        
 
     }; // End of Session
     progress.data.Session._useTimeStamp = true;
@@ -2705,7 +2967,6 @@ limitations under the License.
                 enumerable: true
             });        
         
-        
         // PRIVATE FUNCTIONS
         function onAfterLogin ( pdsession, result, errorObject, xhr ) {
             if (xhr && xhr._deferred) {
@@ -2813,10 +3074,15 @@ limitations under the License.
             execute asynchronously. Throws an error if the underlying login call does not 
             make the async request, otherwise returns a promise.
          */
-        this.login = function(username, password){
+        this.login = function(username, password, options){
             var deferred = $.Deferred(),
                 loginResult,
-                errorObject;
+                errorObject,
+                iOSBasicAuthTimeout;
+            
+            if ( typeof(options) === 'object' ) {
+                iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
+            }
 
             try {
                 _pdsession.subscribe('afterLogin', onAfterLogin, this);
@@ -2827,7 +3093,8 @@ limitations under the License.
                       password : password, 
                       async : true,
                       deferred : deferred,
-                      jsdosession : this} );
+                      jsdosession : this,
+                      iOSBasicAuthTimeout: iOSBasicAuthTimeout} );
                
                 if (loginResult !== progress.data.Session.ASYNC_PENDING) {
                     errorObject = new Error("JSDOSession: Unable to send login request.");
@@ -2845,13 +3112,14 @@ limitations under the License.
             }
         };
                             
-        this.addCatalog = function( catalogURI, username, password ){
+        this.addCatalog = function( catalogURI, username, password, options ){
             var deferred = $.Deferred(),
                 catalogURIs,
                 numCatalogs,
                 catalogIndex,
                 addResult,
-                errorObject;
+                errorObject,
+                iOSBasicAuthTimeout;
 
             // check whether 1st param is a string or an array
             if ( typeof catalogURI == "string" ) {
@@ -2863,6 +3131,13 @@ limitations under the License.
             else {
                 throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "addCatalog", 
                        "The catalogURI parameter must be a string or an array of strings.") );
+            }
+
+            /* see whether the caller wants to override the workaround for the Cordova iOS async 
+             * Basic auth bug
+             */
+            if ( typeof(options) === 'object' ) {
+                iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
             
             /* When we're done processing all catalogs, we pass an array of results to resolve() or
@@ -2882,7 +3157,7 @@ limitations under the License.
                 than ASYNC_PENDING, this function will reject the promise and return. Otherwise 
                 the afterAddCatalog handler will resolve or reject the promise after all calls have 
                 been processed.
-                Note that we try to make sure that each entry in teh results array is in teh same position
+                Note that we try to make sure that each entry in the results array is in the same position
                 as its catalogURI in the input array.
                */
                 // if a catalogURI has no protocol, pdsession will assume it's relative to the serviceURI,
@@ -2910,6 +3185,7 @@ limitations under the License.
                                          deferred : deferred,
                                          jsdosession : this,
                                          catalogIndex: catalogIndex,
+                                         iOSBasicAuthTimeout: iOSBasicAuthTimeout,
                                          offlineAddCatalog: true } );  // OK to get catalog if offline
                 }
                 catch (e) {
@@ -2987,7 +3263,44 @@ limitations under the License.
 
             return deferred.promise(); 
         };
+    
         
+        /* 
+           set the properties that are passed between client and Web application in the 
+           X-CLIENT-PROPS header. This sets the complete set of properties all at once;
+           it replaces any existing context
+         */
+        this.setContext = function( context ) {
+            _pdsession._contextProperties.setContext( context );
+        };
+
+        /* 
+         *  Set or remove an individual property in the set of the properties that are passed 
+         *  between client and Web application in the X-CLIENT-PROPS header. This operates only 
+         *  on the property identiofied by propertyName; all other existing properties remain
+         *  as they are.
+         *  If the propertyName is not part of the context, thsi call adds it
+         *  If it is part of the context, this call updates it, unless -
+         *  If propertyValue is undefined, this call removes the property
+         */
+        this.setContextProperty = function( propertyName, propertyValue) {
+            _pdsession._contextProperties.setContextProperty( propertyName, propertyValue );
+        };
+
+        /* 
+         * get the set of properties that are passed between client and Web application in the 
+         * X-CLIENT-PROPS header. Returns an object that has the properties
+         */
+        this.getContext = function( ) {
+            return _pdsession._contextProperties.getContext();
+        };
+        
+        /*  get the value of an individual property that is in the set of properties passed between 
+         *  client and Web application in the X-CLIENT-PROPS header
+         */
+        this.getContextProperty = function( propertyName) {
+            return _pdsession._contextProperties.getContextProperty( propertyName );
+        };
 
         this._onlineHandler = function( session, request ) {
             _myself.trigger( "online", _myself, request );            
@@ -3028,6 +3341,9 @@ limitations under the License.
         try {
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
+            }
+            if (options.context) {
+                this.setContext(options.context);                
             }
             _pdsession.subscribe( "online", this._onlineHandler, this);
             _pdsession.subscribe( "offline", this._offlineHandler, this);

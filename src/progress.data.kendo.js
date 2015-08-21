@@ -1,4 +1,7 @@
+
 /* 
+kendo.data.jsdo.js    Version: 4.1.0-3
+
 Copyright (c) 2015 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
- */
-
-// Version: 4.0.0-20
-
-/*
- * kendo.data.jsdo.js
  */
 
 /*global jQuery, kendo, progress*/
@@ -261,7 +258,7 @@ limitations under the License.
                 params = {
                     tableRef: this.tableRef,
                     filter: options.data.filter,
-                    orderBy: options.data.sort,
+                    sort: options.data.sort,
                     skip: options.data.skip,
                     top: options.data.take                            
                 };
@@ -285,8 +282,14 @@ limitations under the License.
                     filter,
                     data = {},
                     transport = this,
-                    callback;
-								
+                    callback,
+                    property,
+                    optionsMapping = {
+                        filter: "filter",
+                        take: "top",
+                        skip: "skip",
+                        sort: "sort"
+                    };
 
                 if (!this._initFromServer) {
                     this._initFromServer = jsdo[this.tableRef].hasData();
@@ -301,14 +304,23 @@ limitations under the License.
                 
                 if (!this.readLocal) {
                     // readLocal is false or _initFromServer is false
-                    if (options.data && (Object.keys(options.data).length > 0)) {
-                        filter = {
-                            tableRef: this.tableRef,
-                            filter: options.data.filter,
-                            orderBy: options.data.sort,
-                            skip: options.data.skip,
-                            top: options.data.take
-                            };
+                   
+                    if (options.data) {
+                        // Only create filter object if options.data contains viable properties
+                        for (property in options.data) {
+                            if (options.data.hasOwnProperty(property)) {
+                                if (options.data[property] !== undefined
+                                    && optionsMapping[property]) {
+                                    if (filter === undefined) {
+                                        filter = {};
+                                    }
+                                    filter[optionsMapping[property]] = options.data[property];
+                                }
+                            }
+                        }
+                        if (filter) {
+                            filter.tableRef = this.tableRef;
+                        }
                     }
                 }
                 
@@ -329,7 +341,7 @@ limitations under the License.
                         jsdo.useRelationships = saveUseRelationships;
                         transport._initFromServer = true;
                         if (options.data && options.data.take) {
-                            if (!this.readLocal && 
+                            if (!transport.readLocal && 
                                 transport.countFnName !== undefined && 
                                 typeof(jsdo[transport.countFnName]) === "function") {
                                 // Reuse filter string from the request.objParam object from fill() call.
@@ -337,7 +349,7 @@ limitations under the License.
                                                 transport.countFnName, 
                                                 { filter: request.objParam.filter });
                                 /*jslint unparam: true*/
-                                promise.done(function(fnName, jsdo, success, request){
+                                promise.done(function(jsdo, success, request){
                                     var exception, total;
                                     
                                     try {
@@ -365,7 +377,7 @@ limitations under the License.
                                         options.error(request.xhr, request.xhr.status, exception); 
                                     }
                                 });
-                                promise.fail(function(fnName, jsdo, success, request){
+                                promise.fail(function(jsdo, success, request){
                                     var exception;
                                     exception = new Error("Error invoking '" 
                                                             + transport.countFnName + "' operation.");
@@ -391,10 +403,10 @@ limitations under the License.
                 options.error(null, null, e);
             }
         },
-        _processChanges: function(options) {
+        _processChanges: function(options, request) {
             var jsdo = this.jsdo,
                 transport = this,
-                array, i, jsrecord;
+                array, i, jsrecord, id;
             if (options.batch) {
                 array = [];
                 if (options.data.created instanceof Array) {
@@ -453,7 +465,18 @@ limitations under the License.
                 options.success(array, "destroy");
             }
             else {
-                jsrecord = jsdo[transport.tableRef].findById(options.data._id);
+                if (jsdo._resource.idProperty) {
+                    if (request
+                        && request.batch
+                        && request.batch.operations instanceof Array
+                        && request.batch.operations.length === 1) {
+                        id = request.batch.operations[0].jsrecord.data._id;                         
+                    }
+                }
+                else {
+                    id = options.data._id;                    
+                }
+                jsrecord = jsdo[transport.tableRef].findById(id);
                 if (jsrecord) {
                     transport._convertDataTypes(jsrecord.data);
                     options.success(jsrecord.data);
@@ -472,7 +495,7 @@ limitations under the License.
                     if (success) {
                         // _id is expected to be set for CUD operations
                         // Deleted records will not be found and data is expected to be undefined
-                        transport._processChanges(options);
+                        transport._processChanges(options, request);
                     } else {                        
                         if (request.batch
                             && request.batch.operations instanceof Array

@@ -1,4 +1,7 @@
+
 /* 
+progress.js    Version: 4.1.0-7
+
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
- */
-
-// Version: 4.0.0-20
-
-/*
- * progress.js
  */
 
 (function () {
@@ -55,62 +52,68 @@ limitations under the License.
 
     var msg = {};
     msg.msgs = {};
-    msg.msgs["jsdoMSG000"] = "JSDO, Internal Error: {1}";
-    msg.msgs["jsdoMSG001"] = "JSDO: JSDO has multiple tables. Please use {1} at the table reference level.";
-    msg.msgs["jsdoMSG002"] = "JSDO: Working record for '{1}' is undefined.";
-    msg.msgs["jsdoMSG003"] = "JSDO: {1} function requires a function as a parameter.";
-    msg.msgs["jsdoMSG004"] = "JSDO: Unable to find resource '{1}' in the catalog.";
-    msg.msgs["jsdoMSG005"] = "JSDO: Data for table '{1}' was not specified in addRecords() call.";
-    msg.msgs["jsdoMSG006"] = "JSDO: Data for JSDO was not specified in addRecords() call.";
-    msg.msgs["jsdoMSG007"] = "JSDO: Test function in {1} must return a boolean.";
-    msg.msgs["jsdoMSG008"] = "JSDO: Invalid keyFields parameter in addRecords() call.";
-    msg.msgs["jsdoMSG009"] = "JSDO: KeyField '{1}' in addRecords() call was not found in the schema.";
-    msg.msgs["jsdoMSG010"] = "JSDO: Field '{1}' in relationship was not found in the schema.";
-    msg.msgs["jsdoMSG011"] = "UIHelper: JSDO has multiple tables. " +
+    msg.msgs.jsdoMSG000 = "JSDO, Internal Error: {1}";
+    msg.msgs.jsdoMSG001 = "JSDO: JSDO has multiple tables. Please use {1} at the table reference level.";
+    msg.msgs.jsdoMSG002 = "JSDO: Working record for '{1}' is undefined.";
+    msg.msgs.jsdoMSG003 = "JSDO: {1} function requires a function as a parameter.";
+    msg.msgs.jsdoMSG004 = "JSDO: Unable to find resource '{1}' in the catalog.";
+    msg.msgs.jsdoMSG005 = "JSDO: Data for table '{1}' was not specified in addRecords() call.";
+    msg.msgs.jsdoMSG006 = "JSDO: Data for JSDO was not specified in addRecords() call.";
+    msg.msgs.jsdoMSG007 = "JSDO: Test function in {1} must return a boolean.";
+    msg.msgs.jsdoMSG008 = "JSDO: Invalid keyFields parameter in addRecords() call.";
+    msg.msgs.jsdoMSG009 = "JSDO: KeyField '{1}' in addRecords() call was not found in the schema.";
+    msg.msgs.jsdoMSG010 = "JSDO: Field '{1}' in relationship was not found in the schema.";
+    msg.msgs.jsdoMSG011 = "UIHelper: JSDO has multiple tables. " +
         "Please use {1} at the table reference level.";
-    msg.msgs["jsdoMSG012"] = "UIHelper: Invalid {2} parameter in {1} call.";
-    msg.msgs["jsdoMSG020"] = "JSDO: tableName parameter must be a string in addRecords() call.";
-    msg.msgs["jsdoMSG021"] = "JSDO: addMode parameter must be specified in addRecords() call.";
-    msg.msgs["jsdoMSG022"] = "JSDO: Invalid addMode specified in addRecords() call.";
-    msg.msgs["jsdoMSG023"] = "JSDO: Duplicate found in addRecords() call using APPEND mode.";
-    msg.msgs["jsdoMSG024"] = "{1}: Unexpected signature in call to {2} function.";
-    msg.msgs["jsdoMSG025"] = "{1}: Invalid parameters in call to {2} function.";
-    msg.msgs["jsdoMSG026"] = "JSDO: saveChanges requires CREATE, UPDATE and DELETE operations to be defined.";
-    msg.msgs["jsdoMSG030"] = "JSDO: Invalid {1}, expected {2}.";
-    msg.msgs["jsdoMSG031"] = "JSDO: Specified sort field name '{1}' was not found in the schema.";
-    msg.msgs["jsdoMSG032"] = "JSDO: Before-image data already exists for record in addRecords() call.";
-    msg.msgs["jsdoMSG033"] = "{1}: Invalid signature for {2}. {3}";
-    msg.msgs["jsdoMSG034"] = "JSDO: In '{1}' function, JSON data is missing _id";
-    msg.msgs["jsdoMSG035"] = "JSDO: In '{1}' function, before-image JSON data is missing prods:clientId";
-    msg.msgs["jsdoMSG036"] = "JSDO: '{1}' can only be called for a dataset";
-    msg.msgs["jsdoMSG037"] = "{1}: Event name must be provided for {2}.";
-    msg.msgs["jsdoMSG038"] = "Too few arguments. There must be at least {1}.";
-    msg.msgs["jsdoMSG039"] = "The name of the event is not a string.";
-    msg.msgs["jsdoMSG040"] = "The event listener is not a function.";
-    msg.msgs["jsdoMSG041"] = "The event listener scope is not an object.";
-    msg.msgs["jsdoMSG042"] = "'{1}' is not a defined event for this object.";
-    msg.msgs["jsdoMSG043"] = "{1}: A session object was requested to check the status of a Mobile " + 
+    msg.msgs.jsdoMSG012 = "UIHelper: Invalid {2} parameter in {1} call.";
+    msg.msgs.jsdoMSG020 = "JSDO: tableName parameter must be a string in addRecords() call.";
+    msg.msgs.jsdoMSG021 = "JSDO: addMode parameter must be specified in addRecords() call.";
+    msg.msgs.jsdoMSG022 = "JSDO: Invalid addMode specified in addRecords() call.";
+    msg.msgs.jsdoMSG023 = "JSDO: Duplicate found in addRecords() call using APPEND mode.";
+    msg.msgs.jsdoMSG024 = "{1}: Unexpected signature in call to {2} function.";
+    msg.msgs.jsdoMSG025 = "{1}: Invalid parameters in call to {2} function.";
+    msg.msgs.jsdoMSG026 = "JSDO: saveChanges requires a " +
+        "CREATE, UPDATE, DELETE or SUBMIT operation to be defined.";
+    msg.msgs.jsdoMSG030 = "JSDO: Invalid {1}, expected {2}.";
+    msg.msgs.jsdoMSG031 = "JSDO: Specified sort field name '{1}' was not found in the schema.";
+    msg.msgs.jsdoMSG032 = "JSDO: Before-image data already exists for record in addRecords() call.";
+    msg.msgs.jsdoMSG033 = "{1}: Invalid signature for {2}. {3}";
+    msg.msgs.jsdoMSG034 = "JSDO: In '{1}' function, JSON data is missing _id";
+    msg.msgs.jsdoMSG035 = "JSDO: In '{1}' function, before-image JSON data is missing prods:clientId";
+    msg.msgs.jsdoMSG036 = "JSDO: '{1}' can only be called for a dataset";
+    msg.msgs.jsdoMSG037 = "{1}: Event name must be provided for {2}.";
+    msg.msgs.jsdoMSG038 = "Too few arguments. There must be at least {1}.";
+    msg.msgs.jsdoMSG039 = "The name of the event is not a string.";
+    msg.msgs.jsdoMSG040 = "The event listener is not a function.";
+    msg.msgs.jsdoMSG041 = "The event listener scope is not an object.";
+    msg.msgs.jsdoMSG042 = "'{1}' is not a defined event for this object.";
+    msg.msgs.jsdoMSG043 = "{1}: A session object was requested to check the status of a Mobile " + 
         "Service named '{2}', but it has not loaded the definition of that service.";
-    msg.msgs["jsdoMSG044"] = "JSDO: In '{1}' function, {2} is missing {3} property.";
+    msg.msgs.jsdoMSG044 = "JSDO: In '{1}' function, {2} is missing {3} property.";
+    msg.msgs.jsdoMSG045 = "JSDO: {1} function: {2} is missing {3} property.";    
 
-    msg.msgs["jsdoMSG100"] = "JSDO: Unexpected HTTP response. Too many records.";
-    msg.msgs["jsdoMSG101"] = "Network error while executing HTTP request.";
+    msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
+    msg.msgs.jsdoMSG101 = "Network error while executing HTTP request.";
 
-    msg.msgs["jsdoMSG110"] = "Catalog error: idProperty not specified for resource '{1}'. " +
+    msg.msgs.jsdoMSG110 = "Catalog error: idProperty not specified for resource '{1}'. " +
         "idProperty is required {2}.";
-    msg.msgs["jsdoMSG111"] = "Catalog error: Schema '{1}' was not found in catalog.";
-    msg.msgs["jsdoMSG112"] = "Catalog error: Output parameter '{1}' was not found for operation '{2}'.";
-    msg.msgs["jsdoMSG113"] = "Catalog error: Found xType '{1}' for output parameter '{2}' " +
+    msg.msgs.jsdoMSG111 = "Catalog error: Schema '{1}' was not found in catalog.";
+    msg.msgs.jsdoMSG112 = "Catalog error: Output parameter '{1}' was not found for operation '{2}'.";
+    msg.msgs.jsdoMSG113 = "Catalog error: Found xType '{1}' for output parameter '{2}' " +
         "for operation '{3}' but xType DATASET, TABLE or ARRAY was expected.";
-    msg.msgs["jsdoMSG114"] = "JSDO: idProperty '{1}' is missing from '{2}' record.";
-    msg.msgs["jsdoMSG115"] = "JSDO: Invalid option specified in {1}() call.";
-    msg.msgs["jsdoMSG116"] = "JSDO: {1} parameter must be a string in {2} call.";
-    msg.msgs["jsdoMSG117"] = "JSDO: Schema from storage area '{1}' does not match JSDO schema";
-	msg.msgs["jsdoMSG118"] = "JSDO: Plugin '{1}' was not found.";
-	msg.msgs["jsdoMSG119"] = "JSDO: A mappingType is expected when 'capabilities' is set." +
+    msg.msgs.jsdoMSG114 = "JSDO: idProperty '{1}' is missing from '{2}' record.";
+    msg.msgs.jsdoMSG115 = "JSDO: Invalid option specified in {1}() call.";
+    msg.msgs.jsdoMSG116 = "JSDO: {1} parameter must be a string in {2} call.";
+    msg.msgs.jsdoMSG117 = "JSDO: Schema from storage area '{1}' does not match JSDO schema";
+	msg.msgs.jsdoMSG118 = "JSDO: Plugin '{1}' was not found.";
+	msg.msgs.jsdoMSG119 = "JSDO: A mappingType is expected when 'capabilities' is set." +
                                 " Please specify a plugin (ex: JFP).";
+	msg.msgs.jsdoMSG120 = "JSDO: Parameter '{2}' requires capability '{1}' in the catalog.";
+    msg.msgs.jsdoMSG121 = "{1}: Argument {2} must be of type {3} in {4} call.";
+    msg.msgs.jsdoMSG122 = "{1}: Incorrect number of arguments in {2} call. There should be {3}.";
+    msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
 	
-    msg.msgs["jsdoMSG998"] = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
+    msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
     msg.getMsgText = function (n, args) {
         var text = msg.msgs[n],
@@ -437,8 +440,6 @@ limitations under the License.
 
             if (params && params.filter) {
                 throw new Error("Not implemented in current version");
-                // TO_DO: Implement below
-                //data = progress.util._getFilteredData(this, params.filter);
             }
             // Check if we should return this table with its nested child table's data as nested
             else if (this._jsdo._nestChildren) {
@@ -466,10 +467,10 @@ limitations under the License.
                 data = newDataArray;
             }
             else {
-                // Creates a copy of the data if orderBy and top are specified
+                // Creates a copy of the data if sort and top are specified
                 // so that the sorting does not happen in the JSDO memory but 
                 // in a copy of the records
-                if (params && (params.orderBy || params.top)) {
+                if (params && (params.sort || params.top)) {
                     newDataArray = [];
                     for (i = 0; i < data.length; i += 1) {
                         newDataArray.push(data[i]);
@@ -478,13 +479,13 @@ limitations under the License.
                 }
             }
 
-            if (params && (params.orderBy || params.top)) {
-                if (params.orderBy) {
+            if (params && (params.sort || params.top)) {
+                if (params.sort) {
                     // Converts sort option from Kendo UI to sort option used by the JSDO
                     sortFields = [];
-                    for (i = 0; i < params.orderBy.length; i += 1) {
-                        field = params.orderBy[i].field;
-                        if (params.orderBy[i].dir == "desc") {
+                    for (i = 0; i < params.sort.length; i += 1) {
+                        field = params.sort[i].field;
+                        if (params.sort[i].dir == "desc") {
                             field += ":DESC";
                         }
                         sortFields.push(field);
@@ -588,11 +589,29 @@ limitations under the License.
             return undefined;	
         };  
 
+        // Private method that returns format property (from catalog) for the specified field
+        this._getFormat = function (fieldName) {
+            var i, schema;
+		
+            schema = this.getSchema();
+		
+            for (i = 0; i < schema.length; i++) {
+                if (schema[i].name == fieldName) {
+                    return  schema[i].format;
+                }
+            }
+
+            return undefined;	
+        };  
+
 
 
         this.add = function (values) {
             return this._add(values, true, true);
         };
+ 
+        // Alias for add() method
+        this.create = this.add;
 
         this._add = function (values, trackChanges, setWorkingRecord) {
             if (typeof(trackChanges) == 'undefined') {
@@ -864,6 +883,9 @@ limitations under the License.
             else
                 throw new Error(msg.getMsgText("jsdoMSG002", this._name));
         };
+
+        // Alias for assign() method
+        this.update = this.assign;
 
         this.remove = function () {
             if (this.record) {
@@ -1591,7 +1613,7 @@ limitations under the License.
          */
         this.assign = function (record) {
             if (record === undefined)
-                throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "assign()"));
+                throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "assign() or update()"));
 
             this._saveBeforeImageUpdate();
 
@@ -1616,6 +1638,9 @@ limitations under the License.
             }
             return true;
         };
+
+        // Alias for assign() method
+        this.update = this.assign;
 
         /*
          * Removes the JSRecord.
@@ -1747,11 +1772,31 @@ limitations under the License.
      * @param serviceName : name of service (ignored if 1st param is an object containing the initial values)
      */
     progress.data.JSDO = function JSDO(resNameOrParmObj, serviceName) {
-
+        var _super = {};
+        
         if (typeof progress.data.Session == 'undefined') {
             throw new Error('ERROR: You must include progress.session.js');
         }
-
+        
+        _super.subscribe = this.subscribe;
+        
+        // Override for Observable.subscribe
+        this.subscribe = function(evt) {
+            var args = Array.prototype.slice.call(arguments);
+            if (typeof evt === "string") {
+                // Aliases for events
+                switch(evt.toLowerCase()) {
+                case "beforeread":
+                    args[0] = "beforefill";
+                    break;
+                case "afterread":
+                    args[0] = "afterfill";                
+                    break;
+                }
+            }
+            _super.subscribe.apply(this, args);
+        };
+        
         this._defineProperty = function (tableName, fieldName) {
             Object.defineProperty(
                 this._buffers[tableName],
@@ -2140,10 +2185,10 @@ limitations under the License.
             
             if (request.deferred) {
                 if (success) {
-                    request.deferred.resolve(request.fnName, jsdo, success, request);
+                    request.deferred.resolve(jsdo, success, request);
                 }
                 else {
-                    request.deferred.reject(request.fnName, jsdo, success, request);
+                    request.deferred.reject(jsdo, success, request);
                 }
             }            
         };
@@ -2384,9 +2429,12 @@ limitations under the License.
         this.add = function (obj) {
             if (this._defaultTableRef)
                 return this._defaultTableRef.add(obj);
-            throw new Error(msg.getMsgText("jsdoMSG001", "add()"));
+            throw new Error(msg.getMsgText("jsdoMSG001", "add() or create()"));
         };
-
+        
+        // Alias for add() method
+        this.create = this.add;
+        
         this.hasData = function () {
             for (var buf in this._buffers) {
                 if (this._buffers[this._buffers[buf]._name].hasData())
@@ -2449,8 +2497,11 @@ limitations under the License.
                 return this._defaultTableRef.assign(values);
             }
             else
-                throw new Error(msg.getMsgText("jsdoMSG001", "assign()"));
+                throw new Error(msg.getMsgText("jsdoMSG001", "assign() or update()"));
         };
+
+        // Alias for assign() method
+        this.update = this.assign;
 
         this.remove = function () {
             if (this._defaultTableRef) {
@@ -2520,7 +2571,7 @@ limitations under the License.
             if (arguments.length !== 0) {
                 // Call to fill() has parameters
                 if (typeof(arguments[0]) == 'function') {
-                    throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "fill()"));                
+                    throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "fill() or read()"));                
                 }
                 
                 // fill( string);
@@ -2534,7 +2585,7 @@ limitations under the License.
 				}
                 else if (typeof(arguments[0]) == "object") {
                     // options 
-                    // ablFilter, id, top, skip, orderBy
+                    // ablFilter, id, top, skip, sort
 					
 					properties = this.getMethodProperties("read");
 					
@@ -2559,7 +2610,7 @@ limitations under the License.
 					}
                 }
                 else {
-                    throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "fill()"));
+                    throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "fill() or read()"));
                 }                  
             }
             else {
@@ -2611,6 +2662,9 @@ limitations under the License.
 
             return promise;
         };
+
+        // Alias for fill() method
+        this.read = this.fill;
 
         /*
          * Clears all data (including any pending changes) for each buffer in JSDO
@@ -2686,8 +2740,9 @@ limitations under the License.
             // _fireCUDTriggersForSubmit() needs to know how saveChanges() was called
             this._useSubmit = useSubmit; 
 
-            if (!this._hasCUDOperations)
+            if (!this._hasCUDOperations && !this._hasSubmitOperation) {
                 throw new Error(msg.getMsgText("jsdoMSG026"));
+            }
 
             var request = {
                 jsdo: this
@@ -5574,9 +5629,17 @@ limitations under the License.
 		this.getMethodProperties = function(operation, name) {
 			var idx;
 			
+            if (this._resource._operations) {
+                if (this._resource._operations[operation]) {
+                    return this._resource._operations[operation];
+                }
+            }	
+            else {
+                this._resource._operations = {};
+            }
             for (var idx = 0; idx < this._resource.operations.length; idx++) {
                 if (this._resource.operations[idx].type == operation) {
-                    return this._resource.operations[idx];
+                    return (this._resource._operations[operation] = this._resource.operations[idx]);
                 }
             }
 		};
@@ -5646,28 +5709,56 @@ limitations under the License.
 			var sortFields,
 			field,
 			ablFilter,
-            properties,
+            sqlQuery,
+            methodProperties,
             capabilities,
-            reqCapabilities = "ablFilter,top,skip,id,orderBy";
+            index,
+            capabilitiesObject,
+            reqCapabilities = {
+                filter: { options: [ "ablFilter", "sqlQuery" ], mapping: undefined },
+                top:    { options: [ "top" ], mapping: undefined },
+                skip:   { options: [ "skip" ], mapping: undefined },
+                id:     { options: [ "id" ], mapping: undefined },
+                sort:   { options: [ "orderBy" ], mapping: undefined }
+            },
+            param;
 			
 			if (info.operation === "read") {
-                properties = jsdo.getMethodProperties(info.operation);
-                capabilities = properties.capabilities;
+                capabilitiesObject = {};
+                methodProperties = jsdo.getMethodProperties(info.operation);
+                capabilities = methodProperties.capabilities;
+                
                 if (capabilities) {
-                    capabilities = capabilities.replace(/\s/g, "");
+                    capabilities = capabilities.replace(/\s/g, "").split(",");
+                    for (index = 0; index < capabilities.length; index += 1) {
+                        capabilitiesObject[capabilities[index]] = true;
+                    }
                 }
-                if (capabilities !== reqCapabilities) {
-                    throw new Error("JSDO: Capabilities property must be set to '" + reqCapabilities + "'.");
+                for (param in params) {
+                    if (param && (params[param] !== undefined) && reqCapabilities[param]) {
+                        for (index = 0; index < reqCapabilities[param].options.length; index += 1) {
+                            option = reqCapabilities[param].options[index];
+                            if (capabilitiesObject[option]) {
+                                reqCapabilities[param].mapping = option;
+                                break;
+                            }
+                        }
+                        if (!reqCapabilities[param].mapping) {
+                            throw new Error(msg.getMsgText("jsdoMSG120", 
+                                reqCapabilities[param].options.join("' or '"), param));
+                        }
+                    }
                 }
-				if (params.orderBy) {
+                
+				if (params.sort) {
 					sortFields = "";
-					for (i = 0; i < params.orderBy.length; i += 1) {
-						field = params.orderBy[i].field;
-						if (params.orderBy[i].dir == "desc") {
+					for (index = 0; index < params.sort.length; index += 1) {
+						field = params.sort[index].field;
+						if (params.sort[index].dir == "desc") {
 							field += " DESC";
 						}
 						sortFields += field;
-						if (i < params.orderBy.length - 1) {
+						if (index < params.sort.length - 1) {
 							sortFields += ",";
 						}
 					}                                                                             
@@ -5678,16 +5769,26 @@ limitations under the License.
 						params.tableRef = jsdo._defaultTableRef._name;
 					}
 					if (params.tableRef) {
-						ablFilter = progress.util._convertToABLWhereString(
-							jsdo._buffers[params.tableRef], params.filter);
+                        
+                        if (reqCapabilities["filter"].mapping === "ablFilter") {
+							ablFilter = progress.util._convertToABLWhereString(
+									jsdo._buffers[params.tableRef], params.filter);
+                        }
+                        else if (reqCapabilities["filter"].mapping === "sqlQuery") {
+							sqlQuery = progress.util._convertToSQLQueryString(
+									jsdo._buffers[params.tableRef], params.filter, true);
+                        }
 					}
 					else
 					{
-						throw new Error(msg.getMsgText("jsdoMSG044", "fill()", "params", "tableRef"));
+						throw new Error(
+                                    msg.getMsgText("jsdoMSG045", "fill() or read()", "params", "tableRef"));
 					}   
 				}
+                
 				filter = JSON.stringify({
 					ablFilter: ablFilter,
+                    sqlQuery: sqlQuery,
 					orderBy: sortFields,
 					skip: params.skip,
 					top: params.top
