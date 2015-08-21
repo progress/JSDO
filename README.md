@@ -17,7 +17,7 @@ You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">downloa
 | [progress.util.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.util.js) | Helper classes for the JSDO |
 | [progress.data.kendo.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.kendo.js) | Kendo UI DataSource for the JSDO |
 
-The JSDO is available in the following prebuilt minified packages
+
 | Lib File| Purpose | 
 | ------- | ------- | 
 | [progress.all.js](https://github.com/CloudDataObject/JSDO/blob/master/lib/progress.all.js) | The JSDO plus the Kendo UI DataSource for JSDO |
