@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.1.0-7
+progress.js    Version: 4.2.0-7
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -112,6 +112,8 @@ limitations under the License.
     msg.msgs.jsdoMSG121 = "{1}: Argument {2} must be of type {3} in {4} call.";
     msg.msgs.jsdoMSG122 = "{1}: Incorrect number of arguments in {2} call. There should be {3}.";
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
+    msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
+                            "with a temp-table. Use jsdo.autoApplyChanges = false.";
 	
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
@@ -172,6 +174,7 @@ limitations under the License.
         this._added = [];
         this._changed = {};
         this._deleted = [];
+        this._lastErrors = [];
 
         this._createIndex = function () {
             var i, block, id, idProperty;
@@ -910,6 +913,11 @@ limitations under the License.
             else
                 return 0;
         };
+
+		// getErrors() - JSTableRef
+		this.getErrors = function () {
+			return this._lastErrors;
+		};
 
         this.getErrorString = function () {
             if (this.record) {
@@ -2517,6 +2525,13 @@ limitations under the License.
             throw new Error(msg.getMsgText("jsdoMSG001", "getId()"));
         };
 
+		// getErrors() - JSDO
+		this.getErrors = function () {
+            if (this._defaultTableRef)
+                return this._defaultTableRef.getErrors();
+            throw new Error(msg.getMsgText("jsdoMSG001", "getErrors()"));
+		};
+
         this.getErrorString = function () {
             if (this._defaultTableRef)
                 return this._defaultTableRef.getErrorString();
@@ -2556,6 +2571,13 @@ limitations under the License.
             throw new Error(msg.getMsgText("jsdoMSG001", "sort()"));
         };
 
+		this._clearErrors = function () {
+			this._lastErrors = [];
+            for (var buf in this._buffers) {
+				this._buffers[buf]._lastErrors = [];
+			}
+		};
+
         /*
          * Loads data from the HTTP resource.
          */
@@ -2565,7 +2587,7 @@ limitations under the License.
 				properties,
 				mapping;
                 
-            this._lastErrors = [];
+			this._clearErrors();
 
             // Process parameters
             if (arguments.length !== 0) {
@@ -2729,7 +2751,6 @@ limitations under the License.
          */
         this.saveChanges = function (useSubmit) {
             var promise;
-            this._lastErrors = [];
 
             if (useSubmit === undefined) {
                 useSubmit = false;
@@ -2737,12 +2758,24 @@ limitations under the License.
             else if (typeof(useSubmit) != 'boolean') {
                 throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "saveChanges()"));
             }
+            
+            if (useSubmit &&  (!this._dataSetName) ) {
+                if (this.autoApplyChanges) {
+                    /* error message: "autoApplyChanges is not supported for submit with a temp-table */
+                    /* Use jsdo.autoApplyChanges = false." */
+                    throw new Error(msg.getMsgText("jsdoMSG124")); 
+                }
+            }
+            
             // _fireCUDTriggersForSubmit() needs to know how saveChanges() was called
             this._useSubmit = useSubmit; 
 
             if (!this._hasCUDOperations && !this._hasSubmitOperation) {
                 throw new Error(msg.getMsgText("jsdoMSG026"));
             }
+
+            // Clear errors before sending request
+			this._clearErrors();
 
             var request = {
                 jsdo: this
@@ -3424,15 +3457,19 @@ limitations under the License.
             return promise;
         };
 
-
         /************************************************************************
          *
-         * Synchronizes changes for a DataSet, sending over the entire change-set to saveChanges() on server
-         * Sends over before-image and after-image data.
+         * Synchronizes changes for a DataSet or a temp-table, sending over the entire change-set
+         * to saveChanges() on server
+         * If sync'ing a DataSet, sends over before-image and after-image data.
          */
         this._syncDataSetForSubmit = function (request) {
             var deferred,
-                promise;
+                promise,
+                jsonObject,
+                completeFn = this._saveChangesComplete,
+                successFn = this._saveChangesSuccess,
+                errorFn =  this._saveChangesError;                
             
             if (typeof($) == 'function' && typeof($.Deferred) == 'function') {
                 deferred = $.Deferred();
@@ -3444,10 +3481,18 @@ limitations under the License.
 
             // First thing to do is to create jsonObject with before and after image data for all 
             // records in change-set (creates, updates and deletes)
-            var jsonObject = this._createChangeSet(this._dataSetName, false, request);
-
+            if ( this._dataSetName ) {
+                jsonObject = this._createChangeSet(this._dataSetName, false, request);
+            }
+            else {
+                // just a temp-table. Need to create it somewhat differently from DS 
+                // (no before and after image data)
+                jsonObject = this._createTTChangeSet(this._defaultTableRef, request);                
+                successFn = this._saveChangesSuccessTT;  // will process success response differently from DS
+            }
+            
             this._execGenericOperation(progress.data.JSDO._OP_SUBMIT, jsonObject, request, 
-                this._saveChangesComplete, this._saveChangesSuccess, this._saveChangesError);
+                completeFn, successFn, errorFn);
                 
             return promise;
         };
@@ -3516,6 +3561,84 @@ limitations under the License.
             return changeSetJsonObject;
         };
 
+        /************************************************************************
+         *
+         * Private method that creates a jsonObject for the created and changed records
+         * in a temp-table. There is no before-image information. This is used in the
+         * case of a Submit operation when the JSDO is just for a temp-table 
+         *
+         * Params: dataSetName is required.
+         *         alwaysCreateTable is required. If true, always create table array (even if no data/changes)
+         *         request is optional
+         */
+        this._createTTChangeSet = function (tableRef, request) {
+            var changeSetJsonObject = {},
+                hasChanges,
+                tempTableJsonObject,
+                i,
+                id,
+                jsrecord;
+
+            changeSetJsonObject[tableRef._name] = [];
+            tempTableJsonObject = changeSetJsonObject[tableRef._name];
+
+            hasChanges = this._hasChanges();
+            if (hasChanges) {
+                
+                // (note that we do not send deleted rows on submit for a temp-table)
+                
+                //  Adds
+                for (i = 0; i < tableRef._added.length; i++) {
+                    id = tableRef._added[i];
+                    jsrecord = tableRef._findById(id, false);
+                    if (jsrecord) {
+                        if ( !tableRef._processed[jsrecord.data._id] ) {
+                            this._addRowToTTChangeSet(tableRef, jsrecord, tempTableJsonObject,
+                                                       request, "beforeCreate");
+                        }
+                    }
+                }              
+
+                // changed rows
+                for (id in tableRef._changed) {
+                    if (tableRef._changed.hasOwnProperty(id)) {
+                        jsrecord = tableRef._findById(id, false);
+                        if (jsrecord) {
+                            if ( !tableRef._processed[jsrecord.data._id] ) {
+                                this._addRowToTTChangeSet(tableRef, jsrecord, tempTableJsonObject, 
+                                                          request, "beforeUpdate");
+                            }
+                        }
+                    }
+                }              
+                
+                // Clear _processed map
+                tableRef._processed = {};
+            }
+
+            return changeSetJsonObject;
+        };
+
+        this._addRowToTTChangeSet = function (tableRef, jsrecord, tempTableJsonObject, request, event) {
+            var rowData = {};
+            
+            tableRef._processed[jsrecord.data._id] = jsrecord.data;
+            
+            // Store jsrecord in request object so we can access it when saveChanges completes, 
+            // in order to run afterCreate events
+            if (typeof(request) != 'undefined') {
+                request.jsrecords.push(jsrecord);
+
+                // Need to call beforeCreate trigger when saveChanges(true) is called
+                jsrecord._tableRef.trigger(event, this, jsrecord, request);
+                this.trigger(event, this, jsrecord, request);
+            }
+            
+            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+            delete rowData["_id"];
+
+            tempTableJsonObject.push(rowData);
+        };
 
         /************************************************************************
          *
@@ -4906,8 +5029,8 @@ limitations under the License.
             var records = request.response;
             jsdo._mergeUpdateForSubmit(records, request.xhr);
 
-            // Save _errorString 
-            jsdo._lastErrors = [];
+            // Ensure that that the _lastErrors variable has been cleared 
+			jsdo._clearErrors();
             var changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
 
@@ -4921,6 +5044,24 @@ limitations under the License.
             if (jsdo.autoApplyChanges) {
                 jsdo.rejectChanges();
             }
+        };
+
+        /*  _saveChangesSuccessTT
+            internal function called after a Submit of a temp-table (not DataSet) returns success
+            This method does not attempt to do any merging of records into the JSDO memory. The
+            absence of _id for the records means that the only way we could possibly do a "merge"
+            would be to delete the changed rceords in the JSDO memory and then add the records
+            that were returned form the data service, but that would invalidate the _id's that
+            the Kendo datasource depends on. The application programmmer must do the merging in
+            the afterSaveChanges handler
+         */         
+        this._saveChangesSuccessTT = function (jsdo, success, request) {
+            var changes;
+
+            // Ensure that that the _lastErrors variable has been cleared 
+            jsdo._clearErrors();
+            changes = jsdo.getChanges();
+            jsdo._updateLastErrors(jsdo, null, changes);
         };
 
         this._saveChangesComplete = function (jsdo, success, request) {
@@ -5024,6 +5165,10 @@ limitations under the License.
                 for (var i = 0; i < changes.length; i++) {
                     if (changes[i].record && changes[i].record.data._errorString !== undefined) {
                         jsdo._lastErrors.push({errorString: changes[i].record.data._errorString});
+
+						jsdo._buffers[changes[i].record._tableRef._name]._lastErrors.push({
+							id: changes[i].record.data._id,
+							error: changes[i].record.data._errorString});
                     }
                 }
             }
@@ -5721,6 +5866,7 @@ limitations under the License.
                 id:     { options: [ "id" ], mapping: undefined },
                 sort:   { options: [ "orderBy" ], mapping: undefined }
             },
+            doConversion = true,
             param;
 			
 			if (info.operation === "read") {
@@ -5765,25 +5911,38 @@ limitations under the License.
 				}
 				
 				if (params.filter) {
+                    // If filter is specified as string, then no conversion is necessary
+                    if (typeof params.filter === 'string') {
+                        doConversion = false;
+                    }
+                    
 					if (jsdo._defaultTableRef && params.tableRef === undefined) {
 						params.tableRef = jsdo._defaultTableRef._name;
 					}
-					if (params.tableRef) {
-                        
-                        if (reqCapabilities["filter"].mapping === "ablFilter") {
-							ablFilter = progress.util._convertToABLWhereString(
-									jsdo._buffers[params.tableRef], params.filter);
+                    
+                    if (doConversion && (params.tableRef === undefined)) {
+                        throw new Error(msg.getMsgText("jsdoMSG045", "fill() or read()", "params", 
+                                                       "tableRef"));
+					}  
+                       
+                    if (reqCapabilities["filter"].mapping === "ablFilter") {
+                        if (doConversion) {
+                            ablFilter = progress.util._convertToABLWhereString(
+                                        jsdo._buffers[params.tableRef], params.filter);
                         }
-                        else if (reqCapabilities["filter"].mapping === "sqlQuery") {
-							sqlQuery = progress.util._convertToSQLQueryString(
-									jsdo._buffers[params.tableRef], params.filter, true);
+                        else {
+                            ablFilter = params.filter;
                         }
-					}
-					else
-					{
-						throw new Error(
-                                    msg.getMsgText("jsdoMSG045", "fill() or read()", "params", "tableRef"));
-					}   
+                    }
+                    else if (reqCapabilities["filter"].mapping === "sqlQuery") {
+                        if (doConversion) {
+                            sqlQuery = progress.util._convertToSQLQueryString(
+                                        jsdo._buffers[params.tableRef], params.filter, true);
+                        }
+                        else {
+                            sqlQuery = params.filter;
+                        }
+                    }
 				}
                 
 				filter = JSON.stringify({

@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.1.0-7
+progress.session.js    Version: 4.2.0-2
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -697,6 +697,7 @@ limitations under the License.
         
         var myself = this,
             isUserAgentiOS = false,  // checked just below this var statement
+            isFirefox = false,  // checked just below this var statement
             defaultiOSBasicAuthTimeout = 4000,
             deviceIsOnline = true,  // online until proven offline
             restApplicationIsOnline = false,  // was the Mobile Web Application that this Session object
@@ -709,6 +710,7 @@ limitations under the License.
         if (typeof navigator  !== "undefined") {
             if (typeof navigator.userAgent !== "undefined") {
                 isUserAgentiOS = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)/i);
+                isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
             }
         }
         
@@ -1078,9 +1080,10 @@ limitations under the License.
             urlPlusCCID = this._addCCIDtoURL(urlPlusCCID);
 
             // add time stamp to the url
-            if (progress.data.Session._useTimeStamp)
+            if (progress.data.Session._useTimeStamp) {
                 urlPlusCCID = this._addTimeStampToURL(urlPlusCCID);
-
+            }
+            
             this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                 _addWithCredentialsAndAccept(xhr, "application/json");
@@ -1164,7 +1167,8 @@ limitations under the License.
                 args = [],
                 deferred,
                 jsdosession,
-                iOSBasicAuthTimeout;
+                iOSBasicAuthTimeout,
+                uriForRequest;   // "decorated" version of serviceURI, used to actually send the request
 
             pwSave = null;   // in case these are left over from a previous login
             unameSave = null;
@@ -1280,8 +1284,11 @@ limitations under the License.
             xhr.pdsession = this;
 
             try {
-                this._setXHRCredentials(xhr, 'GET', this.serviceURI + this.loginTarget,
-                    uname, pw, isAsync);
+                uriForRequest = this.serviceURI + this.loginTarget;
+                if (progress.data.Session._useTimeStamp) {
+                    uriForRequest = this._addTimeStampToURL(uriForRequest);
+                }               
+                this._setXHRCredentials(xhr, 'GET', uriForRequest, uname, pw, isAsync);
 
                 xhr.setRequestHeader("Cache-Control", "no-cache");
                 xhr.setRequestHeader("Pragma", "no-cache");
@@ -1897,8 +1904,7 @@ limitations under the License.
                 return progress.data.Session.CATALOG_ALREADY_LOADED;
             }
 
-            this._setXHRCredentials(xhr, 'GET', catalogURI,
-                catalogUserName, catalogPassword, isAsync);
+            this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
             // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
             // be stored with the REST app and even if it is, the AppServer ID shouldn't be relevant
 
@@ -2404,7 +2410,9 @@ limitations under the License.
         this._makePingURI = function () {
             var pingURI = this.serviceURI + partialPingURI;
             // had caching problem with Firefox in its offline mode
-            pingURI = this._addTimeStampToURL(pingURI);  
+            if (progress.data.Session._useTimeStamp) {
+                pingURI = this._addTimeStampToURL(pingURI);  
+            }
             return pingURI;
         };
 
@@ -2429,8 +2437,15 @@ limitations under the License.
             if (userName
                 && this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
 
-                xhr.open(verb, uri, async, userName, password);
-
+                if ( isFirefox ) {
+                    // Firefox will throw an error on the send() if CORS is being used for the request
+                    // and we have included credentials in the URI (which is what passing them to open() does)
+                    xhr.open(verb, uri, async);
+                }
+                else {
+                    xhr.open(verb, uri, async, userName, password);
+                }
+                
                 // set Authorization header
                 var auth = _make_basic_auth(userName, password);
                 xhr.setRequestHeader('Authorization', auth);
