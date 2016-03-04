@@ -1,7 +1,7 @@
 {
   "name": "progress-jsdo",
-  "version": "1.0.0",
-  "description": "Progress JSDO library for node",
+  "version": "4.2.0",
+  "description": "Progress JSDO library",
   "main": "lib/progress.jsdo.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
