@@ -1,0 +1,24 @@
+{
+  "name": "progress-jsdo",
+  "version": "1.0.0",
+  "description": "Progress JSDO library for node",
+  "main": "lib/progress.jsdo.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CloudDataObject/JSDO.git"
+  },
+  "keywords": [
+    "JSDO",
+    "Progress",
+    "node"
+  ],
+  "author": "Progress Software",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/CloudDataObject/JSDO/issues"
+  },
+  "homepage": "https://github.com/CloudDataObject/JSDO#readme"
+}
