@@ -63,7 +63,7 @@ limitations under the License.
         if (options.authenticationURI) {
             authenticationURI = options.authenticationURI;
         } else {
-            throw new Error(progress.data._getMsgText("jsdoMSG048", "AuthenticationProvider", "constructor",
+            throw new Error(progress.data._getMsgText("jsdoMSG048", "AuthenticationProvider", "Constructor",
                                                       "options", "authenticationURI"));
         }
         
