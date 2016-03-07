@@ -20,8 +20,12 @@ limitations under the License.
 
 (function () {
 
+    "use strict";
+
+    /*global progress : true*/
+
     /* define these if not defined yet - they may already be defined if
-     progress.js was included first */
+       progress.js was included first */
     if (typeof progress === "undefined") {
         progress = {};
     }
@@ -29,47 +33,46 @@ limitations under the License.
         progress.data = {};
     }
     
-    progress.data.AuthenticationProvider = function( options ) {
+    progress.data.AuthenticationProvider = function (options) {
         var authenticationURI,
-            tokenLocation;
+            tokenLocation,
+            defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID";
 
         // PROPERTIES
         Object.defineProperty(this, 'authenticationURI',
             {
-                    get: function () {
-                        return authenticationURI;
-                    },
-                    enumerable: true
+                get: function () {
+                    return authenticationURI;
+                },
+                enumerable: true
             });
 
         Object.defineProperty(this, 'tokenLocation',
-        {
-                    get: function () {
-                        return tokenLocation;
-                    },
-                    enumerable: true
-        });
+            {
+                get: function () {
+                    return tokenLocation;
+                },
+                enumerable: true
+            });
  
         
-        if (typeof options === "undefined") {   
+        if (typeof options === "undefined") {
             throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
         }
         
         if (options.authenticationURI) {
             authenticationURI = options.authenticationURI;
-        }
-        else {
-            throw new Error(progress.data._getMsgText("jsdoMSG045", "AuthenticationProvider constructor",
+        } else {
+            throw new Error(progress.data._getMsgText("jsdoMSG048", "AuthenticationProvider", "constructor",
                                                       "options", "authenticationURI"));
         }
         
         if (options.tokenLocation) {
             tokenLocation = options.tokenLocation;
-        }
-        else {
+        } else {
             // Give it a default location
             tokenLocation = {
-                headerName : "X-OE-CLIENT-CONTEXT-ID"
+                headerName : defaultHeaderName
             };
         }
         
@@ -80,5 +83,5 @@ limitations under the License.
     };
     
     
-}()) ;
+}());
 
