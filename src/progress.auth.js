@@ -23,6 +23,7 @@ limitations under the License.
     "use strict";
 
     /*global progress : true*/
+    /*global $ : false*/
 
     /* define these if not defined yet - they may already be defined if
        progress.js was included first */
@@ -37,7 +38,7 @@ limitations under the License.
         var authenticationURI,
             tokenLocation,
             defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID";
-
+        
         // PROPERTIES
         Object.defineProperty(this, 'authenticationURI',
             {
@@ -77,8 +78,99 @@ limitations under the License.
         }
         
         // PRIVATE FUNCTIONS
+//        function onReadyStateChangeGeneric() {
+//            var xhr = thatXHR,
+//                result,
+//                errorObject;
+//    
+//            if (xhr.readyState === 4) {
+//                result = null;
+//                errorObject = null;
+//
+//                // initial processing of the response from the Web application
+//                if ((typeof xhr.onResponseFn) === 'function') {
+//                    try {
+//                        result = xhr.onResponseFn(xhr);
+//                        // ( note that result will remain null if this is a logout() )
+//                    } catch (e) {
+//                        errorObject = e;
+//                    }
+//                }
+//            }
+//        }
+
+        function processAuthResult(xhr) {
+
+            if (xhr._deferred) {
+                if (xhr.status === 200) {
+                    xhr._deferred.resolve(
+                        xhr._jsdosession,
+                        progress.data.Session.AUTHENTICATION_SUCCESS,
+                        {
+                            "xhr": xhr
+                        }
+                    );
+                } else {
+                    xhr._deferred.reject(
+                        xhr._jsdosession,
+                        progress.data.Session.AUTHENTICATION_FAILURE,
+                        {
+                            xhr: xhr
+                        }
+                    );
+                }
+            } else {
+                throw new Error("_deferred missing from xhr when processing authenticate");
+            }
+        }
         
         // METHODS
+        this.authenticate = function (options) {
+            var deferred = $.Deferred(),
+                errorObject,
+                xhr,
+                auth,
+                tok,
+                hash;
+            
+            xhr = new XMLHttpRequest();
+            xhr.ap = this;  // do we need this?
+            
+            xhr.open("GET", this.authenticationURI, true, options.userName, options.password);
+            
+//            auth = _make_basic_auth(userName, password);
+            tok = options.userName + ':' + options.password;
+            hash = btoa(tok);
+            auth = "Basic " + hash;
+            xhr.setRequestHeader('Authorization', auth);
+            
+            xhr.onreadystatechange = function () {
+                var result,
+                    errorObject;
+
+                if (xhr.readyState === 4) {
+                    result = null;
+                    errorObject = null;
+
+                    // initial processing of the response from the Web application
+                    if ((typeof xhr.onResponseFn) === 'function') {
+                        try {
+                            result = xhr.onResponseFn(xhr);
+                            // ( note that result will remain null if this is a logout() )
+                        } catch (e) {
+                            errorObject = e;
+                        }
+                    }
+                }
+            };
+            
+            xhr.onResponseFn = processAuthResult;
+            xhr._deferred = deferred;
+            xhr.send();
+            return deferred;
+            
+        };
+
     
     };
     
