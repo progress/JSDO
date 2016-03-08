@@ -1,6 +1,6 @@
 
 /* 
-progress.AuthenticationProvider.js    Version: 4.3.0-1
+progress.auth.js    Version: 4.3.0-1
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
