@@ -22,7 +22,7 @@ limitations under the License.
 
     "use strict";
 
-    /*global progress : true*/
+    /*global progress : true, btoa*/
     /*global $ : false*/
 
     /* define these if not defined yet - they may already be defined if
@@ -56,6 +56,17 @@ limitations under the License.
                 enumerable: true
             });
  
+        Object.defineProperty(this, 'token',
+            {
+                set: function (val) {
+                    sessionStorage.setItem(authenticationURI, val);
+                },
+                get: function () {
+                    return sessionStorage.getItem(authenticationURI);
+                },
+                enumerable: false
+            });
+ 
         
         if (typeof options === "undefined") {
             throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
@@ -78,43 +89,45 @@ limitations under the License.
         }
         
         // PRIVATE FUNCTIONS
-//        function onReadyStateChangeGeneric() {
-//            var xhr = thatXHR,
-//                result,
-//                errorObject;
-//    
-//            if (xhr.readyState === 4) {
-//                result = null;
-//                errorObject = null;
-//
-//                // initial processing of the response from the Web application
-//                if ((typeof xhr.onResponseFn) === 'function') {
-//                    try {
-//                        result = xhr.onResponseFn(xhr);
-//                        // ( note that result will remain null if this is a logout() )
-//                    } catch (e) {
-//                        errorObject = e;
-//                    }
-//                }
-//            }
-//        }
-
+        
+        function openTokenRequest(xhr, authProvider, credentials) {
+            xhr.open('POST', authProvider.authenticationURI, true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.setRequestHeader("Cache-Control", "max-age=0");
+            xhr.withCredentials = true;
+            xhr.setRequestHeader("Accept", "application/json");
+        }
+        
         function processAuthResult(xhr) {
-
+            var token,
+                errorObject,
+                result;
+            
             if (xhr._deferred) {
                 if (xhr.status === 200) {
+                    // get token and store it; if that goes well, resolve the promise, otherwise reject it
+                    try {
+                        token = xhr._authProvider.getTokenFromXHR({xhr: xhr});
+                        xhr._authProvider.token = token;
+                    } catch (e) {
+                        errorObject = e;
+                    }
+                }
+                
+                if (result === progress.data.Session.AUTHENTICATION_SUCCESS) {
                     xhr._deferred.resolve(
-                        xhr._jsdosession,
-                        progress.data.Session.AUTHENTICATION_SUCCESS,
+                        xhr._authProvider,
+                        result,
                         {
                             "xhr": xhr
                         }
                     );
                 } else {
                     xhr._deferred.reject(
-                        xhr._jsdosession,
-                        progress.data.Session.AUTHENTICATION_FAILURE,
+                        xhr._authProvider,
+                        result,
                         {
+                            errorObject : errorObject, // might be undefined, that's OK
                             xhr: xhr
                         }
                     );
@@ -128,48 +141,82 @@ limitations under the License.
         this.authenticate = function (options) {
             var deferred = $.Deferred(),
                 errorObject,
-                xhr,
-                auth,
-                tok,
-                hash;
+                xhr;
             
             xhr = new XMLHttpRequest();
-            xhr.ap = this;  // do we need this?
+            xhr._authProvider = this;
             
-            xhr.open("GET", this.authenticationURI, true, options.userName, options.password);
+            openTokenRequest(xhr, this, options);
             
-//            auth = _make_basic_auth(userName, password);
-            tok = options.userName + ':' + options.password;
-            hash = btoa(tok);
-            auth = "Basic " + hash;
-            xhr.setRequestHeader('Authorization', auth);
-            
+// DELETE THIS FOR REAL IMPLEMENTATION (ASSUMING THAT THE REAL IMPL DOESN'T REQUIRE 2 CALLS)
             xhr.onreadystatechange = function () {
-                var result,
-                    errorObject;
-
+                var errorObject;
+            
                 if (xhr.readyState === 4) {
-                    result = null;
-                    errorObject = null;
+                    if (xhr.status === 200) {
+                        xhr.open('GET', "http://localhost:8810/TokenServer/web/getcp", true);
+                        xhr.setRequestHeader("Cache-Control", "no-cache");
+                        xhr.setRequestHeader("Pragma", "no-cache");
+                        xhr.withCredentials = true;
+                        xhr.setRequestHeader("Accept", "application/json");
+// END OF DELETION FOR REAL IMPLEMENTATION 
+                        xhr.onreadystatechange = function () {
+                            var errorObject;
 
-                    // initial processing of the response from the Web application
-                    if ((typeof xhr.onResponseFn) === 'function') {
-                        try {
-                            result = xhr.onResponseFn(xhr);
-                            // ( note that result will remain null if this is a logout() )
-                        } catch (e) {
-                            errorObject = e;
-                        }
+                            if (xhr.readyState === 4) {
+                                errorObject = null;
+                // NOTE: if we keep this as a closure rather than implementing a separate generic
+                // readystatechange handler, we can get rid of the xhr.onResponseFn property and just call
+                // processAuthResult directly (remove its assignment just before the send at the end of authenticate() )
+                                // process the response from the Web application
+                                if ((typeof xhr.onResponseFn) === 'function') {
+                                    try {
+                                        xhr.onResponseFn(xhr);
+                                    } catch (e) {
+                                        errorObject = e;
+                                    }
+                                }
+                            }
+                        };
+
+// DELETE THIS SEND() FOR REAL IMPLEMENTATION
+                        xhr.send();
                     }
                 }
+                
             };
             
             xhr.onResponseFn = processAuthResult;
             xhr._deferred = deferred;
-            xhr.send();
+//            xhr.send();   if using Basic auth to get token, probably delete this when we get the real implementation
+            xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
             return deferred;
             
         };
+
+        // finds the token in a successful response from a token provider and returns it
+        this.getTokenFromXHR = function (options) {
+            var xhr = options.xhr,
+                token,
+                allHeaders,
+                regExp,
+                headerName;
+
+            try {
+                allHeaders = xhr.getAllResponseHeaders();
+             
+                if (allHeaders) {
+                    headerName = this.tokenLocation.headerName;
+                    regExp = new RegExp("^" + headerName + ":", "m");
+                    if (allHeaders.match(regExp)) {
+                        return xhr.getResponseHeader(headerName);
+                    }
+                }
+            } catch (e) {
+                throw new Error("Unexpected error authenticating:" + e.message); // add to JSDOMessages
+            }
+        };
+                            
 
     
     };
