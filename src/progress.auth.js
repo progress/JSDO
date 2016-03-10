@@ -109,12 +109,18 @@ limitations under the License.
                     try {
                         token = xhr._authProvider.getTokenFromXHR({xhr: xhr});
                         xhr._authProvider.token = token;
+                        result = progress.data.Session.SUCCESS;
                     } catch (e) {
+                        result = progress.data.Session.AUTHENTICATION_FAILURE;
                         errorObject = e;
                     }
+                } else if (xhr.status === 401 || xhr.status === 403) {
+                    result = progress.data.Session.AUTHENTICATION_FAILURE;
+                } else {
+                    result = progress.data.Session.GENERAL_FAILURE;
                 }
                 
-                if (result === progress.data.Session.AUTHENTICATION_SUCCESS) {
+                if (result === progress.data.Session.SUCCESS) {
                     xhr._deferred.resolve(
                         xhr._authProvider,
                         result,
@@ -167,7 +173,8 @@ limitations under the License.
                                 errorObject = null;
                 // NOTE: if we keep this as a closure rather than implementing a separate generic
                 // readystatechange handler, we can get rid of the xhr.onResponseFn property and just call
-                // processAuthResult directly (remove its assignment just before the send at the end of authenticate() )
+                // processAuthResult directly (remove its assignment just before the send at the
+                // end of authenticate() )
                                 // process the response from the Web application
                                 if ((typeof xhr.onResponseFn) === 'function') {
                                     try {
@@ -183,12 +190,11 @@ limitations under the License.
                         xhr.send();
                     }
                 }
-                
+
             };
             
             xhr.onResponseFn = processAuthResult;
             xhr._deferred = deferred;
-//            xhr.send();   if using Basic auth to get token, probably delete this when we get the real implementation
             xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
             return deferred;
             
@@ -196,22 +202,8 @@ limitations under the License.
 
         // finds the token in a successful response from a token provider and returns it
         this.getTokenFromXHR = function (options) {
-            var xhr = options.xhr,
-                token,
-                allHeaders,
-                regExp,
-                headerName;
-
             try {
-                allHeaders = xhr.getAllResponseHeaders();
-             
-                if (allHeaders) {
-                    headerName = this.tokenLocation.headerName;
-                    regExp = new RegExp("^" + headerName + ":", "m");
-                    if (allHeaders.match(regExp)) {
-                        return xhr.getResponseHeader(headerName);
-                    }
-                }
+                return options.xhr.getResponseHeader(this.tokenLocation.headerName);
             } catch (e) {
                 throw new Error("Unexpected error authenticating:" + e.message); // add to JSDOMessages
             }
