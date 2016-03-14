@@ -37,7 +37,8 @@ limitations under the License.
     progress.data.AuthenticationProvider = function (options) {
         var authenticationURI,
             tokenLocation,
-            defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID";
+            defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID",
+            that = this;
         
         // PROPERTIES
         Object.defineProperty(this, 'authenticationURI',
@@ -66,7 +67,7 @@ limitations under the License.
                 },
                 enumerable: false
             });
- 
+  
         
         if (typeof options === "undefined") {
             throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
@@ -78,7 +79,7 @@ limitations under the License.
             throw new Error(progress.data._getMsgText("jsdoMSG048", "AuthenticationProvider", "Constructor",
                                                       "options", "authenticationURI"));
         }
-        
+
         if (options.tokenLocation) {
             tokenLocation = options.tokenLocation;
         } else {
@@ -103,12 +104,12 @@ limitations under the License.
                 errorObject,
                 result;
             
-            if (xhr._deferred) {
+            if (that.deferred) {
                 if (xhr.status === 200) {
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
-                        token = xhr._authProvider.getTokenFromXHR({xhr: xhr});
-                        xhr._authProvider.token = token;
+                        token = that.getTokenFromXHR({xhr: xhr});
+                        that.token = token;
                         result = progress.data.Session.SUCCESS;
                     } catch (e) {
                         result = progress.data.Session.AUTHENTICATION_FAILURE;
@@ -121,16 +122,16 @@ limitations under the License.
                 }
                 
                 if (result === progress.data.Session.SUCCESS) {
-                    xhr._deferred.resolve(
-                        xhr._authProvider,
+                    that.deferred.resolve(
+                        that,
                         result,
                         {
                             "xhr": xhr
                         }
                     );
                 } else {
-                    xhr._deferred.reject(
-                        xhr._authProvider,
+                    that.deferred.reject(
+                        that,
                         result,
                         {
                             errorObject : errorObject, // might be undefined, that's OK
@@ -139,7 +140,7 @@ limitations under the License.
                     );
                 }
             } else {
-                throw new Error("_deferred missing from xhr when processing authenticate");
+                throw new Error("deferred missing from xhr when processing authenticate");
             }
         }
         
@@ -150,7 +151,6 @@ limitations under the License.
                 xhr;
             
             xhr = new XMLHttpRequest();
-            xhr._authProvider = this;
             
             openTokenRequest(xhr, this, options);
             
@@ -160,7 +160,7 @@ limitations under the License.
             
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
-                        xhr.open('GET', "http://localhost:8810/TokenServer/web/getcp", true);
+                        xhr.open('GET', "http://172.30.1.11:8810/TokenServer/web/getcp", true);
                         xhr.setRequestHeader("Cache-Control", "no-cache");
                         xhr.setRequestHeader("Pragma", "no-cache");
                         xhr.withCredentials = true;
@@ -194,7 +194,6 @@ limitations under the License.
             };
             
             xhr.onResponseFn = processAuthResult;
-            xhr._deferred = deferred;
             xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
             return deferred;
             
@@ -208,11 +207,7 @@ limitations under the License.
                 throw new Error("Unexpected error authenticating:" + e.message); // add to JSDOMessages
             }
         };
-                            
-
-    
     };
-    
     
 }());
 

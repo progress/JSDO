@@ -42,8 +42,8 @@ var progress = progress,
             msgs = [],
             outputString;
 
-       // spit out the actual output. Also returns the output as a string for easy comparison
-       // with the correct output, which was set into correctOutputString at the beginning of the test
+        // spit out the actual output. Also returns the output as a string for easy comparison
+        // with the correct output, which was set into correctOutputString at the beginning of the test
         outputString = outputMsgs(actualOutputMsgs, document.getElementById("outdiv"));
 
         msgs.push(" ");
