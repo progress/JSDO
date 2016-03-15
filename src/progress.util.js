@@ -1,5 +1,9 @@
 /* 
+progress.util.js    Version: 4.2.0-2
+
 Copyright (c) 2014-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+
+Contains support objects used by the jsdo and/or session object
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,24 +19,23 @@ limitations under the License.
 
  */
 
-// Version: 4.0.0-12
-
-/*
- * progress.util.js Contains support objects used by the jsdo and/or session object
- */
-
-
 (function () {
-
-    /* Define these if not defined yet - they may already be defined if
-     progress.js was included first */
-    if (typeof progress == 'undefined')
+    
+     /* Define these if not defined yet - they may already be defined if
+      * progress.js was included first */
+    if (typeof progress === "undefined") {
         progress = {};
-    if (typeof progress.data == 'undefined')
+    }
+    
+    if (typeof progress.data === "undefined") {
         progress.data = {};
+    }
 
     progress.util = {};
-
+    
+    var STRING_OBJECT_TYPE = "String",
+        DATE_OBJECT_TYPE = "Date";
+    
     
     /**
      * Utility class that allows subscribing and unsubscribing from named events.
@@ -73,12 +76,12 @@ limitations under the License.
          */
         this.validateSubscribe = function (args, evt, listenerData) {
 
-            if (args.length >= 2 && (typeof args[0] == 'string') && (typeof args[1] == 'string')) {
+            if (args.length >= 2 && (typeof args[0] === 'string') && (typeof args[1] === 'string')) {
                 listenerData.operation = args[1];
                 listenerData.fn = args[2];
                 listenerData.scope = args[3];
 
-            } else if (args.length >= 2 && (typeof args[0] == 'string') && (typeof args[1] == 'function')) {
+            } else if (args.length >= 2 && (typeof args[0] === 'string') && (typeof args[1] === 'function')) {
                 listenerData.operation = undefined;
                 listenerData.scope = args[2];
                 listenerData.fn = args[1];
@@ -116,28 +119,31 @@ limitations under the License.
 
          */
         this.subscribe = function (evt, operation, fn, scope) {
-
+            var listenerData,
+                observers;
+                
             if (!evt) {
-                throw new Error(msg.getMsgText("jsdoMSG037", this.toString(), "subscribe"));
+                throw new Error(progress.data._getMsgText("jsdoMSG037", this.toString(), "subscribe"));
             }
 
             if (typeof evt !== 'string') {
-                throw new Error(msg.getMsgText("jsdoMSG033", this.toString(), 
-                    "subscribe", msg.getMsgText("jsdoMSG039")));
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                    "subscribe", progress.data._getMsgText("jsdoMSG039")));
             }
 
             this._events = this._events || {};
             evt = evt.toLowerCase();
-            var listenerData = {fn: undefined, scope: undefined, operation: undefined};
+            listenerData = {fn: undefined, scope: undefined, operation: undefined};
 
             try {
                 this.validateSubscribe(arguments, evt, listenerData);
             }
             catch (e) {
-                throw new Error(msg.getMsgText("jsdoMSG033", this.toString(), "subscribe", e.message));
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                                            "subscribe", e.message));
             }
 
-            var observers = this._events[evt] || [];
+            observers = this._events[evt] || [];
 
             // make sure we don't add duplicates
             observers = _filterObservers(observers, listenerData.fn, 
@@ -168,28 +174,31 @@ limitations under the License.
          *
          */
         this.unsubscribe = function (evt, operation, fn, scope) {
+            var listenerData,
+                observers;
 
             if (!evt) {
-                throw new Error(msg.getMsgText("jsdoMSG037", this.toString(), "unsubscribe"));
+                throw new Error(progress.data._getMsgText("jsdoMSG037", this.toString(), "unsubscribe"));
             }
 
             if (typeof evt !== 'string') {
-                throw new Error(msg.getMsgText("jsdoMSG033", this.toString(), 
-                    "unsubscribe", msg.getMsgText("jsdoMSG037")));
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                    "unsubscribe", progress.data._getMsgText("jsdoMSG037")));
             }
 
             this._events = this._events || {};
             evt = evt.toLowerCase();
-            var listenerData = {fn: undefined, scope: undefined, operation: undefined};
+            listenerData = {fn: undefined, scope: undefined, operation: undefined};
             try {
                 this.validateSubscribe(arguments, evt, listenerData);
             }
             catch (e) {
             //  throw new Error("Invalid signature for unsubscribe. " + e.message);
-                throw new Error(msg.getMsgText("jsdoMSG033", this.toString(), "unsubscribe", e.message));
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                                        "unsubscribe", e.message));
             }
 
-            var observers = this._events[evt] || [];
+            observers = this._events[evt] || [];
             if (observers.length > 0) {
                 this._events[evt] = _filterObservers(observers, listenerData.fn, 
                     listenerData.scope, listenerData.operation);
@@ -214,29 +223,31 @@ limitations under the License.
          * @param args Optional.  A variable number of arguments to pass to the event handlers.
          */
         this.trigger = function (evt, operation, args) {
+            var observers,
+                op;
+            
             if (!evt) {
-                throw new Error(msg.getMsgText("jsdoMSG037", this.toString(), "trigger"));
+                throw new Error(progress.data._getMsgText("jsdoMSG037", this.toString(), "trigger"));
             }
 
             this._events = this._events || {};
             evt = evt.toLowerCase();
-            var observers = this._events[evt] || [];
+            observers = this._events[evt] || [];
             if (observers.length > 0) {
-                var op;
-                var args = Array.prototype.slice.call(arguments);
+                args = Array.prototype.slice.call(arguments);
 
                 if ((arguments.length >= 2) 
-                    && (typeof arguments[0] == 'string') 
-                    && (typeof arguments[1] == 'string')) {
+                    && (typeof evt === 'string') 
+                    && (typeof operation === 'string')) {
                     // in alt format the second argument is the event name, 
                     // and the first is the operation name
-                    op = arguments[1];
+                    op = operation;
                     args = args.length > 2 ? args.slice(2) : [];
-                } else if (arguments.length >= 1 && (typeof (evt) == 'string')) {
+                } else if (arguments.length >= 1 && (typeof evt === 'string')) {
                     op = undefined;
                     args = args.length > 1 ? args.slice(1) : [];
                 } else {
-                    throw new Error(msg.getMsgText("jsdoMSG033", this.toString(), "trigger", e.message));
+                    throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), "trigger"));
                 }
 
                 observers.forEach(function (el) {
@@ -255,11 +266,13 @@ limitations under the License.
         // evnt name is not case sensitive
         // @param evt  Optional. The name of the event to unbind.  If not passed, then all events are unbound
         this.unsubscribeAll = function (evt, operation) {
+            var observers;
+            
             if (evt) {
                 this._events = this._events || {};
-                if (typeof (evt) == 'string') {
+                if (typeof evt === 'string') {
                     evt = evt.toLowerCase();
-                    var observers = this._events[evt] || [];
+                    observers = this._events[evt] || [];
 
                     observers.forEach(function (el) {
                         if (el.operation) {
@@ -285,9 +298,9 @@ limitations under the License.
      */
     progress.data.LocalStorage = function LocalStorage() {
 
-        if (typeof(localStorage) == "undefined") {
-            //throw new Error(msg.getMsgText("jsdoMSG002", this._name));
-            throw new Error("Error: No support for localStorage");
+        /*global localStorage */
+        if (typeof localStorage === "undefined") {
+            throw new Error(progress.data._getMsgText("jsdoMSG002", this._name));
         }
 
 
@@ -299,8 +312,9 @@ limitations under the License.
 
         this.readFromLocalStorage = function (name) {
 
-            var jsonStr = localStorage.getItem(name);
-            var dataObj = null;
+            var jsonStr = localStorage.getItem(name),
+                dataObj = null;
+                
             if (jsonStr !== null) {
                 try {
                     dataObj = JSON.parse(jsonStr);
@@ -325,7 +339,7 @@ limitations under the License.
     /*
      * Converts the specified filter object to an OpenEdge ABL Where String.
      *
-     * @param tableRef  - handle to the table in jsdo, that where string is applied to.
+     * @param tableRef  - handle to the table in jsdo, where string is applied to.
      * @param filter - the filter object to convert.
      *
      * @returns - translated OE where string.
@@ -341,7 +355,7 @@ limitations under the License.
             operator,
             value,
             ablType,
-            filters = filter.filters,
+            filters = (filter.filters) ?  filter.filters : [filter],
 			
             whereOperators = {
                 eq: "=",
@@ -355,7 +369,7 @@ limitations under the License.
                 endswith: "R-INDEX", 
                 startswith: "BEGINS"
         };
-
+        
         for (idx = 0, length = filters.length; idx < length; idx=idx+1) {
             filter = filters[idx];
             field = filter.field;
@@ -371,25 +385,24 @@ limitations under the License.
                 }
 
                 if (operator && value !== undefined) {
-                    type = jQuery.type(value);
-					
+                    type = progress.util._getObjectType(value);
+  
                     // We need to build a template format string for the where string. 
                     // We'll first add positional info for the value
-                    if (type === "string") {
+                    if (type === STRING_OBJECT_TYPE) {
                         format = "'{1}'";
-                        value = value.replace(/'/g, "''");
                     } 
-                    else if (type === "date") {
+                    else if (type === DATE_OBJECT_TYPE) {
                         ablType = tableRef._getABLType(field);
                         if (ablType === "DATE") {
                             format = "DATE({1:MM, dd, yyyy})";
                         }
                         else if (ablType === "DATETIME-TZ") {
                             // zzz here means to translate timezone offset into minutes
-                            format = "DATETIME-TZ({1:MM, dd, yyyy, HH, mm, ss, fff, zzz})";
+                            format = "DATETIME-TZ({1:MM, dd, yyyy, hh, mm, ss, fff, zzz})";
                         }
                         else {
-                            format = "DATETIME({1:MM, dd, yyyy, HH, mm, ss, fff})";
+                            format = "DATETIME({1:MM, dd, yyyy, hh, mm, ss, fff})";
                         }
                     } 
 					else {
@@ -400,7 +413,7 @@ limitations under the License.
                     // An exception to this is INDEX() and R-INDEX() which have format: operator field value
                     // Ex. R-INDEX(name, "LTD")
                     if (operator === "INDEX" || operator === "R-INDEX") {
-                        if (type !== "string") {
+                        if (type !== STRING_OBJECT_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator + 
                                             " requires a string value");
                         }
@@ -436,6 +449,144 @@ limitations under the License.
     };
 
     
+    /*
+     * Converts the specified filter object to an SQL Query String.
+     *
+     * @param tableName  - tableName of table in jsdo, where clause is applied to.
+     * @param filter - the filter object to convert.
+     *
+     * @returns - translated SQL where clause.
+     */
+    progress.util._convertToSQLQueryString = function (tableRef, filter, addSelect) {
+        var result = [],
+            logic = filter.logic || "and",
+            idx,
+            length,
+            field,
+            type,
+            format,
+            operator,
+            value,
+            fieldFormat,
+            filters = (filter.filters) ?  filter.filters : [filter],
+            filterStr,
+            usingLike = true,
+			
+            whereOperators = {
+                eq: "=",
+                neq: "!=",
+                gt: ">",
+                gte: ">=",
+                lt: "<",
+                lte: "<=",
+                contains : "LIKE", 
+                doesnotcontain: "NOT LIKE",
+                endswith: "LIKE", 
+                startswith: "LIKE"
+        };
+        
+        if (typeof addSelect === "undefined") {
+            addSelect = false;
+        }
+
+        for (idx = 0, length = filters.length; idx < length; idx=idx+1) {
+            filter = filters[idx];
+            field = filter.field;
+            value = filter.value;
+
+            if (filter.filters) {
+                filterStr = progress.util._convertToSQLQueryString(tableRef, filter, false);
+            } else {
+                operator = whereOperators[filter.operator];
+                
+                if (operator === undefined) {
+                    throw new Error("The operator " + filter.operator + " is not valid.");
+                }
+                
+                if (operator && value !== undefined) {
+                    type = progress.util._getObjectType(value);
+                    
+                    if (operator === "LIKE" || operator === "NOT LIKE") {
+                        if (type !== STRING_OBJECT_TYPE) {
+                            throw new Error("Error parsing filter object. The operator " + filter.operator + 
+                                            " requires a string value");
+                        }
+                    }
+                    
+                     if (type === STRING_OBJECT_TYPE) {
+                        format = "'{1}'";
+                        value = value.replace(/'/g, "''");
+                    } 
+                    else if (type === DATE_OBJECT_TYPE) {
+                        fieldFormat = tableRef._getFormat(field);
+                        if (fieldFormat === "date") {
+                            format = "'{1:yyyy-MM-dd}'";
+                        }
+                        else if (fieldFormat === "date-time") {
+                            format = "{1:#ISO(iso)}";
+                        }
+                        else if (fieldFormat === "time") {
+                            format = "'{1:FFF}'";
+                        } 
+                    } 
+					else {
+                        format = "{1}";
+                    }
+                    
+                    // We need to build a template format string for the where string. 
+                    // We'll first add positional info for the value, which is represented by {1}
+                    if (filter.operator === "startswith") {
+                        format = "'{1}%'";
+                    }
+                    else if (filter.operator === "endswith") { 
+                        format = "'%{1}'";
+                    }
+                    else if (filter.operator === "contains" || filter.operator === "doesnotcontain") {
+                        format = "'%{1}%'";
+                    }
+                    else {
+                       usingLike = false;
+                    }
+                    
+                    if (usingLike) {
+                        value = value.replace(/%/g, '\\%');
+                        value = value.replace(/_/g, '\\_');
+                    }
+
+                   
+                    format = "{2} {0} " + format;
+                    filterStr = progress.util._format(format, operator, value, field);
+                }
+            }
+
+            result.push(filterStr);
+        }
+
+        filterStr = result.join(" " + logic + " ");
+
+        if (result.length > 1) {
+            filterStr = "(" + filterStr + ")";
+        }
+        
+        if (addSelect === true) {
+            filterStr = "SELECT * FROM " + tableRef._name + " WHERE " + filterStr;
+        }
+
+        return filterStr;
+    };
+    
+    
+    /*
+     * Returns the object type; Example "String", "Date"
+     * Constants for object type values are defined above.
+     *
+     * @param value - the object whose type is returned
+     */
+    progress.util._getObjectType = function(value) {    
+        // Returns [object xxx]. Removing [object ]
+        return Object.prototype.toString.call(value).slice(8, -1);
+    };
+    
     
     /*
      * Substitutes in a variable number of arguments into specified format string (with place-holders)
@@ -445,29 +596,32 @@ limitations under the License.
      * @returns - formatted string.
      */
     progress.util._format = function(fmt) {
+        /*jslint regexp: true*/
         var values = arguments,
             formatRegExp = /\{(\d+)(:[^\}]+)?\}/g;
+        /*jslint regexp: false*/
 
         return fmt.replace(formatRegExp, function(match, index, placeholderFormat) {
             var value = values[parseInt(index, 10) + 1];
 
             return progress.util._toString(value, placeholderFormat ? placeholderFormat.substring(1) : "");
         });
+         
     };
     
     /*
      * Converts the specified value param to a string.
      *
      * @param value  - object to convert
-     * @param fmt - optional format string with place-holders, eg. "MM dd yyy".
+     * @param fmt - optional format string with place-holders, eg. "MM dd yyyy".
      *
      * @returns - converted string.
      */
     progress.util._toString = function(value, fmt) {
         var str;
-        
+                    
         if (fmt) {
-            if (Object.prototype.toString.call(value) === "[object Date]") {
+            if (progress.util._getObjectType(value) === "Date") {
                 return progress.util._formatDate(value, fmt);
             } 
         }
@@ -495,14 +649,13 @@ limitations under the License.
         var zeros = ["", "0", "00", "000", "0000"],
             end;
         
-        number = number + "";
+        number = String(number);
         digits = digits || 2;
         end = digits - number.length;
 
         if (end) {
             return zeros[digits].substring(0, end) + number;
         }
-
         return number;
     };
     
@@ -510,71 +663,54 @@ limitations under the License.
      * Converts the specified date param to a string.
      *
      * @param date  - date object to convert
-     * @param fmt - format string with place-holders, eg. "MM dd yyy".
+     * @param fmt - format string with place-holders, eg. "MM dd yyyy".
      *
      * @returns - converted string.
      */
     progress.util._formatDate = function (date, format) {
+        /*jslint regexp: true*/
         var dateFormatRegExp = 
-            /dddd|ddd|dd|d|MMMM|MMM|MM|M|yyyy|yy|HH|H|hh|h|mm|m|fff|ff|f|tt|ss|s|zzz|"[^"]*"|'[^']*'/g;
-
+            /dd|MM|yyyy|hh|mm|fff|FFF|ss|zzz|iso|"[^"]*"|'[^']*'/g;
+        /*jslint regexp: false*/
+       
         return format.replace(dateFormatRegExp, function (match) {
-            var minutes;
-            var result;
-            var sign;
+            var minutes,
+                result,
+                sign;
 
-            if (match === "d") {
-                result = date.getDate();
-            } else if (match === "dd") {
+            if (match === "dd") {
                 result = progress.util._pad(date.getDate());
-            } else if (match === "ddd") {
-                result = days.namesAbbr[date.getDay()];
-            } else if (match === "dddd") {
-                result = days.names[date.getDay()];
-            } else if (match === "M") {
-                result = date.getMonth() + 1;
-            } else if (match === "MM") {
+            }
+            else if (match === "MM") {
                 result = progress.util._pad(date.getMonth() + 1);
-            } else if (match === "MMM") {
-                result = months.namesAbbr[date.getMonth()];
-            } else if (match === "MMMM") {
-                result = months.names[date.getMonth()];
-            } else if (match === "yy") {
-                result = progress.util._pad(date.getFullYear() % 100);
-            } else if (match === "yyyy") {
+            } 
+            else if (match === "yyyy") {
                 result = progress.util._pad(date.getFullYear(), 4);
-            } else if (match === "h" ) {
-                result = date.getHours() % 12 || 12;
-            } else if (match === "hh") {
-                result = progress.util._pad(date.getHours() % 12 || 12);
-            } else if (match === "H") {
-                result = date.getHours();
-            } else if (match === "HH") {
+            } 
+            else if (match === "hh") {
                 result = progress.util._pad(date.getHours());
-            } else if (match === "m") {
-                result = date.getMinutes();
-            } else if (match === "mm") {
+            } 
+            else if (match === "mm") {
                 result = progress.util._pad(date.getMinutes());
-            } else if (match === "s") {
-                result = date.getSeconds();
-            } else if (match === "ss") {
+            } 
+            else if (match === "ss") {
                 result = progress.util._pad(date.getSeconds());
-            } else if (match === "f") {
-                result = math.floor(date.getMilliseconds() / 100);
-            } else if (match === "ff") {
-                result = date.getMilliseconds();
-                if (result > 99) {
-                    result = math.floor(result / 10);
-                }
-                result = progress.util._pad(result);
-            } else if (match === "fff") {
+            } 
+            else if (match === "fff") {
                 result = progress.util._pad(date.getMilliseconds(), 3);
-            } else if (match === "zzz") {
+            } 
+            else if (match === "FFF") {
+                result = String(date.getTime());
+            } 
+            else if (match === "zzz") {
                 // timezone is returned in minutes
                 minutes = date.getTimezoneOffset();
                 sign = minutes < 0;
-                 result = (sign ? "+" : "-") + minutes;
-            }
+                result = (sign ? "+" : "-") + minutes;
+            } 
+            else if (match === "iso") {
+                result = date.toISOString();
+            } 
 
             return result !== undefined ? result : match.slice(1, match.length - 1);
         });
@@ -592,7 +728,7 @@ limitations under the License.
         }
     };
 
-})(); 
+}()); 
 
 
 
