@@ -20,10 +20,10 @@ limitations under the License.
 
 (function () {
 
-    "use strict";
+    "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
-    /*global progress : true, btoa*/
-    /*global $ : false*/
+    /*global progress : true*/
+    /*global $ : false, sessionStorage, XMLHttpRequest*/
 
     /* define these if not defined yet - they may already be defined if
        progress.js was included first */
@@ -33,13 +33,14 @@ limitations under the License.
     if (typeof progress.data === "undefined") {
         progress.data = {};
     }
-    
+
     progress.data.AuthenticationProvider = function (options) {
         var authenticationURI,
             tokenLocation,
             defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID",
-            that = this;
-        
+            that = this,
+            thatID;
+
         // PROPERTIES
         Object.defineProperty(this, 'authenticationURI',
             {
@@ -56,24 +57,13 @@ limitations under the License.
                 },
                 enumerable: true
             });
- 
-        Object.defineProperty(this, 'token',
-            {
-                set: function (val) {
-                    sessionStorage.setItem(authenticationURI, val);
-                },
-                get: function () {
-                    return sessionStorage.getItem(authenticationURI);
-                },
-                enumerable: false
-            });
-  
-        
+
+
         if (typeof options === "undefined") {
             // Too few arguments. There must be at least {1}.
             throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
         }
-        
+
         if (options.authenticationURI) {
             authenticationURI = options.authenticationURI;
         } else {
@@ -90,9 +80,16 @@ limitations under the License.
                 headerName : defaultHeaderName
             };
         }
-        
+
+        if (options.id) {
+            thatID = options.id;
+        } else {
+            // Give it a default id
+            thatID = authenticationURI;
+        }
+
         // PRIVATE FUNCTIONS
-        
+
         function openTokenRequest(xhr, authProvider, credentials) {
             xhr.open('POST', authProvider.authenticationURI, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -100,21 +97,36 @@ limitations under the License.
             xhr.withCredentials = true;
             xhr.setRequestHeader("Accept", "application/json");
         }
-        
+
+        // store the given token, using the AuthenticationProvider's id. setItem() throws
+        // a "QuotaExceededError" error if there is insufficient storage space or 
+        // "the user has disabled storage for the site" (Web storage spec at WHATWG)
+        function storeToken(token) {
+            sessionStorage.setItem(thatID, token);
+        }
+
+        // get the token from storage. Returns null if this object hasn't stored one yet
+        function retrieveToken(token) {
+            return sessionStorage.getItem(thatID);
+        }
+
         function processAuthResult(xhr, deferred) {
-            var token,
-                errorObject,
-                result;
-            
+            var errorObject,
+                result,
+                token;
+
             if (deferred) {
                 if (xhr.status === 200) {
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
-                        that.token = xhr.getResponseHeader(that.tokenLocation.headerName);
-                        if (that.token) {
+                        token = xhr.getResponseHeader(that.tokenLocation.headerName);
+                        if (token) {
+                            storeToken(token);
+                            // got the header, it has a value, and storeToken() didn't thrown an error;
+                            // call it a success
                             result = progress.data.Session.SUCCESS;
                         } else {
-                            result = progress.data.Session.AUTHENTICATION_FAILURE;
+                            result = progress.data.Session.GENERAL_FAILURE;
                             // " Unexpected error authenticating: No token returned from server"
                             errorObject = new Error(progress.data._getMsgText(
                                 "jsdoMSG049",
@@ -122,22 +134,22 @@ limitations under the License.
                                 progress.data._getMsgText("jsdoMSG050")
                             ));
                         }
-                    } catch (e) {
-                        result = progress.data.Session.AUTHENTICATION_FAILURE;
-                           //  Unexpected error authenticating: {2} 
+                    } catch (eStore) {
+                        result = progress.data.Session.GENERAL_FAILURE;
+                        // Unexpected error authenticating: <error-string>
+                        // (error could be thrown from storeToken when it calls setItem())
                         errorObject = new Error(progress.data._getMsgText(
                             "jsdoMSG049",
                             "AuthenticationProvider",
-                            e.message
-                        )
-                            ); // incomprehensible indentation choice, but what jslint wants, jslint gets!
+                            eStore.message
+                        ));
                     }
                 } else if (xhr.status === 401 || xhr.status === 403) {
                     result = progress.data.Session.AUTHENTICATION_FAILURE;
                 } else {
                     result = progress.data.Session.GENERAL_FAILURE;
                 }
-                
+
                 if (result === progress.data.Session.SUCCESS) {
                     deferred.resolve(
                         that,
@@ -160,26 +172,29 @@ limitations under the License.
                 throw new Error("deferred missing when processing authenticate result");
             }
         }
-        
+
         // METHODS
         this.authenticate = function (options) {
             var deferred = $.Deferred(),
                 xhr;
-            
-            if (this.token) {
+
+            if (retrieveToken()) {
                 // "authenticate() failed because the AuthenticationProvider is already managing a 
                 // successful authentication."
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
             }
-            
+
             xhr = new XMLHttpRequest();
-            
+            XMLHttpRequest.foo = "bar";
             openTokenRequest(xhr, this, options);
-            
+
 // DELETE THIS FOR REAL IMPLEMENTATION (ASSUMING THAT THE REAL IMPL DOESN'T REQUIRE 2 CALLS)
             xhr.onreadystatechange = function () {
-            
+
                 if (xhr.readyState === 4) {
+                    if (xhr.status !== 200) {
+                        processAuthResult(xhr, deferred);
+                    }
                     if (xhr.status === 200) {
                         xhr.open('GET', "http://localhost:8810/TS4/web/getcp", true);
                         xhr.setRequestHeader("Cache-Control", "no-cache");
@@ -200,13 +215,14 @@ limitations under the License.
                 }
 
             };
-            
+
+            // we need to add another field to this to request the token, when we get Dave Cleary's implementation
             xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
             return deferred;
-            
+
         };
 
     };
-    
+
 }());
 
