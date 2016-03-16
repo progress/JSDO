@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.3.0-4
+progress.js    Version: 4.3.0-6
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -98,6 +98,9 @@ limitations under the License.
     msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
     msg.msgs.jsdoMSG047 = "{1} timeout expired.";
     msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG050 = "No token returned from server";
+    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
