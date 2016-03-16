@@ -1,6 +1,6 @@
 
 /* 
-progress.auth.js    Version: 4.3.0-1
+progress.auth.js    Version: 4.3.0-2
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -70,12 +70,14 @@ limitations under the License.
   
         
         if (typeof options === "undefined") {
+            // Too few arguments. There must be at least {1}.
             throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
         }
         
         if (options.authenticationURI) {
             authenticationURI = options.authenticationURI;
         } else {
+            // {2} method has argument '{3}' that is missing property '{4}'
             throw new Error(progress.data._getMsgText("jsdoMSG048", "AuthenticationProvider", "Constructor",
                                                       "options", "authenticationURI"));
         }
@@ -99,21 +101,36 @@ limitations under the License.
             xhr.setRequestHeader("Accept", "application/json");
         }
         
-        function processAuthResult(xhr) {
+        function processAuthResult(xhr, deferred) {
             var token,
                 errorObject,
                 result;
             
-            if (that.deferred) {
+            if (deferred) {
                 if (xhr.status === 200) {
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
-                        token = that.getTokenFromXHR({xhr: xhr});
-                        that.token = token;
-                        result = progress.data.Session.SUCCESS;
+                        that.token = xhr.getResponseHeader(that.tokenLocation.headerName);
+                        if (that.token) {
+                            result = progress.data.Session.SUCCESS;
+                        } else {
+                            result = progress.data.Session.AUTHENTICATION_FAILURE;
+                            // " Unexpected error authenticating: No token returned from server"
+                            errorObject = new Error(progress.data._getMsgText(
+                                "jsdoMSG049",
+                                "AuthenticationProvider",
+                                progress.data._getMsgText("jsdoMSG050")
+                            ));
+                        }
                     } catch (e) {
                         result = progress.data.Session.AUTHENTICATION_FAILURE;
-                        errorObject = e;
+                           //  Unexpected error authenticating: {2} 
+                        errorObject = new Error(progress.data._getMsgText(
+                            "jsdoMSG049",
+                            "AuthenticationProvider",
+                            e.message
+                        )
+                            ); // incomprehensible indentation choice, but what jslint wants, jslint gets!
                     }
                 } else if (xhr.status === 401 || xhr.status === 403) {
                     result = progress.data.Session.AUTHENTICATION_FAILURE;
@@ -122,7 +139,7 @@ limitations under the License.
                 }
                 
                 if (result === progress.data.Session.SUCCESS) {
-                    that.deferred.resolve(
+                    deferred.resolve(
                         that,
                         result,
                         {
@@ -130,7 +147,7 @@ limitations under the License.
                         }
                     );
                 } else {
-                    that.deferred.reject(
+                    deferred.reject(
                         that,
                         result,
                         {
@@ -140,15 +157,20 @@ limitations under the License.
                     );
                 }
             } else {
-                throw new Error("deferred missing from xhr when processing authenticate");
+                throw new Error("deferred missing when processing authenticate result");
             }
         }
         
         // METHODS
         this.authenticate = function (options) {
             var deferred = $.Deferred(),
-                errorObject,
                 xhr;
+            
+            if (this.token) {
+                // "authenticate() failed because the AuthenticationProvider is already managing a 
+                // successful authentication."
+                throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
+            }
             
             xhr = new XMLHttpRequest();
             
@@ -156,33 +178,19 @@ limitations under the License.
             
 // DELETE THIS FOR REAL IMPLEMENTATION (ASSUMING THAT THE REAL IMPL DOESN'T REQUIRE 2 CALLS)
             xhr.onreadystatechange = function () {
-                var errorObject;
             
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
-                        xhr.open('GET', "http://172.30.1.11:8810/TokenServer/web/getcp", true);
+                        xhr.open('GET', "http://localhost:8810/TS4/web/getcp", true);
                         xhr.setRequestHeader("Cache-Control", "no-cache");
                         xhr.setRequestHeader("Pragma", "no-cache");
                         xhr.withCredentials = true;
                         xhr.setRequestHeader("Accept", "application/json");
 // END OF DELETION FOR REAL IMPLEMENTATION 
                         xhr.onreadystatechange = function () {
-                            var errorObject;
-
                             if (xhr.readyState === 4) {
-                                errorObject = null;
-                // NOTE: if we keep this as a closure rather than implementing a separate generic
-                // readystatechange handler, we can get rid of the xhr.onResponseFn property and just call
-                // processAuthResult directly (remove its assignment just before the send at the
-                // end of authenticate() )
                                 // process the response from the Web application
-                                if ((typeof xhr.onResponseFn) === 'function') {
-                                    try {
-                                        xhr.onResponseFn(xhr);
-                                    } catch (e) {
-                                        errorObject = e;
-                                    }
-                                }
+                                processAuthResult(xhr, deferred);
                             }
                         };
 
@@ -193,20 +201,11 @@ limitations under the License.
 
             };
             
-            xhr.onResponseFn = processAuthResult;
             xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
             return deferred;
             
         };
 
-        // finds the token in a successful response from a token provider and returns it
-        this.getTokenFromXHR = function (options) {
-            try {
-                return options.xhr.getResponseHeader(this.tokenLocation.headerName);
-            } catch (e) {
-                throw new Error("Unexpected error authenticating:" + e.message); // add to JSDOMessages
-            }
-        };
     };
     
 }());
