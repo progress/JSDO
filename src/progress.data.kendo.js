@@ -1,6 +1,6 @@
 
 /* 
-kendo.data.jsdo.js    Version: 4.2.0-2
+kendo.data.jsdo.js    Version: 4.3.0-1
 
 Copyright (c) 2015 Progress Software Corporation and/or its subsidiaries or affiliates.
 
