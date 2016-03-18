@@ -836,6 +836,7 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_FORM :
                             case progress.data.Session.AUTH_TYPE_BASIC :
                             case progress.data.Session.AUTH_TYPE_ANON :
+							case progress.data.Session.AUTH_TYPE_OECP :
                             case null :
                                 _authenticationModel = newval;
                                 break;
@@ -2763,6 +2764,9 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM', {
             value: "form", enumerable: true
         });
+		Object.defineProperty(progress.data.Session, 'AUTH_TYPE_OECP', {
+            value: "oecp", enumerable: true
+        });
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -2793,6 +2797,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_ANON = "anonymous";
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
+		progress.data.Session.AUTH_TYPE_OECP = "oecp";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -2877,7 +2882,15 @@ limitations under the License.
                     return _pdsession ? _pdsession.authenticationModel : undefined;
                 },
                 enumerable: true
-            });        
+            });
+
+        Object.defineProperty(this, 'authenticationOptions',
+            {
+                get: function () {
+                    return _pdsession ? _pdsession.authenticationOptions : undefined;
+                },
+                enumerable: true
+            }); 			
         
         Object.defineProperty(this, 'catalogURIs',
             {
@@ -3344,6 +3357,12 @@ limitations under the License.
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
+				
+				if (typeof(options.authenticationOptions !== "object")) {
+					throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
+                        "The authenticationOptions property of the options parameter must be an object.") ); 
+				}
+				// TODO: Do we add error checking for authProvider and authConsumer here?
             }
         }
         else {
@@ -3356,6 +3375,9 @@ limitations under the License.
         try {
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
+            }
+			if (options.authenticationOptions) {
+                _pdsession.authenticationOptions = options.authenticationOptions;
             }
             if (options.context) {
                 this.setContext(options.context);                
