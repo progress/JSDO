@@ -185,7 +185,6 @@ limitations under the License.
             }
 
             xhr = new XMLHttpRequest();
-            XMLHttpRequest.foo = "bar";
             openTokenRequest(xhr, this, options);
 
             xhr.onreadystatechange = function () {
@@ -196,7 +195,7 @@ limitations under the License.
             };
 
             // TODO: Add OECP as an option here.
-            xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
+            xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit" + "OECP=1");
             return deferred;
 
         };

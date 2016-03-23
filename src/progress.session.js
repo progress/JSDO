@@ -3423,14 +3423,13 @@ limitations under the License.
                                 "The authImpl property of the options parameter must be an object."));
                     }
                     
-                    if (typeof options.authImpl.consumer === undefined ||
-                        typeof options.authImpl.provider === undefined) {
+                    if (typeof options.authImpl.provider === undefined) {
                         throw new Error(
                             progress.data._getMsgText(
                                 "jsdoMSG033", 
                                 "JSDOSession", 
                                 "the constructor",
-                                "The authImpl property of the options parameter have a provider and a consumer field."));                        
+                                "The authImpl property of the options parameter have a provider field."));                        
                     }
                 }
                 // TODO: Do we add error checking for authProvider and authConsumer here?
@@ -3457,8 +3456,12 @@ limitations under the License.
                 _pdsession.authImpl = (function(authImpl) {
                     // TODO: Do we need an implementation of consumer like we do with
                     // the provider? If so, migrate this check there.
-                    if (typeof authImpl.consumer.tokenLocation.headerName === "undefined") {
-                        authImpl.consumer.tokenLocation.headerName = "X-OE-CLIENT-CONTEXT-ID";
+                    if (typeof authImpl.consumer === "undefined") {
+                        authImpl.consumer = {
+                            tokenLocation : {
+                                headerName : "X-OE-CLIENT-CONTEXT-ID"
+                            }
+                        };
                     }
 
                     // TODO: Do we assume that the consumer knows how to add the token to the
