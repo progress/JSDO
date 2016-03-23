@@ -36,10 +36,13 @@ limitations under the License.
 
     progress.data.AuthenticationProvider = function (options) {
         var authenticationURI,
-            tokenLocation,
+            tokenResponseDescriptor,
             defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID",
             that = this,
-            thatID;
+            storageKey;
+        
+        // TODO: Change storageKey to ID? Doesn't matter right now since we're
+        // not letting anyone see where the token is stored anyway.
 
         // PROPERTIES
         Object.defineProperty(this, 'authenticationURI',
@@ -50,10 +53,10 @@ limitations under the License.
                 enumerable: true
             });
 
-        Object.defineProperty(this, 'tokenLocation',
+        Object.defineProperty(this, 'tokenResponseDescriptor',
             {
                 get: function () {
-                    return tokenLocation;
+                    return tokenResponseDescriptor;
                 },
                 enumerable: true
             });
@@ -72,21 +75,18 @@ limitations under the License.
                                                       "options", "authenticationURI"));
         }
 
-        if (options.tokenLocation) {
-            tokenLocation = options.tokenLocation;
+        if (options.tokenResponseDescriptor) {
+            tokenResponseDescriptor = options.tokenResponseDescriptor;
         } else {
             // Give it a default location
-            tokenLocation = {
+            tokenResponseDescriptor = {
                 headerName : defaultHeaderName
             };
         }
 
-        if (options.id) {
-            thatID = options.id;
-        } else {
-            // Give it a default id
-            thatID = authenticationURI;
-        }
+        // We're currently storing the token in sessionStorage with the 
+        // authenticationURI as the key. This is subject to change later.
+        storageKey = authenticationURI;
 
         // PRIVATE FUNCTIONS
 
@@ -98,16 +98,16 @@ limitations under the License.
             xhr.setRequestHeader("Accept", "application/json");
         }
 
-        // store the given token, using the AuthenticationProvider's id. setItem() throws
+        // Store the given token with the authenticationURI as the key. setItem() throws
         // a "QuotaExceededError" error if there is insufficient storage space or 
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
         function storeToken(token) {
-            sessionStorage.setItem(thatID, token);
+            sessionStorage.setItem(storageKey, token);
         }
-
+        
         // get the token from storage. Returns null if this object hasn't stored one yet
         function retrieveToken(token) {
-            return sessionStorage.getItem(thatID);
+            return sessionStorage.getItem(storageKey);
         }
 
         function processAuthResult(xhr, deferred) {
@@ -119,7 +119,7 @@ limitations under the License.
                 if (xhr.status === 200) {
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
-                        token = xhr.getResponseHeader(that.tokenLocation.headerName);
+                        token = xhr.getResponseHeader(that.tokenResponseDescriptor.headerName);
                         if (token) {
                             storeToken(token);
                             // got the header, it has a value, and storeToken() didn't thrown an error;
@@ -188,35 +188,14 @@ limitations under the License.
             XMLHttpRequest.foo = "bar";
             openTokenRequest(xhr, this, options);
 
-// DELETE THIS FOR REAL IMPLEMENTATION (ASSUMING THAT THE REAL IMPL DOESN'T REQUIRE 2 CALLS)
             xhr.onreadystatechange = function () {
-
                 if (xhr.readyState === 4) {
-                    if (xhr.status !== 200) {
-                        processAuthResult(xhr, deferred);
-                    }
-                    if (xhr.status === 200) {
-                        xhr.open('GET', "http://localhost:8810/TS4/web/getcp", true);
-                        xhr.setRequestHeader("Cache-Control", "no-cache");
-                        xhr.setRequestHeader("Pragma", "no-cache");
-                        xhr.withCredentials = true;
-                        xhr.setRequestHeader("Accept", "application/json");
-// END OF DELETION FOR REAL IMPLEMENTATION 
-                        xhr.onreadystatechange = function () {
-                            if (xhr.readyState === 4) {
-                                // process the response from the Web application
-                                processAuthResult(xhr, deferred);
-                            }
-                        };
-
-// DELETE THIS SEND() FOR REAL IMPLEMENTATION
-                        xhr.send();
-                    }
+                    // process the response from the Web application
+                    processAuthResult(xhr, deferred);
                 }
-
             };
 
-            // we need to add another field to this to request the token, when we get Dave Cleary's implementation
+            // TODO: Add OECP as an option here.
             xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit");
             return deferred;
 

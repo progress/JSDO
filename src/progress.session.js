@@ -2928,10 +2928,11 @@ limitations under the License.
                 enumerable: true
             });        
 
-        Object.defineProperty(this, 'authenticationOptions',
+        // TODO: What are the use cases of giving the user the authImpl?
+        Object.defineProperty(this, 'authImpl',
             {
                 get: function () {
-                    return _pdsession ? _pdsession.authenticationOptions : undefined;
+                    return _pdsession ? _pdsession.authImpl : undefined;
                 },
                 enumerable: true
             });
@@ -3382,6 +3383,15 @@ limitations under the License.
             _myself.trigger( "offline", _myself, offlineReason, request );            
         };    
         
+        // We're not gonna expose the actual token to the user. The provider encapsulates
+        // the token and that's all you're gonna get.
+        /*this.getAuthenticationToken = function() {
+            if (_pdsession.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                // For now, since the id isn't a thing yet, gonna rely on the authenticationURI
+                return sessionStorage[_pdsession.authenticationOptions.provider.authenticationURI];
+            }
+            return null;
+        }*/
         
         // PROCESS CONSTRUCTOR ARGUMENTS 
         // validate constructor input arguments
@@ -3402,10 +3412,26 @@ limitations under the License.
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
                 
-                if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP &&
-                    typeof(options.authenticationOptions !== "object")) {
-                    throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
-                        "The authenticationOptions property of the options parameter must be an object.") ); 
+                if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                    
+                    if (typeof options.authImpl !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter must be an object."));
+                    }
+                    
+                    if (typeof options.authImpl.consumer === undefined ||
+                        typeof options.authImpl.provider === undefined) {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter have a provider and a consumer field."));                        
+                    }
                 }
                 // TODO: Do we add error checking for authProvider and authConsumer here?
             }
@@ -3421,8 +3447,37 @@ limitations under the License.
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
             }
-			if (options.authenticationOptions) {
-                _pdsession.authenticationOptions = options.authenticationOptions;
+            
+            
+            // Enhance the authImpl to hand over to the session.
+            // We should never get here without an implementation if the type is OECP
+            if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                //_pdsession.authImpl = options.authImpl;
+                
+                _pdsession.authImpl = (function(authImpl) {
+                    // TODO: Do we need an implementation of consumer like we do with
+                    // the provider? If so, migrate this check there.
+                    if (typeof authImpl.consumer.tokenLocation.headerName === "undefined") {
+                        authImpl.consumer.tokenLocation.headerName = "X-OE-CLIENT-CONTEXT-ID";
+                    }
+
+                    // TODO: Do we assume that the consumer knows how to add the token to the
+                    // request? Does it know how the session makes the request? Will it always
+                    // be xhr? For now, I assume that the user can provide one via consumer.
+
+                    // Add a default OECP-specific implementation of addTokenToRequest() 
+                    // to the authImpl if the consumer does not have one.
+                    if (typeof authImpl.consumer.addTokenToRequest === "undefined") {    
+                        authImpl.addTokenToRequest = function(xhr, token) {
+                            xhr.setRequestHeader(
+                                authImpl.consumer.tokenLocation.headerName,    
+                                token
+                            );
+                        };
+                    } else {
+                        authImpl.addTokenToRequest = authImpl.consumer.addTokenToRequest;
+                    }
+                }(options.authImpl));
             }
             if (options.context) {
                 this.setContext(options.context);                
