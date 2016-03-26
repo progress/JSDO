@@ -126,6 +126,11 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
+    msg.msgs.jsdoMSG125 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
+        "contain a type field.";
+    msg.msgs.jsdoMSG126 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
+        "contain a {2} field if they are of type {3}.";
+    msg.msgs.jsdoMSG127 = "{1}: Invalid type given for a tokenResponseDescriptor or tokenRequestDescriptor.";
 	
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 

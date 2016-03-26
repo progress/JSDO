@@ -2811,6 +2811,10 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_OECP', {
             value: "oecp", enumerable: true
         });
+ 
+        Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
+            value: "header", enumerable: true
+        }); 
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -3454,32 +3458,12 @@ limitations under the License.
                 //_pdsession.authImpl = options.authImpl;
                 
                 _pdsession.authImpl = (function(authImpl) {
-                    // TODO: Do we need an implementation of consumer like we do with
-                    // the provider? If so, migrate this check there.
+                    // Create an AuthenticationConsumer if it doesn't exist. 
                     if (typeof authImpl.consumer === "undefined") {
-                        authImpl.consumer = {
-                            tokenLocation : {
-                                headerName : "X-OE-CLIENT-CONTEXT-ID"
-                            }
-                        };
+                        authImpl.consumer = new progress.data.AuthenticationConsumer();
                     }
-
-                    // TODO: Do we assume that the consumer knows how to add the token to the
-                    // request? Does it know how the session makes the request? Will it always
-                    // be xhr? For now, I assume that the user can provide one via consumer.
-
-                    // Add a default OECP-specific implementation of addTokenToRequest() 
-                    // to the authImpl if the consumer does not have one.
-                    if (typeof authImpl.consumer.addTokenToRequest === "undefined") {    
-                        authImpl.addTokenToRequest = function(xhr, token) {
-                            xhr.setRequestHeader(
-                                authImpl.consumer.tokenLocation.headerName,    
-                                token
-                            );
-                        };
-                    } else {
-                        authImpl.addTokenToRequest = authImpl.consumer.addTokenToRequest;
-                    }
+                    
+                    return authImpl;
                 }(options.authImpl));
             }
             if (options.context) {

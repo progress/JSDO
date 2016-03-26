@@ -33,17 +33,14 @@ limitations under the License.
     if (typeof progress.data === "undefined") {
         progress.data = {};
     }
-
-    progress.data.AuthenticationProvider = function (options) {
+    
+    progress.data.AuthenticationProvider = function (authURI, options) {
         var authenticationURI,
             tokenResponseDescriptor,
             defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID",
             that = this,
             storageKey;
         
-        // TODO: Change storageKey to ID? Doesn't matter right now since we're
-        // not letting anyone see where the token is stored anyway.
-
         // PROPERTIES
         Object.defineProperty(this, 'authenticationURI',
             {
@@ -60,26 +57,33 @@ limitations under the License.
                 },
                 enumerable: true
             });
-
-
-        if (typeof options === "undefined") {
+       
+        if (typeof authURI === "undefined") {
             // Too few arguments. There must be at least {1}.
             throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
         }
-
-        if (options.authenticationURI) {
-            authenticationURI = options.authenticationURI;
+        
+        if (typeof authURI === "string") {
+            authenticationURI = authURI;
         } else {
-            // {2} method has argument '{3}' that is missing property '{4}'
-            throw new Error(progress.data._getMsgText("jsdoMSG048", "AuthenticationProvider", "Constructor",
-                                                      "options", "authenticationURI"));
+            // {1}: Argument {2} must be of type {3} in {4} call.
+            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
+                                           "string", "constructor"));
         }
-
+        
+        options = options || {};
+        
         if (options.tokenResponseDescriptor) {
+            // {1}: tokenResponseDescriptors and tokenRequestDescriptors must contain a type field.
+            if (typeof options.tokenResponseDescriptor.type === "undefined") {
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            }
+            
             tokenResponseDescriptor = options.tokenResponseDescriptor;
         } else {
             // Give it a default location
             tokenResponseDescriptor = {
+                type : progress.data.Session.HTTP_HEADER,
                 headerName : defaultHeaderName
             };
         }
@@ -119,7 +123,11 @@ limitations under the License.
                 if (xhr.status === 200) {
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
-                        token = xhr.getResponseHeader(that.tokenResponseDescriptor.headerName);
+                        // Try to get the token from the appropriate location
+                        if (that.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                            token = xhr.getResponseHeader(that.tokenResponseDescriptor.headerName);
+                        }
+                        
                         if (token) {
                             storeToken(token);
                             // got the header, it has a value, and storeToken() didn't thrown an error;
@@ -195,11 +203,62 @@ limitations under the License.
             };
 
             // TODO: Add OECP as an option here.
-            xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit" + "OECP=1");
+            xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit" + "&OECP=1");
             return deferred;
 
         };
 
+    };
+    
+    progress.data.AuthenticationConsumer = function (options) {
+        var tokenRequestDescriptor,
+            defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID";
+        
+        options = options || {};
+
+        if (options.tokenRequestDescriptor) {
+            // {1}: tokenResponseDescriptors and tokenRequestDescriptors must contain a type field.
+            if (typeof options.tokenRequestDescriptor.type === "undefined") {
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationConsumer"));
+            }
+
+            if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
+                    // {1}: tokenResponseDescriptors and tokenRequestDescriptors must
+                    // contain a {2} field if they are of type {3}.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG126",
+                        "AuthenticationConsumer",
+                        "headerName",
+                        "HTTP_HEADER"
+                    ));
+                }
+                tokenRequestDescriptor = options.tokenRequestDescriptor;
+            } else {
+                // {1}: Invalid type given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                throw new Error(progress.data._getMsgText("jsdoMSG126", "AuthenticationConsumer"));
+            }
+        } else {
+            // Give it a default location
+            tokenRequestDescriptor = {
+                type : progress.data.Session.HTTP_HEADER,
+                headerName : defaultHeaderName
+            };
+        }
+        
+        if (typeof options.addTokenToRequest === "undefined") {
+            // Create a default function where we add the token to the header
+            if (tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                this.addTokenToRequest = function (xhr, token) {
+                    xhr.setRequestHeader(
+                        tokenRequestDescriptor.headerName,
+                        token
+                    );
+                };
+            }
+        } else {
+            this.addTokenToRequest = options.addTokenToRequest;
+        }
     };
 
 }());
