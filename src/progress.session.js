@@ -2815,6 +2815,10 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
             value: "header", enumerable: true
         }); 
+        
+        Object.defineProperty(progress.data.Session, 'DEFAULT_HEADER_NAME', {
+            value: "X-OE-CLIENT-CONTEXT-ID", enumerable: true
+        }); 
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true

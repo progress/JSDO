@@ -37,7 +37,6 @@ limitations under the License.
     progress.data.AuthenticationProvider = function (authURI, options) {
         var authenticationURI,
             tokenResponseDescriptor,
-            defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID",
             that = this,
             storageKey;
         
@@ -73,6 +72,12 @@ limitations under the License.
         
         options = options || {};
         
+        if (typeof options !== "object") {
+            // {1}: Argument {2} must be of type {3} in {4} call.
+            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "2",
+                                           "object", "constructor"));
+        }
+        
         if (options.tokenResponseDescriptor) {
             // {1}: tokenResponseDescriptors and tokenRequestDescriptors must contain a type field.
             if (typeof options.tokenResponseDescriptor.type === "undefined") {
@@ -84,7 +89,7 @@ limitations under the License.
             // Give it a default location
             tokenResponseDescriptor = {
                 type : progress.data.Session.HTTP_HEADER,
-                headerName : defaultHeaderName
+                headerName : progress.data.Session.DEFAULT_HEADER_NAME
             };
         }
 
@@ -94,8 +99,8 @@ limitations under the License.
 
         // PRIVATE FUNCTIONS
 
-        function openTokenRequest(xhr, authProvider, credentials) {
-            xhr.open('POST', authProvider.authenticationURI, true);
+        function openTokenRequest(xhr, options) {
+            xhr.open('POST', that.authenticationURI, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.setRequestHeader("Cache-Control", "max-age=0");
             xhr.withCredentials = true;
@@ -135,21 +140,22 @@ limitations under the License.
                             result = progress.data.Session.SUCCESS;
                         } else {
                             result = progress.data.Session.GENERAL_FAILURE;
-                            // " Unexpected error authenticating: No token returned from server"
+                            // {1}: Unexpected error authenticating: {error-string}
+                            // ( No token returned from server)
                             errorObject = new Error(progress.data._getMsgText(
                                 "jsdoMSG049",
                                 "AuthenticationProvider",
                                 progress.data._getMsgText("jsdoMSG050")
                             ));
                         }
-                    } catch (eStore) {
+                    } catch (ex) {
                         result = progress.data.Session.GENERAL_FAILURE;
-                        // Unexpected error authenticating: <error-string>
+                        // {1}: Unexpected error authenticating: {error-string}
                         // (error could be thrown from storeToken when it calls setItem())
                         errorObject = new Error(progress.data._getMsgText(
                             "jsdoMSG049",
                             "AuthenticationProvider",
-                            eStore.message
+                            ex.message
                         ));
                     }
                 } else if (xhr.status === 401 || xhr.status === 403) {
@@ -202,7 +208,6 @@ limitations under the License.
                 }
             };
 
-            // TODO: Add OECP as an option here.
             xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit" + "&OECP=1");
             return deferred;
 
@@ -211,8 +216,7 @@ limitations under the License.
     };
     
     progress.data.AuthenticationConsumer = function (options) {
-        var tokenRequestDescriptor,
-            defaultHeaderName = "X-OE-CLIENT-CONTEXT-ID";
+        var tokenRequestDescriptor;
         
         options = options || {};
 
@@ -242,7 +246,7 @@ limitations under the License.
             // Give it a default location
             tokenRequestDescriptor = {
                 type : progress.data.Session.HTTP_HEADER,
-                headerName : defaultHeaderName
+                headerName : progress.data.Session.DEFAULT_HEADER_NAME
             };
         }
         
