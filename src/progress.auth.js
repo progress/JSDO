@@ -84,6 +84,36 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
             }
             
+            if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
+                    // {1}: tokenResponseDescriptors and tokenRequestDescriptors must
+                    // contain a {2} field if they are of type {3}.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG126",
+                        "AuthenticationConsumer",
+                        "headerName",
+                        "HTTP_HEADER"
+                    ));
+                }
+                
+                // If the headerName string is empty, throw an error
+                if (options.tokenResponseDescriptor.headerName.length === 0) {
+                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG126",
+                        "AuthenticationProvider",
+                        "headerName"
+                    ));
+                }
+            } else {
+                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG126",
+                    "AuthenticationProvider",
+                    "type"
+                ));
+            }
+            
             tokenResponseDescriptor = options.tokenResponseDescriptor;
         } else {
             // Give it a default location
@@ -237,11 +267,26 @@ limitations under the License.
                         "HTTP_HEADER"
                     ));
                 }
-                tokenRequestDescriptor = options.tokenRequestDescriptor;
+                
+                // If the headerName string is empty, throw an error
+                if (options.tokenResponseDescriptor.headerName.length === 0) {
+                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG126",
+                        "AuthenticationConsumer",
+                        "headerName"
+                    ));
+                }
             } else {
-                // {1}: Invalid type given for a tokenResponseDescriptor or tokenRequestDescriptor.
-                throw new Error(progress.data._getMsgText("jsdoMSG126", "AuthenticationConsumer"));
+                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG126",
+                    "AuthenticationConsumer",
+                    "type"
+                ));
             }
+            
+            tokenRequestDescriptor = options.tokenRequestDescriptor;
         } else {
             // Give it a default location
             tokenRequestDescriptor = {

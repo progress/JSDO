@@ -130,7 +130,7 @@ limitations under the License.
         "contain a type field.";
     msg.msgs.jsdoMSG126 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
         "contain a {2} field if they are of type {3}.";
-    msg.msgs.jsdoMSG127 = "{1}: Invalid type given for a tokenResponseDescriptor or tokenRequestDescriptor.";
+    msg.msgs.jsdoMSG127 = "{1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.";
 	
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
