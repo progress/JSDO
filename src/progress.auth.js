@@ -84,8 +84,8 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
             }
             
-            if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
-                if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
+            if (options.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                if (typeof options.tokenResponseDescriptor.headerName === "undefined") {
                     // {1}: tokenResponseDescriptors and tokenRequestDescriptors must
                     // contain a {2} field if they are of type {3}.
                     throw new Error(progress.data._getMsgText(
@@ -100,7 +100,7 @@ limitations under the License.
                 if (options.tokenResponseDescriptor.headerName.length === 0) {
                     // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
                     throw new Error(progress.data._getMsgText(
-                        "jsdoMSG126",
+                        "jsdoMSG127",
                         "AuthenticationProvider",
                         "headerName"
                     ));
@@ -108,7 +108,7 @@ limitations under the License.
             } else {
                 // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG126",
+                    "jsdoMSG127",
                     "AuthenticationProvider",
                     "type"
                 ));
@@ -272,7 +272,7 @@ limitations under the License.
                 if (options.tokenResponseDescriptor.headerName.length === 0) {
                     // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
                     throw new Error(progress.data._getMsgText(
-                        "jsdoMSG126",
+                        "jsdoMSG127",
                         "AuthenticationConsumer",
                         "headerName"
                     ));
@@ -280,7 +280,7 @@ limitations under the License.
             } else {
                 // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG126",
+                    "jsdoMSG127",
                     "AuthenticationConsumer",
                     "type"
                 ));
