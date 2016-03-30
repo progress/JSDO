@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-4
+progress.session.js    Version: 4.3.0-5
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -836,6 +836,7 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_FORM :
                             case progress.data.Session.AUTH_TYPE_BASIC :
                             case progress.data.Session.AUTH_TYPE_ANON :
+                            case progress.data.Session.AUTH_TYPE_OECP :
                             case null :
                                 _authenticationModel = newval;
                                 break;
@@ -2813,7 +2814,11 @@ limitations under the License.
  
         Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
             value: "header", enumerable: true
-        });
+        }); 
+        
+        Object.defineProperty(progress.data.Session, 'DEFAULT_HEADER_NAME', {
+            value: "X-OE-CLIENT-CONTEXT-ID", enumerable: true
+        }); 
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -2844,6 +2849,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_ANON = "anonymous";
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
+        progress.data.Session.AUTH_TYPE_OECP = "oecp";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -2929,7 +2935,16 @@ limitations under the License.
                 },
                 enumerable: true
             });        
-        
+
+        // TODO: What are the use cases of giving the user the authImpl?
+        Object.defineProperty(this, 'authImpl',
+            {
+                get: function () {
+                    return _pdsession ? _pdsession.authImpl : undefined;
+                },
+                enumerable: true
+            });
+
         Object.defineProperty(this, 'catalogURIs',
             {
                 get: function () {
@@ -3376,6 +3391,15 @@ limitations under the License.
             _myself.trigger( "offline", _myself, offlineReason, request );            
         };    
         
+        // We're not gonna expose the actual token to the user. The provider encapsulates
+        // the token and that's all you're gonna get.
+        /*this.getAuthenticationToken = function() {
+            if (_pdsession.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                // For now, since the id isn't a thing yet, gonna rely on the authenticationURI
+                return sessionStorage[_pdsession.authenticationOptions.provider.authenticationURI];
+            }
+            return null;
+        }*/
         
         // PROCESS CONSTRUCTOR ARGUMENTS 
         // validate constructor input arguments
@@ -3395,6 +3419,28 @@ limitations under the License.
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
+                
+                if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                    
+                    if (typeof options.authImpl !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter must be an object."));
+                    }
+                    
+                    if (typeof options.authImpl.provider === undefined) {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter have a provider field."));                        
+                    }
+                }
+                // TODO: Do we add error checking for authProvider and authConsumer here?
             }
         }
         else {
@@ -3407,6 +3453,22 @@ limitations under the License.
         try {
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
+            }
+            
+            
+            // Enhance the authImpl to hand over to the session.
+            // We should never get here without an implementation if the type is OECP
+            if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                //_pdsession.authImpl = options.authImpl;
+                
+                _pdsession.authImpl = (function(authImpl) {
+                    // Create an AuthenticationConsumer if it doesn't exist. 
+                    if (typeof authImpl.consumer === "undefined") {
+                        authImpl.consumer = new progress.data.AuthenticationConsumer();
+                    }
+                    
+                    return authImpl;
+                }(options.authImpl));
             }
             if (options.context) {
                 this.setContext(options.context);                

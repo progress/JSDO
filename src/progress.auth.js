@@ -1,5 +1,4 @@
 /* 
-progress.auth.js    Version: 4.3.0-3
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -237,5 +236,63 @@ limitations under the License.
 
     };
     
+    progress.data.AuthenticationConsumer = function (options) {
+        var tokenRequestDescriptor;
+        
+        options = options || {};
+
+        if (options.tokenRequestDescriptor) {
+            // {1}: tokenResponseDescriptors and tokenRequestDescriptors must contain a type field.
+            if (typeof options.tokenRequestDescriptor.type === "undefined") {
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationConsumer"));
+            }
+
+            if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
+                    options.tokenRequestDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
+                }
+                
+                // If the headerName string is empty, throw an error
+                if (options.tokenResponseDescriptor.headerName.length === 0) {
+                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG127",
+                        "AuthenticationConsumer",
+                        "headerName"
+                    ));
+                }
+            } else {
+                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG127",
+                    "AuthenticationConsumer",
+                    "type"
+                ));
+            }
+            
+            tokenRequestDescriptor = options.tokenRequestDescriptor;
+        } else {
+            // Give it a default location
+            tokenRequestDescriptor = {
+                type : progress.data.Session.HTTP_HEADER,
+                headerName : progress.data.Session.DEFAULT_HEADER_NAME
+            };
+        }
+        
+        if (typeof options.addTokenToRequest === "undefined") {
+            // Create a default function where we add the token to the header
+            if (tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                this.addTokenToRequest = function (xhr, token) {
+                    xhr.setRequestHeader(
+                        tokenRequestDescriptor.headerName,
+                        token
+                    );
+                };
+            }
+        } else {
+            this.addTokenToRequest = options.addTokenToRequest;
+        }
+    };
+
 }());
 
