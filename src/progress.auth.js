@@ -86,14 +86,7 @@ limitations under the License.
             
             if (options.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
                 if (typeof options.tokenResponseDescriptor.headerName === "undefined") {
-                    // {1}: tokenResponseDescriptors and tokenRequestDescriptors must
-                    // contain a {2} field if they are of type {3}.
-                    throw new Error(progress.data._getMsgText(
-                        "jsdoMSG126",
-                        "AuthenticationConsumer",
-                        "headerName",
-                        "HTTP_HEADER"
-                    ));
+                    options.tokenResponseDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
                 }
                 
                 // If the headerName string is empty, throw an error
@@ -258,14 +251,7 @@ limitations under the License.
 
             if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
                 if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
-                    // {1}: tokenResponseDescriptors and tokenRequestDescriptors must
-                    // contain a {2} field if they are of type {3}.
-                    throw new Error(progress.data._getMsgText(
-                        "jsdoMSG126",
-                        "AuthenticationConsumer",
-                        "headerName",
-                        "HTTP_HEADER"
-                    ));
+                    options.tokenRequestDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
                 }
                 
                 // If the headerName string is empty, throw an error
