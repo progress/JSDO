@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.3.0-4
+progress.js    Version: 4.3.0-6
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -9,7 +9,7 @@ you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
  
     http://www.apache.org/licenses/LICENSE-2.0
- 
+  
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -98,6 +98,9 @@ limitations under the License.
     msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
     msg.msgs.jsdoMSG047 = "{1} timeout expired.";
     msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG050 = "No token returned from server";
+    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -123,6 +126,11 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
+    msg.msgs.jsdoMSG125 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
+        "contain a type field.";
+    msg.msgs.jsdoMSG126 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
+        "contain a {2} field if they are of type {3}.";
+    msg.msgs.jsdoMSG127 = "{1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.";
 	
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 

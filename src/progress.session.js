@@ -2807,6 +2807,13 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM', {
             value: "form", enumerable: true
         });
+        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_OECP', {
+            value: "oecp", enumerable: true
+        });
+ 
+        Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
+            value: "header", enumerable: true
+        });
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
