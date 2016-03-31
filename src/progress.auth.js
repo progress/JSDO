@@ -210,6 +210,10 @@ limitations under the License.
         }
 
         // METHODS
+        this.isAuthenticated = function () {
+            return (retrieveToken() ? true : false);
+        };
+        
         this.authenticate = function (options) {
             var deferred = $.Deferred(),
                 xhr;

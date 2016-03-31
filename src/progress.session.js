@@ -3439,8 +3439,14 @@ limitations under the License.
                                 "the constructor",
                                 "The authImpl property of the options parameter have a provider field."));                        
                     }
+                    
+                    // TODO: Add a check if the provider has an isAuthenticated() function.
+                    // Our usage of isAuthenticated() here implies that if the user implements
+                    // their own provider, it needs to have an isAuthenticated() method.
+                    if (!options.authImpl.provider.isAuthenticated()) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG128"));                        
+                    }
                 }
-                // TODO: Do we add error checking for authProvider and authConsumer here?
             }
         }
         else {
@@ -3458,15 +3464,36 @@ limitations under the License.
             // Enhance the authImpl to hand over to the session.
             // We should never get here without an implementation if the type is OECP
             if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
-                //_pdsession.authImpl = options.authImpl;
-                
+
+                // TODO: Maybe make this into an actual object in progress.auth.js?
                 _pdsession.authImpl = (function(authImpl) {
-                    // Create an AuthenticationConsumer if it doesn't exist. 
+                    // Create an AuthenticationConsumer if it doesn't exist.
                     if (typeof authImpl.consumer === "undefined") {
                         authImpl.consumer = new progress.data.AuthenticationConsumer();
                     }
-                    
-                    authImpl.addTokenToRequest = authImpl.consumer.addTokenToRequest;
+                      
+                    // This is going to be harcoded for now. This can very 
+                    // possibly change in the future if we decide to expose 
+                    // the token to the user. We might move this to 
+                    // progress.auth.js.
+                    authImpl.provider._getToken = function () {
+                        return sessionStorage.getItem(
+                            authImpl.provider.authenticationURI
+                        );
+                    };
+
+                    // TODO: Add a check to see if consumer.addTokenToRequest exists.
+                    // Our usage of addTokenToRequest() here implies that if the user implements
+                    // their own consumer, it needs to have an addTokenToRequest() method.
+                    // We don't need to worry about this now since we're not exposing the
+                    // consumer...yet.
+                    authImpl.addTokenToRequest = function(xhr) {
+                        // TODO: Add a succeed/failure return value?
+                        authImpl.consumer.addTokenToRequest(
+                            xhr,
+                            authImpl.provider._getToken()
+                        );
+                    };
                     
                     return authImpl;
                 }(options.authImpl));
