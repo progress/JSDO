@@ -3455,7 +3455,6 @@ limitations under the License.
                 _pdsession.authenticationModel = options.authenticationModel;
             }
             
-            
             // Enhance the authImpl to hand over to the session.
             // We should never get here without an implementation if the type is OECP
             if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
@@ -3466,6 +3465,8 @@ limitations under the License.
                     if (typeof authImpl.consumer === "undefined") {
                         authImpl.consumer = new progress.data.AuthenticationConsumer();
                     }
+                    
+                    authImpl.addTokenToRequest = authImpl.consumer.addTokenToRequest;
                     
                     return authImpl;
                 }(options.authImpl));
