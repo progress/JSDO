@@ -3410,7 +3410,7 @@ limitations under the License.
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
                 
-                if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+                if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
                     
                     if (typeof options.authImpl !== "object") {
                         throw new Error(
@@ -3421,13 +3421,13 @@ limitations under the License.
                                 "The authImpl property of the options parameter must be an object."));
                     }
                     
-                    if (typeof options.authImpl.provider === undefined) {
+                    if (typeof options.authImpl.provider !== "object") {
                         throw new Error(
                             progress.data._getMsgText(
                                 "jsdoMSG033", 
                                 "JSDOSession", 
                                 "the constructor",
-                                "The authImpl property of the options parameter have a provider field."));                        
+                                "The authImpl property of the options parameter have a provider object field."));                        
                     }
                     
                     // TODO: Add a check if the provider has an isAuthenticated() function.
