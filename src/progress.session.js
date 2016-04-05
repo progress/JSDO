@@ -3391,16 +3391,6 @@ limitations under the License.
             _myself.trigger( "offline", _myself, offlineReason, request );            
         };    
         
-        // We're not gonna expose the actual token to the user. The provider encapsulates
-        // the token and that's all you're gonna get.
-        /*this.getAuthenticationToken = function() {
-            if (_pdsession.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
-                // For now, since the id isn't a thing yet, gonna rely on the authenticationURI
-                return sessionStorage[_pdsession.authenticationOptions.provider.authenticationURI];
-            }
-            return null;
-        }*/
-        
         // PROCESS CONSTRUCTOR ARGUMENTS 
         // validate constructor input arguments
         if ( (arguments.length > 0) && (typeof(arguments[0]) === 'object') ) {
@@ -3463,7 +3453,7 @@ limitations under the License.
             
             // Enhance the authImpl to hand over to the session.
             // We should never get here without an implementation if the type is OECP
-            if (options.authenticationModel === progress.data.Session.AUTH_TYE_OECP) {
+            if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
 
                 // TODO: Maybe make this into an actual object in progress.auth.js?
                 _pdsession.authImpl = (function(authImpl) {

@@ -234,7 +234,8 @@ limitations under the License.
                 }
             };
 
-            xhr.send("j_username=" + options.userName + "&j_password=" + options.password + "&submit=Submit" + "&OECP=1");
+            xhr.send("j_username=" + options.userName + "&j_password=" + options.password +
+                     "&submit=Submit" + "&OECP=1");
             return deferred;
 
         };
