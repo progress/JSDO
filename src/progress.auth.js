@@ -55,18 +55,21 @@ limitations under the License.
                 },
                 enumerable: true
             });
-       
-        if (typeof authURI === "undefined") {
-            // Too few arguments. There must be at least {1}.
-            throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
-        }
         
-        if (typeof authURI === "string") {
-            authenticationURI = authURI;
-        } else {
+        if (typeof authURI !== "string") {
             // {1}: Argument {2} must be of type {3} in {4} call.
             throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
                                            "string", "constructor"));
+        } else if (authURI.length === 0) {
+            // {1}: Invalid value for {2} given for {3}.
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG127",
+                "AuthenticationProvider",
+                "authenticationURI",
+                "the constructor"
+            ));
+        } else {
+            authenticationURI = authURI;
         }
         
         options = options || {};
@@ -90,19 +93,21 @@ limitations under the License.
                 
                 // If the headerName string is empty, throw an error
                 if (options.tokenResponseDescriptor.headerName.length === 0) {
-                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                    // {1}: Invalid value for {2} given for {3}.
                     throw new Error(progress.data._getMsgText(
                         "jsdoMSG127",
                         "AuthenticationProvider",
-                        "headerName"
+                        "headerName",
+                        "tokenResponseDescriptor"
                     ));
                 }
             } else {
-                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                // {1}: Invalid value for {2} given for {3}.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG127",
                     "AuthenticationProvider",
-                    "type"
+                    "type",
+                    "tokenResponseDescriptor"
                 ));
             }
             
@@ -260,19 +265,21 @@ limitations under the License.
                 
                 // If the headerName string is empty, throw an error
                 if (options.tokenResponseDescriptor.headerName.length === 0) {
-                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                    // {1}: Invalid value for {2} given for {3}.
                     throw new Error(progress.data._getMsgText(
                         "jsdoMSG127",
                         "AuthenticationConsumer",
-                        "headerName"
+                        "headerName",
+                        "tokenRequestDescriptor"
                     ));
                 }
             } else {
-                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                // {1}: Invalid value for {2} given for {3}.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG127",
                     "AuthenticationConsumer",
-                    "type"
+                    "type",
+                    "tokenRequestDescriptor"
                 ));
             }
             
