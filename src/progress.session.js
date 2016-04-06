@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.2.0-2
+progress.session.js    Version: 4.3.0-5
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -836,6 +836,7 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_FORM :
                             case progress.data.Session.AUTH_TYPE_BASIC :
                             case progress.data.Session.AUTH_TYPE_ANON :
+                            case progress.data.Session.AUTH_TYPE_OECP :
                             case null :
                                 _authenticationModel = newval;
                                 break;
@@ -882,19 +883,22 @@ limitations under the License.
                         return _pingInterval;
                     },
                     set: function (newval) {
-                        if (newval >= 0) {
+                        if ( (typeof newval === "number") && (newval >= 0) ) {
                             _pingInterval = newval;
                             if (newval > 0) {
-                                _timeoutID = setTimeout(this._autoping, newval);
+                                // if we're logged in, start autopinging
+                                if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
+                                    _timeoutID = setTimeout(this._autoping, newval);
+                                }
                             }
                             else if (newval === 0) {
                                 clearTimeout(_timeoutID);
                                 _pingInterval = 0;
                             }
-                            else {
-                                throw new Error("Error setting Session.pingInterval. '" + 
-                                    newval + "' is an invalid value.");
-                            }
+                        }
+                        else {
+                            throw new Error("Error setting Session.pingInterval. '" + 
+                                newval + "' is an invalid value.");
                         }
                     },
                     enumerable: true
@@ -1314,6 +1318,7 @@ limitations under the License.
                          && iOSBasicAuthTimeout > 0 ) { 
                         xhr._requestTimeout = setTimeout(  function (){
                                                         clearTimeout(xhr._requestTimeout);
+                                                        xhr._iosTimeOutExpired = true;
                                                         xhr.abort();
                                                     }, 
                                                     iOSBasicAuthTimeout);
@@ -1600,6 +1605,9 @@ limitations under the License.
             // null the temporary credentials variables
             unameSave = null;
             pwSave = null;
+            if (xhr._iosTimeOutExpired) {
+                throw new Error( progress.data._getMsgText("jsdoMSG047", "login") );
+            }
 
             // return loginResult even if it's an async operation -- the async handler
             // (e.g., onReadyStateChangeGeneric) will just ignore
@@ -1783,6 +1791,7 @@ limitations under the License.
                 oepingAvailable = false;
                 partialPingURI = defaultPartialPingURI;
                 setLastSessionXHR(null, pdsession);
+                clearTimeout(_timeoutID);   //  stop autopinging 
             }
         };
 
@@ -1933,6 +1942,7 @@ limitations under the License.
                      && iOSBasicAuthTimeout ) { 
                     xhr._requestTimeout = setTimeout(  function (){
                                                     clearTimeout(xhr._requestTimeout);
+                                                    xhr._iosTimeOutExpired = true;
                                                     xhr.abort();
                                                 }, 
                                                 iOSBasicAuthTimeout);
@@ -2023,6 +2033,9 @@ limitations under the License.
             else if (_catalogHttpStatus == 401) {
                 return progress.data.Session.AUTHENTICATION_FAILURE;
             }
+            else if (xhr._iosTimeOutExpired) { 
+                throw new Error( progress.data._getMsgText("jsdoMSG047", "addCatalog") );
+            }
             else {
                 throw new Error("Error retrieving catalog '" + catalogURI + 
                     "'. Http status: " + _catalogHttpStatus + ".");
@@ -2072,6 +2085,10 @@ limitations under the License.
                 offlineReason: null
             };
 
+            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS) {
+                throw new Error("Attempted to call ping when not logged in.");
+            }
+            
             if (args) {
                 if (args.async !== undefined) {
                     // when we do background pinging (because pingInterval is set),
@@ -2114,6 +2131,12 @@ limitations under the License.
                 }
                 else {
                     pingResult = false; // no xhr returned from _sendPing, something must have gone wrong
+                }
+                if ( args.xhr !== undefined ) {
+                    // if it's a sync ping, return the xhr if caller indicates they want it
+                    // (there's almost guaranteed to be one, even if the ping was never sent
+                    // if for some reason there isn't, we give them the null or undefined we ended up with)
+                    args.xhr = pingArgs.xhr;  
                 }
             }
             // else it's async, deliberately returning false 
@@ -2247,10 +2270,12 @@ limitations under the License.
          * Return true if the response meets these conditions, false if it doesn't
          */
         this._processPingResult = function (args) {
-            var xhr = args.xhr;
-            var pingResponseJSON;
-            var appServerStatus = null;
-            var wasOnline = this.connected;
+            var xhr = args.xhr,
+                pingResponseJSON,
+                appServerStatus = null,
+                wasOnline = this.connected,
+                connectedBeforeCallback;
+
 
             /* first determine whether the Web server and the Mobile Web Application (MWA)
              * are available
@@ -2319,6 +2344,20 @@ limitations under the License.
                 }
             }
 
+            /* We call any async ping callback handler and then, after that returns, fire an
+               offline or online event if necessary. 
+               When deciding whether to fire an event, the responsibility of this _processPingResult()
+               function is to decide about the event on the basis of the data returned from the ping
+               that it is currently processing. Therefore, since the ping callback that is just about
+               to be called could change the outcome of the event decision (for example, if the handler
+               calls logout(), thus setting Session.connected to false)), we save the current value of
+               Session.connected and use that saved value to decide about the event after the ping 
+               handler returns.
+               (If the application programmer wants to get an event fired as a result of something
+               that happens in the ping handler, they should call a ping() *after* that. 
+             */
+            connectedBeforeCallback = this.connected;
+
             if ((typeof xhr.onCompleteFn) == 'function') {
                 xhr.onCompleteFn({
                     pingResult: this.connected,
@@ -2329,10 +2368,10 @@ limitations under the License.
 
             // decide whether to fire an event, and if so do it
             if (args.fireEventIfOfflineChange) {
-                if (wasOnline && !this.connected) {
+                if (wasOnline && !connectedBeforeCallback) { 
                     myself.trigger("offline", myself, args.offlineReason, null);
                 }
-                else if (!wasOnline && this.connected) {
+                else if (!wasOnline && connectedBeforeCallback) {
                     myself.trigger("online", myself, null);
                 }
             }
@@ -2370,6 +2409,12 @@ limitations under the License.
                     partialPingURI = myself.loginTarget;
                     console.warn("Default ping target not available, will use loginTarget instead.");
                 }
+                
+                // If we're here, we've just logged in. If pingInterval has been set, we need
+                // to start autopinging
+                if (_pingInterval > 0) {
+                    _timeoutID = setTimeout(myself._autoping, _pingInterval);
+                }
             }
         };
 
@@ -2403,7 +2448,7 @@ limitations under the License.
             catch (e) {
                 args.error = e;
             }
-            // ASYNC??
+            
             args.xhr = xhr;
         };
 
@@ -2763,6 +2808,17 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM', {
             value: "form", enumerable: true
         });
+        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_OECP', {
+            value: "oecp", enumerable: true
+        });
+ 
+        Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
+            value: "header", enumerable: true
+        }); 
+        
+        Object.defineProperty(progress.data.Session, 'DEFAULT_HEADER_NAME', {
+            value: "X-OE-CLIENT-CONTEXT-ID", enumerable: true
+        }); 
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -2793,6 +2849,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_ANON = "anonymous";
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
+        progress.data.Session.AUTH_TYPE_OECP = "oecp";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -2878,7 +2935,16 @@ limitations under the License.
                 },
                 enumerable: true
             });        
-        
+
+        // TODO: What are the use cases of giving the user the authImpl?
+        Object.defineProperty(this, 'authImpl',
+            {
+                get: function () {
+                    return _pdsession ? _pdsession.authImpl : undefined;
+                },
+                enumerable: true
+            });
+
         Object.defineProperty(this, 'catalogURIs',
             {
                 get: function () {
@@ -3325,7 +3391,6 @@ limitations under the License.
             _myself.trigger( "offline", _myself, offlineReason, request );            
         };    
         
-        
         // PROCESS CONSTRUCTOR ARGUMENTS 
         // validate constructor input arguments
         if ( (arguments.length > 0) && (typeof(arguments[0]) === 'object') ) {
@@ -3344,6 +3409,34 @@ limitations under the License.
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
+                
+                if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
+                    
+                    if (typeof options.authImpl !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter must be an object."));
+                    }
+                    
+                    if (typeof options.authImpl.provider !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter have a provider object field."));                        
+                    }
+                    
+                    // TODO: Add a check if the provider has an isAuthenticated() function.
+                    // Our usage of isAuthenticated() here implies that if the user implements
+                    // their own provider, it needs to have an isAuthenticated() method.
+                    if (!options.authImpl.provider.isAuthenticated()) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG128"));                        
+                    }
+                }
             }
         }
         else {
@@ -3356,6 +3449,44 @@ limitations under the License.
         try {
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
+            }
+            
+            // Enhance the authImpl to hand over to the session.
+            // We should never get here without an implementation if the type is OECP
+            if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
+
+                // TODO: Maybe make this into an actual object in progress.auth.js?
+                _pdsession.authImpl = (function(authImpl) {
+                    // Create an AuthenticationConsumer if it doesn't exist.
+                    if (typeof authImpl.consumer === "undefined") {
+                        authImpl.consumer = new progress.data.AuthenticationConsumer();
+                    }
+                      
+                    // This is going to be harcoded for now. This can very 
+                    // possibly change in the future if we decide to expose 
+                    // the token to the user. We might move this to 
+                    // progress.auth.js.
+                    authImpl.provider._getToken = function () {
+                        return sessionStorage.getItem(
+                            authImpl.provider.authenticationURI
+                        );
+                    };
+
+                    // TODO: Add a check to see if consumer.addTokenToRequest exists.
+                    // Our usage of addTokenToRequest() here implies that if the user implements
+                    // their own consumer, it needs to have an addTokenToRequest() method.
+                    // We don't need to worry about this now since we're not exposing the
+                    // consumer...yet.
+                    authImpl.addTokenToRequest = function(xhr) {
+                        // TODO: Add a succeed/failure return value?
+                        authImpl.consumer.addTokenToRequest(
+                            xhr,
+                            authImpl.provider._getToken()
+                        );
+                    };
+                    
+                    return authImpl;
+                }(options.authImpl));
             }
             if (options.context) {
                 this.setContext(options.context);                
