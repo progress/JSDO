@@ -3434,7 +3434,8 @@ limitations under the License.
                     // Our usage of isAuthenticated() here implies that if the user implements
                     // their own provider, it needs to have an isAuthenticated() method.
                     if (!options.authImpl.provider.isAuthenticated()) {
-                        throw new Error(progress.data._getMsgText("jsdoMSG128"));                        
+                        // JSDOSession: The AuthenticationProvider given must already be authenticated.
+                        throw new Error(progress.data._getMsgText("jsdoMSG125"));                        
                     }
                 }
             }

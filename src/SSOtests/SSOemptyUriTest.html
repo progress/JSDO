@@ -1,0 +1,201 @@
+<html>
+    <head>
+        <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.util.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.session.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
+        
+    </head>
+
+    
+    <body>
+        <br/>
+        <br/>
+        TEST OUTPUT
+        <br/>
+
+        <script type="text/javascript">
+            // These are tests for the story TP 34435 where we're making sure
+            // providing an empty authenticationURI throws an error.
+            // I also changed a bunch of error messages so this tests that too.
+            
+            // THESE TESTS ARE RELATED TO THE BUG
+            
+            document.write("Empty authenticationURI tests: <br/>");
+            
+            // Original success case
+            try {
+                document.write("<br/><br/>Successful AuthProvider Check: <br/>");
+                var auth = new progress.data.AuthenticationProvider(
+                    //"http://localhost:8810/TS102/static/auth/j_spring_security_check",
+                    "http://nbbedaestrada:8810/TS102/static/auth/j_spring_security_check"
+                );
+                
+                auth.authenticate({ userName: "restuser", password: "password"})
+                    .done(function (ap, result, info) {
+                    console.log("authenticate method succeeded");
+                
+                })
+                .fail(function (ap, result, info) {
+                    console.log("authenticate method failed");
+                });
+                
+            } catch (e) {
+                console.log("Failure: " + e);
+            } finally {
+                // If this succeeds, our provider should be authenticated
+                // Weird thing, it fails the first time? Even though we are
+                // authenticated?
+                if (auth && auth.isAuthenticated()) {
+                    document.write("Success: we're authenticated!");
+                }
+                else  {
+                    document.write("Failure: We didn't authenticate!");
+                }
+            }
+            
+            // Failure case where we give an empty authenticationURI
+            try {
+                document.write("<br/><br/>Empty authURI Check: <br/>")
+                var fail = new progress.data.AuthenticationProvider(
+                    ""
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            // THESE TESTS ARE RELATED TO ERROR MESSAGE CHANGES
+            
+            document.write("AuthenticationProvider tests: <br/>"); 
+            
+            // Failure case where we have a tokenResponseDescriptor with no type
+            try {
+                document.write("<br/><br/>Empty tokenResponseDescriptor: <br/>")
+                var test = new progress.data.AuthenticationProvider(
+                    "fake.fakerson.com",
+                    {
+                        tokenResponseDescriptor: {}
+                    }
+                    
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            // Failure case where we have a tokenResponseDescriptor with  an invalid type
+            try {
+                document.write("<br/><br/>Bad type for tokenResponseDescriptor: <br/>")
+                var test = new progress.data.AuthenticationProvider(
+                    "fake.fakerson.com",
+                    {
+                        tokenResponseDescriptor: 
+                        {
+                            type: 5    
+                        }
+                    }
+                    
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            // Failure case where we have a tokenResponseDescriptor with an empty headerName
+            try {
+                document.write("<br/><br/>Empty headerName for tokenResponseDescriptor: <br/>")
+                var test = new progress.data.AuthenticationProvider(
+                    "fake.fakerson.com",
+                    {
+                        tokenResponseDescriptor: 
+                        {
+                            type: "header",
+                            headerName: ""
+                        }
+                    }
+                    
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            document.write("AuthenticationConsumer tests: <br/>"); 
+            
+            // Failure case where we have a tokenRequestDescriptor with no type
+            try {
+                document.write("<br/><br/>Empty tokenResponseDescriptor: <br/>")
+                var test = new progress.data.AuthenticationConsumer(
+                    {
+                        tokenRequestDescriptor: {}
+                    }
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            // Failure case where we have a tokenRequestDescriptor with  an invalid type
+            try {
+                document.write("<br/><br/>Bad type for tokenRequestDescriptor: <br/>")
+                var test = new progress.data.AuthenticationConsumer(
+                    {
+                        tokenRequestDescriptor: 
+                        {
+                            type: 5    
+                        }
+                    }
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            // Failure case where we have a tokenRequestDescriptor with an empty headerName
+            try {
+                document.write("<br/><br/>Empty headerName for tokenRequestDescriptor: <br/>")
+                var test = new progress.data.AuthenticationConsumer(
+                    {
+                        tokenRequestDescriptor: 
+                        {
+                            type: "header",
+                            headerName: ""
+                        }
+                    }
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+                // Failure case where where options is not an object
+            try {
+                document.write("<br/><br/>AuthenticationConsumer options is not an object: <br/>")
+                var test = new progress.data.AuthenticationConsumer("fail!");
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            
+        </script> 
+    </body>
+</html>
