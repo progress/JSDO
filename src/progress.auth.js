@@ -47,15 +47,7 @@ limitations under the License.
                 },
                 enumerable: true
             });
-
-        Object.defineProperty(this, 'tokenResponseDescriptor',
-            {
-                get: function () {
-                    return tokenResponseDescriptor;
-                },
-                enumerable: true
-            });
-        
+                
         if (typeof authURI !== "string") {
             // {1}: Argument {2} must be of type {3} in {4} call.
             throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
