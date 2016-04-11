@@ -94,7 +94,6 @@
                 
                 document.write("Failure: We didn't throw an error");
             } catch (e) {
-                // We should not print out anything
                 document.write("Success ('type' property missing): " + e);
             }
 
@@ -117,8 +116,24 @@
                 
                 document.write("Failure: We didn't throw an error");
             } catch (e) {
-                // We should not print out anything
                 document.write("Success ('type' property invalid): " + e);
+            }
+            
+            try {
+                document.write("<br/><br/>Wrong type for consumer Case: <br/>")
+                
+                sess = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth,
+                        consumer: 8
+                    }
+                });
+                
+                document.write("Failure: We didn't throw an error");
+            } catch (e) {
+                document.write("Success (consumer is an object): " + e);
             }
             
         </script> 

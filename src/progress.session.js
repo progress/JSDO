@@ -3430,6 +3430,17 @@ limitations under the License.
                                 "The authImpl property of the options parameter have a provider object field."));                        
                     }
                     
+                    // Though the consumer is optional, it needs to be an object
+                    if (options.authImpl.hasOwnProperty('consumer') && 
+                        typeof options.authImpl.consumer !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "the constructor",
+                                "The authImpl property of the options parameter has an optional consumer object field."));
+                    }
+                    
                     // TODO: Add a check if the provider has an isAuthenticated() function.
                     // Our usage of isAuthenticated() here implies that if the user implements
                     // their own provider, it needs to have an isAuthenticated() method.
@@ -3461,11 +3472,14 @@ limitations under the License.
 
                     if (typeof authImpl.consumer === "undefined") {
                         authImpl.consumer = new progress.data.AuthenticationConsumer();
-                    } else {
-                        authImpl.consumer = new progress.data.AuthenticationConsumer(
-                            {
+                    } else if (typeof authImpl.consumer === "object") {
+                        // If the consumer is an AuthenticationConsumer, we're good.
+                        // Otherwise, create our own AuthenticationConsumer from what was passed in
+                        if (!(authImpl.consumer instanceof progress.data.AuthenticationConsumer)) {
+                            authImpl.consumer = new progress.data.AuthenticationConsumer({
                                 tokenRequestDescriptor: authImpl.consumer.tokenRequestDescriptor
                             });
+                        }
                     }
                     
                     // This is going to be harcoded for now. This can very 
