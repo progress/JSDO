@@ -1,0 +1,126 @@
+<html>
+    <head>
+        <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.util.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.session.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
+        
+    </head>
+    
+    <body>
+        <br/>
+        <br/>
+        TEST OUTPUT
+        <br/>
+
+        <script type="text/javascript">
+            // These are tests for the story TP 39170 where there is no validation
+            // done on a consumer passed to a JSDOSession
+            
+            document.write("Consumer Validation Tests: <br/>");
+            
+            // Make the authProvider
+            try {
+                var auth = new progress.data.AuthenticationProvider(
+                    //"http://localhost:8810/TS102/static/auth/j_spring_security_check",
+                    "http://nbbedaestrada:8810/TS102/static/auth/j_spring_security_check"
+                );
+                
+                auth.authenticate({ userName: "restuser", password: "password"})
+                    .done(function (ap, result, info) {
+                    console.log("authenticate method succeeded");
+                
+                })
+                .fail(function (ap, result, info) {
+                    console.log("authenticate method failed");
+                });
+                
+            } catch (e) {
+                console.log("Failure: " + e);
+            } 
+            
+            // Success case where consumer is not provided
+            try {
+                document.write("<br/><br/>Consumer not provided success case: <br/>")
+                
+                sess = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth
+                    }    
+                });
+                
+                document.write("Sucess! JSDOSession is a-okay.");
+            } catch (e) {
+                // We should not print out anything
+                document.write("Failure: " + e);
+            }
+            
+            // Success case where consumer is an empty object
+            try {
+                document.write("<br/><br/>Empty object consumer success Case: <br/>")
+                
+                sess = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth,
+                        consumer: {}
+                    }    
+                });
+                
+                document.write("Sucess! JSDOSession is a-okay.");
+            } catch (e) {
+                // We should not print out anything
+                document.write("Failure: " + e);
+            }
+            
+            try {
+                document.write("<br/><br/>Empty TokenRequestDescriptor Case: <br/>")
+                
+                sess = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth,
+                        consumer: {
+                            tokenRequestDescriptor: {}
+                        }
+                        
+                    }    
+                });
+                
+                document.write("Failure: We didn't throw an error");
+            } catch (e) {
+                // We should not print out anything
+                document.write("Success ('type' property missing): " + e);
+            }
+
+            try {
+                document.write("<br/><br/>Invalid type in TokenRequestDescriptor Case: <br/>")
+                
+                sess = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth,
+                        consumer: {
+                            tokenRequestDescriptor: {
+                                type: 5
+                            }
+                        }
+                        
+                    }    
+                });
+                
+                document.write("Failure: We didn't throw an error");
+            } catch (e) {
+                // We should not print out anything
+                document.write("Success ('type' property invalid): " + e);
+            }
+            
+        </script> 
+    </body>
+</html>

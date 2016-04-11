@@ -3458,11 +3458,16 @@ limitations under the License.
 
                 // TODO: Maybe make this into an actual object in progress.auth.js?
                 _pdsession.authImpl = (function(authImpl) {
-                    // Create an AuthenticationConsumer if it doesn't exist.
+
                     if (typeof authImpl.consumer === "undefined") {
                         authImpl.consumer = new progress.data.AuthenticationConsumer();
+                    } else {
+                        authImpl.consumer = new progress.data.AuthenticationConsumer(
+                            {
+                                tokenRequestDescriptor: authImpl.consumer.tokenRequestDescriptor
+                            });
                     }
-                      
+                    
                     // This is going to be harcoded for now. This can very 
                     // possibly change in the future if we decide to expose 
                     // the token to the user. We might move this to 
