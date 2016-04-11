@@ -93,8 +93,15 @@ limitations under the License.
             if (options.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
                 if (typeof options.tokenResponseDescriptor.headerName === "undefined") {
                     options.tokenResponseDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
+                } else if (typeof options.tokenResponseDescriptor.headerName !== "string") {
+                    // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG502",
+                        "AuthenticationProvider",
+                        "tokenResponseDescriptor",
+                        "headerName"
+                    ));
                 }
-                
                 // If the headerName string is empty, throw an error
                 if (options.tokenResponseDescriptor.headerName.length === 0) {
                     // {1}: '{2}' cannot be an empty string.
@@ -275,6 +282,14 @@ limitations under the License.
             if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
                 if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
                     options.tokenRequestDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
+                } else if (typeof options.tokenRequestDescriptor.headerName !== "string") {
+                    // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG502",
+                        "AuthenticationProvider",
+                        "tokenRequestDescriptor",
+                        "headerName"
+                    ));
                 }
                 
                 // If the headerName string is empty, throw an error

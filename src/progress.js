@@ -129,9 +129,9 @@ limitations under the License.
     msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider given must already be authenticated.";
     
     //                    500 - 998 are for generic errors
-    msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' field.";
+    msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
     msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
-    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' field.";
+    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
