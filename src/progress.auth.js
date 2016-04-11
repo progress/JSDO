@@ -55,18 +55,20 @@ limitations under the License.
                 },
                 enumerable: true
             });
-       
-        if (typeof authURI === "undefined") {
-            // Too few arguments. There must be at least {1}.
-            throw new Error(progress.data._getMsgText("jsdoMSG038", "1"));
-        }
         
-        if (typeof authURI === "string") {
-            authenticationURI = authURI;
-        } else {
+        if (typeof authURI !== "string") {
             // {1}: Argument {2} must be of type {3} in {4} call.
             throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
                                            "string", "constructor"));
+        } else if (authURI.length === 0) {
+            // {1}: '{2}' cannot be an empty string.
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG501",
+                "AuthenticationProvider",
+                "authenticationURI"
+            ));
+        } else {
+            authenticationURI = authURI;
         }
         
         options = options || {};
@@ -78,30 +80,43 @@ limitations under the License.
         }
         
         if (options.tokenResponseDescriptor) {
-            // {1}: tokenResponseDescriptors and tokenRequestDescriptors must contain a type field.
+            // {1}: '{2}' objects must contain a '{3}' field.
             if (typeof options.tokenResponseDescriptor.type === "undefined") {
-                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG500",
+                    "AuthenticationProvider",
+                    "tokenResponseDescriptor",
+                    "type"
+                ));
             }
             
             if (options.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
                 if (typeof options.tokenResponseDescriptor.headerName === "undefined") {
                     options.tokenResponseDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
+                } else if (typeof options.tokenResponseDescriptor.headerName !== "string") {
+                    // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG502",
+                        "AuthenticationProvider",
+                        "tokenResponseDescriptor",
+                        "headerName"
+                    ));
                 }
-                
                 // If the headerName string is empty, throw an error
                 if (options.tokenResponseDescriptor.headerName.length === 0) {
-                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                    // {1}: '{2}' cannot be an empty string.
                     throw new Error(progress.data._getMsgText(
-                        "jsdoMSG127",
-                        "AuthenticationProvider",
+                        "jsdoMSG501",
+                        "tokenResponseDescriptor",
                         "headerName"
                     ));
                 }
             } else {
-                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                // {1}: The object '{2}' has an invalid value in the '{3}' field.
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG127",
+                    "jsdoMSG502",
                     "AuthenticationProvider",
+                    "tokenResponseDescriptor",
                     "type"
                 ));
             }
@@ -247,31 +262,51 @@ limitations under the License.
         
         options = options || {};
 
+        if (typeof options !== "object") {
+            // {1}: Argument {2} must be of type {3} in {4} call.
+            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationConsumer", "2",
+                                           "object", "constructor"));
+        }
+        
         if (options.tokenRequestDescriptor) {
-            // {1}: tokenResponseDescriptors and tokenRequestDescriptors must contain a type field.
+            // {1}: '{2}' objects must contain a '{3}' field.
             if (typeof options.tokenRequestDescriptor.type === "undefined") {
-                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationConsumer"));
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG500",
+                    "AuthenticationConsumer",
+                    "tokenRequestDescriptor",
+                    "type"
+                ));
             }
 
             if (options.tokenRequestDescriptor.type === progress.data.Session.HTTP_HEADER) {
                 if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
                     options.tokenRequestDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
+                } else if (typeof options.tokenRequestDescriptor.headerName !== "string") {
+                    // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG502",
+                        "AuthenticationProvider",
+                        "tokenRequestDescriptor",
+                        "headerName"
+                    ));
                 }
                 
                 // If the headerName string is empty, throw an error
-                if (options.tokenResponseDescriptor.headerName.length === 0) {
-                    // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                if (options.tokenRequestDescriptor.headerName.length === 0) {
+                    // {1}: '{2}' cannot be an empty string.
                     throw new Error(progress.data._getMsgText(
-                        "jsdoMSG127",
-                        "AuthenticationConsumer",
+                        "jsdoMSG501",
+                        "tokenRequestDescriptor",
                         "headerName"
                     ));
                 }
             } else {
-                // {1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.
+                // {1}: The object '{2}' has an invalid value in the '{3}' field.
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG127",
+                    "jsdoMSG502",
                     "AuthenticationConsumer",
+                    "tokenRequestDescriptor",
                     "type"
                 ));
             }

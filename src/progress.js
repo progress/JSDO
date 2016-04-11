@@ -106,7 +106,7 @@ limitations under the License.
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
     msg.msgs.jsdoMSG101 = "Network error while executing HTTP request.";
 
-    //                    110 - 998 are for miscellaneous errors
+    //                    110 - 499 are for miscellaneous errors
     msg.msgs.jsdoMSG110 = "Catalog error: idProperty not specified for resource '{1}'. " +
         "idProperty is required {2}.";
     msg.msgs.jsdoMSG111 = "Catalog error: Schema '{1}' was not found in catalog.";
@@ -126,13 +126,13 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
-    msg.msgs.jsdoMSG125 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
-        "contain a type field.";
-    msg.msgs.jsdoMSG126 = "{1}: tokenResponseDescriptors and tokenRequestDescriptors must" +
-        "contain a {2} field if they are of type {3}.";
-    msg.msgs.jsdoMSG127 = "{1}: Invalid {2} given for a tokenResponseDescriptor or tokenRequestDescriptor.";
-    msg.msgs.jsdoMSG128 = "JSDOSession: The AuthenticationProvider given must already be authenticated.";
-	
+    msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider given must already be authenticated.";
+    
+    //                    500 - 998 are for generic errors
+    msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
+    msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
+    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
+
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
     msg.getMsgText = function (n, args) {
