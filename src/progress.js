@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.3.0-6
+progress.js    Version: 4.3.0-7
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
