@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.3.0-5
+progress.auth.js    Version: 4.3.0-6
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -144,7 +144,7 @@ limitations under the License.
         }
         
         // get the token from storage. Returns null if this object hasn't stored one yet
-        function retrieveToken(token) {
+        function retrieveToken() {
             return sessionStorage.getItem(storageKey);
         }
 
@@ -158,8 +158,8 @@ limitations under the License.
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
                         // Try to get the token from the appropriate location
-                        if (that.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
-                            token = xhr.getResponseHeader(that.tokenResponseDescriptor.headerName);
+                        if (tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                            token = xhr.getResponseHeader(tokenResponseDescriptor.headerName);
                         }
                         
                         if (token) {

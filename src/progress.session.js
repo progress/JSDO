@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-5
+progress.session.js    Version: 4.3.0-6
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3476,9 +3476,7 @@ limitations under the License.
                         // If the consumer is an AuthenticationConsumer, we're good.
                         // Otherwise, create our own AuthenticationConsumer from what was passed in
                         if (!(authImpl.consumer instanceof progress.data.AuthenticationConsumer)) {
-                            authImpl.consumer = new progress.data.AuthenticationConsumer({
-                                tokenRequestDescriptor: authImpl.consumer.tokenRequestDescriptor
-                            });
+                            authImpl.consumer = new progress.data.AuthenticationConsumer(authImpl.consumer);
                         }
                     }
                     
