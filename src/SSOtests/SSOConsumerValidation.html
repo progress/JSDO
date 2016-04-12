@@ -135,6 +135,18 @@
             } catch (e) {
                 document.write("Success (consumer is an object): " + e);
             }
+                
+            try {
+                document.write("<br/><br/>Wrong type for addTokenToRequest Case: <br/>")
+
+                var cons = new progress.data.AuthenticationConsumer({
+                    addTokenToRequest: 5
+                })
+                
+                document.write("Failure: We didn't throw an error");
+            } catch (e) {
+                document.write("Success (wrong type for addTokenToRequest): " + e);
+            }
             
         </script> 
     </body>
