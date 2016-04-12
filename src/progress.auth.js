@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.3.0-5
+progress.auth.js    Version: 4.3.0-6
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -86,7 +86,7 @@ limitations under the License.
                 if (typeof options.tokenResponseDescriptor.headerName === "undefined") {
                     options.tokenResponseDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
                 } else if (typeof options.tokenResponseDescriptor.headerName !== "string") {
-                    // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                    // {1}: The object '{2}' has an invalid value in the '{3}' property.
                     throw new Error(progress.data._getMsgText(
                         "jsdoMSG502",
                         "AuthenticationProvider",
@@ -104,7 +104,7 @@ limitations under the License.
                     ));
                 }
             } else {
-                // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                // {1}: The object '{2}' has an invalid value in the '{3}' property.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG502",
                     "AuthenticationProvider",
@@ -144,7 +144,7 @@ limitations under the License.
         }
         
         // get the token from storage. Returns null if this object hasn't stored one yet
-        function retrieveToken(token) {
+        function retrieveToken() {
             return sessionStorage.getItem(storageKey);
         }
 
@@ -158,8 +158,8 @@ limitations under the License.
                     // get token and store it; if that goes well, resolve the promise, otherwise reject it
                     try {
                         // Try to get the token from the appropriate location
-                        if (that.tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
-                            token = xhr.getResponseHeader(that.tokenResponseDescriptor.headerName);
+                        if (tokenResponseDescriptor.type === progress.data.Session.HTTP_HEADER) {
+                            token = xhr.getResponseHeader(tokenResponseDescriptor.headerName);
                         }
                         
                         if (token) {
@@ -275,7 +275,7 @@ limitations under the License.
                 if (typeof options.tokenRequestDescriptor.headerName === "undefined") {
                     options.tokenRequestDescriptor.headerName = progress.data.Session.DEFAULT_HEADER_NAME;
                 } else if (typeof options.tokenRequestDescriptor.headerName !== "string") {
-                    // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                    // {1}: The object '{2}' has an invalid value in the '{3}' property.
                     throw new Error(progress.data._getMsgText(
                         "jsdoMSG502",
                         "AuthenticationProvider",
@@ -294,7 +294,7 @@ limitations under the License.
                     ));
                 }
             } else {
-                // {1}: The object '{2}' has an invalid value in the '{3}' field.
+                // {1}: The object '{2}' has an invalid value in the '{3}' property.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG502",
                     "AuthenticationConsumer",
@@ -323,6 +323,16 @@ limitations under the License.
                 };
             }
         } else {
+            
+            if (typeof options.addTokenToRequest !== "function") {
+                // {1}: The object '{2}' has an invalid value in the '{3}' property.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG502",
+                    "AuthenticationConsumer",
+                    "tokenRequestDescriptor",
+                    "addTokenToRequest"
+                ));
+            }
             this.addTokenToRequest = options.addTokenToRequest;
         }
     };
