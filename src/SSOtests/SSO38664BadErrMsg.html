@@ -60,7 +60,10 @@
             "errorObject: Error: AuthenticationProvider: 'tokenResponseDescriptor' objects must contain a 'type' property.",
             "The authentication call succeeded.",
             "Error thrown as expected calling JSDOSession constructor with no provider.",
-            "errorObject: Error: JSDOSession: Invalid signature for the constructor. The authImpl property of the options parameter must have a provider object field."
+            "errorObject: Error: JSDOSession: Invalid signature for the constructor. The authImpl property of the options parameter must have a provider object property.",
+            "Error thrown as expected calling JSDOSession constructor with a consumer that is not an object.",
+            "errorObject: Error: JSDOSession: Invalid signature for the constructor. The authImpl.consumer property of the options parameter must be an object if it is present."
+
         ],
         actualOutputMsgs = [],
         jsdoSession,
@@ -114,6 +117,16 @@
                     jsdoSession = new progress.data.JSDOSession(jsdoSettings);
                 } catch(e) {
                     logResult("Error thrown as expected calling JSDOSession constructor with no provider.",
+                              e,
+                              authenticationSettings);
+                }
+                // test error when authImpl.consumer is not an object
+                try {
+                    jsdoSettings.authImpl.provider = authProvider;
+                    jsdoSettings.authImpl.consumer = 99;
+                    jsdoSession = new progress.data.JSDOSession(jsdoSettings);
+                } catch(e) {
+                    logResult("Error thrown as expected calling JSDOSession constructor with a consumer that is not an object.",
                               e,
                               authenticationSettings);
                 }

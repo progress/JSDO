@@ -3427,7 +3427,7 @@ limitations under the License.
                                 "jsdoMSG033", 
                                 "JSDOSession", 
                                 "the constructor",
-                                "The authImpl property of the options parameter must have a provider object field."));                        
+                                "The authImpl property of the options parameter must have a provider object property."));                        
                     }
                     
                     // Though the consumer is optional, it needs to be an object
@@ -3438,7 +3438,7 @@ limitations under the License.
                                 "jsdoMSG033", 
                                 "JSDOSession", 
                                 "the constructor",
-                                "The authImpl property of the options parameter has an optional consumer object field."));
+                                "The authImpl.consumer property of the options parameter must be an object if it is present."));
                     }
                     
                     // TODO: Add a check if the provider has an isAuthenticated() function.
