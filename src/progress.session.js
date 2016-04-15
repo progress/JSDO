@@ -3485,7 +3485,7 @@ limitations under the License.
                     // the token to the user. We might move this to 
                     // progress.auth.js.
                     authImpl.provider._getToken = function () {
-                        if (isAuthenticated()) {                        
+                        if (authImpl.provider.isAuthenticated()) {                        
                             return sessionStorage.getItem(authImpl.provider.authenticationURI);
                         } else {
                             // JSDOSession: The AuthenticationProvider's token is not valid and 

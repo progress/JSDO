@@ -218,7 +218,7 @@ limitations under the License.
 
         // METHODS
         this.isAuthenticated = function () {
-            return (retrieveToken() ? true : false);
+            return (retrieveToken() === null ? false : true);
         };
         
         this.authenticate = function (options) {
@@ -249,7 +249,7 @@ limitations under the License.
         
         this.invalidate = function () {
             if (this.isAuthenticated()) {
-                sessionStorage.setItem(storageKey, null);
+                sessionStorage.removeItem(storageKey);
             }
         };
     };

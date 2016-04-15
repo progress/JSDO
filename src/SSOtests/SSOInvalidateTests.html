@@ -1,10 +1,10 @@
 <html>
     <head>
         <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
-        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.util.js"></script>
-        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.js"></script>
-        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.session.js"></script>
-        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.util.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.session.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
         
     </head>
     
@@ -27,7 +27,7 @@
                     //"http://nbbedsrapuri1:8810/SSO_Token_Server/static/auth/j_spring_security_check"
                 );
                 
-                auth.authenticate({ userName: "restuser", password: "password"});
+                auth.authenticate({ userName: "restuser", password: "password"})
                     .done(function (ap, result, info) {
                     console.log("authenticate method succeeded");
                 
@@ -36,30 +36,31 @@
                     console.log("authenticate method failed");
                 });
 
-                sess = new progress.data.JSDOSession({
-                    serviceURI: "fake",
-                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
-                    authImpl: {
-                        provider: auth
-                    }    
-                });
             } catch (e) {
                 console.log("Failure: " + e);
             } 
+            
+            sess = new progress.data.JSDOSession({
+                serviceURI: "fake",
+                authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                authImpl: {
+                    provider: auth
+                }    
+            });
             
             // Success case where token is invalidated
             try {
                 document.write("<br/><br/>Token is Invalidated Test Case: <br/>");
                 
                 if (auth.isAuthenticated()) {
-                    document.write("auth is authenticated.");
+                    document.write("auth is authenticated.<br/>");
                     
                     auth.invalidate();
                     
                     if (auth.isAuthenticated()) {
-                        document.write("Failure: We are still authenticated.");        
+                        document.write("Failure: We are still authenticated.<br/>");        
                     } else {
-                        document.write("Sucess: We invalidated correctly!");
+                        document.write("Sucess: We invalidated correctly!<br/>");
                     }
                 }
             } catch (e) {
@@ -71,11 +72,11 @@
             try {
                 document.write("<br/><br/>Need to revalidate Test Case: <br/>");
                 
-                sess.authImpl.addTokenToRequest({});
+                sess.authImpl.provider._getToken();
                 
-                document.write("Failure: We didn't throw an error");
+                document.write("Failure: We didn't throw an error<br/>");
             } catch (e) {
-                document.write("Success ('type' property missing): " + e);
+                document.write("Success (Re-validate token): " + e);
             }
             
         </script> 
