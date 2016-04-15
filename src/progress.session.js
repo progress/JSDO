@@ -3488,6 +3488,7 @@ limitations under the License.
                         if (isAuthenticated()) {                        
                             return sessionStorage.getItem(authImpl.provider.authenticationURI);
                         } else {
+                            // JSDOSession: The AuthenticationProvider's token is not valid and 
                             // needs to be re-authenticated.
                             throw new Error(progress.data._getMsgText("jsdoMSG126"));    
                         }
