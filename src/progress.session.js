@@ -3485,9 +3485,12 @@ limitations under the License.
                     // the token to the user. We might move this to 
                     // progress.auth.js.
                     authImpl.provider._getToken = function () {
-                        return sessionStorage.getItem(
-                            authImpl.provider.authenticationURI
-                        );
+                        if (isAuthenticated()) {                        
+                            return sessionStorage.getItem(authImpl.provider.authenticationURI);
+                        } else {
+                            // needs to be re-authenticated.
+                            throw new Error(progress.data._getMsgText("jsdoMSG126"));    
+                        }
                     };
 
                     // TODO: Add a check to see if consumer.addTokenToRequest exists.
