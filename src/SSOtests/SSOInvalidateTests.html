@@ -106,14 +106,32 @@
             
             // Failure case where we try to get the token
             try {
-                document.write("<br/><br/>Need to revalidate Test Case: <br/>");
+                document.write("<br/><br/>AddTokenToRequest Invalid Token Test Case: <br/>");
                 
                 // We'll need to revalidate because we invalidated it in the last test
                 sess.authImpl.addTokenToRequest({});
                 
                 document.write("Failure: We didn't throw an error<br/>");
             } catch (e) {
-                document.write("Success (Re-validate token): " + e);
+                document.write("Success (Not valid token): " + e);
+            }
+            
+            // Failure case where we pass in an unauthenticated auth to a JSDOSession
+            try {
+                document.write("<br/><br/>JSDOSession Constructor Invalid Token Test Case: <br/>");
+                
+                // We'll need to revalidate because we invalidated it in the last test
+                sess1 = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth
+                    }    
+                });
+                                                      
+                document.write("Failure: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Success (Not valid token): " + e);
             }
             
         </script> 
