@@ -3480,31 +3480,22 @@ limitations under the License.
                         }
                     }
                     
-                    // This is going to be harcoded for now. This can very 
-                    // possibly change in the future if we decide to expose 
-                    // the token to the user. We might move this to 
-                    // progress.auth.js.
-                    authImpl.provider._getToken = function () {
-                        if (authImpl.provider.isAuthenticated()) {                        
-                            return sessionStorage.getItem(authImpl.provider.authenticationURI);
-                        } else {
-                            // JSDOSession: The AuthenticationProvider's token is not valid and 
-                            // needs to be re-authenticated.
-                            throw new Error(progress.data._getMsgText("jsdoMSG126"));    
-                        }
-                    };
-
                     // TODO: Add a check to see if consumer.addTokenToRequest exists.
                     // Our usage of addTokenToRequest() here implies that if the user implements
                     // their own consumer, it needs to have an addTokenToRequest() method.
-                    // We don't need to worry about this now since we're not exposing the
-                    // consumer...yet.
+                    // It will be interesting to see how a consumer could implement this though
+                    // because they'll need to use _getToken, which is private.
                     authImpl.addTokenToRequest = function(xhr) {
-                        // TODO: Add a succeed/failure return value?
-                        authImpl.consumer.addTokenToRequest(
-                            xhr,
-                            authImpl.provider._getToken()
-                        );
+                        if (authImpl.provider.isAuthenticated()) {
+                            authImpl.consumer.addTokenToRequest(
+                                xhr,
+                                authImpl.provider._getToken()
+                            );
+                        } else {
+                            // JSDOSession: The AuthenticationProvider's token is not valid and 
+                            // needs to be re-authenticated.
+                            throw new Error(progress.data._getMsgText("jsdoMSG126"));   
+                        }
                     };
                     
                     return authImpl;

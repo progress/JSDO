@@ -252,6 +252,13 @@ limitations under the License.
                 sessionStorage.removeItem(storageKey);
             }
         };
+        
+        // This is going to be harcoded for now. This can very 
+        // possibly change in the future if we decide to expose 
+        // the token to the user.
+        this._getToken = function () {
+            return retrieveToken();
+        };
     };
     
     progress.data.AuthenticationConsumer = function (options) {
