@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.3.0-6
+progress.auth.js    Version: 4.3.0-11
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -275,7 +275,7 @@ limitations under the License.
 
             xhr.send("j_username=" + userName + "&j_password=" + password +
                      "&submit=Submit" + "&OECP=1");
-            return deferred;
+            return deferred.promise();
         };
         
         this.invalidate = function () {
