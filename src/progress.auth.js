@@ -218,14 +218,14 @@ limitations under the License.
 
         // METHODS
         this.isAuthenticated = function () {
-            return (retrieveToken() ? true : false);
+            return (retrieveToken() === null ? false : true);
         };
         
         this.authenticate = function (options) {
             var deferred = $.Deferred(),
                 xhr;
 
-            if (retrieveToken()) {
+            if (this.isAuthenticated()) {
                 // "authenticate() failed because the AuthenticationProvider is already managing a 
                 // successful authentication."
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
@@ -246,7 +246,19 @@ limitations under the License.
             return deferred;
 
         };
-
+        
+        this.invalidate = function () {
+            if (this.isAuthenticated()) {
+                sessionStorage.removeItem(storageKey);
+            }
+        };
+        
+        // This is going to be harcoded for now. This can very 
+        // possibly change in the future if we decide to expose 
+        // the token to the user.
+        this._getToken = function () {
+            return retrieveToken();
+        };
     };
     
     progress.data.AuthenticationConsumer = function (options) {
@@ -323,7 +335,6 @@ limitations under the License.
                 };
             }
         } else {
-            
             if (typeof options.addTokenToRequest !== "function") {
                 // {1}: The object '{2}' has an invalid value in the '{3}' property.
                 throw new Error(progress.data._getMsgText(
@@ -336,6 +347,5 @@ limitations under the License.
             this.addTokenToRequest = options.addTokenToRequest;
         }
     };
-
 }());
 
