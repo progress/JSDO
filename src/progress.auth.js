@@ -248,6 +248,7 @@ limitations under the License.
                     "password",
                     "authenticate()"
                 ));
+            } else if (password.length === 0) {
                 // {1}: '{2}' cannot be an empty string.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG501",
