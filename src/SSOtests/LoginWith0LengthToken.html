@@ -1,0 +1,262 @@
+<html>
+<head>
+
+<script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+<script src="/progress.jsdo.js"></script>
+
+<!--
+<script src="/progress.js"></script>
+-->
+
+<script src="/progress.session.js"></script>
+
+<!--
+<script src="/progress.auth.js"></script>
+-->
+
+</head>
+<body>
+<div id="correct">
+    CORRECT OUTPUT<br/>
+<br/>
+</div>     
+
+<div id="outdiv"/>
+<br/>
+<br/>
+   TEST OUTPUT
+<br/>
+ 
+<script>
+
+
+
+(function () {
+    "use strict";
+    
+    /*global progress, console, sessionStorage, document  */
+    /*global startSimpleTest, simpleTest, finishTest, cleanStorage, logResult, outputMsgs, callFill*/
+    /*global handleFillResponse, callLogout, handleLogoutResponse*/
+    
+    var authenticationSettings = {
+            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
+            tokenResponseDescriptor: {
+                type: progress.data.Session.HTTP_HEADER
+                //headerName: "X-OE-CLIENT-CONTEXT-ID"
+              //  headerName: 7   // error test
+            }
+        },
+        jsdoSettings = {
+            serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
+            authenticationModel : progress.data.Session.AUTH_TYPE_OECP,
+            authImpl: {provider: undefined   // set after new of AuthenticationProvider
+                     //  consumer: {
+                       //             tokenRequestDescriptor: {
+                         //               type: progress.data.Session.HTTP_HEADER,
+                           //             headerName: "X-OE-CLIENT-CONTEXT-ID"
+                             //       }
+                     //  }
+            },
+            catalogURIs: [
+                "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json"
+            ]
+        },
+        correctOutputString,
+        correctOutputMsgs = [
+            "*",
+            "* * * * * * * * * * * * * * * * * * log in with 0 length token * * * * * * * * * * * * * *",
+            "The authentication call succeeded.",
+            "token: TOKEN HAS A VALUE",
+            "login correctly failed with 0 length token, result: 2",
+            "token: ",
+        ],
+        actualOutputMsgs = [],
+        resource = "Customer",
+        fillFilter = "CustNum < 20",    
+        authProvider,
+        msgAuthSucceeded = "The authentication call succeeded.",
+        msgBUGUnexpectedFailure = "BUG: Call to authenticate() failed unexpectedly";
+
+    // Put the correct output on the page for convenient reference. Also returns the output as a string
+    // to save for comparison with the actual output later
+    correctOutputString = outputMsgs(correctOutputMsgs, document.getElementById("correct"));
+
+    function startSimpleTest() {
+        actualOutputMsgs.push("*");
+        actualOutputMsgs.push("* * * * * * * * * * * * * * * * * * log in with 0 length token * * * * * * * * * * * * * *");
+        simpleTest();
+    }
+    startSimpleTest();
+    
+
+    function finishSimpleTest() {
+        finishTest();
+    }
+    
+    function simpleTest() {
+        var promise,
+            jsdoSession;
+            
+        // runCount += 1;    
+            
+        try {
+            cleanStorage();
+            
+            
+            authProvider = new progress.data.AuthenticationProvider(
+                                    authenticationSettings.authenticationURI,
+                                    authenticationSettings);
+
+            jsdoSettings.authImpl.provider = authProvider;
+            
+            promise = authProvider.authenticate("restuser", "password");
+            promise.done(function (ap, result, info) {
+                logResult(msgAuthSucceeded, null, authenticationSettings);
+                // use the token by creating a JSDOSession and calling login
+                try {
+                    jsdoSession = new progress.data.JSDOSession(jsdoSettings);
+                    
+                    // ERROR TEST SENDING BAD TOKEN on login
+                    sessionStorage.setItem(authenticationSettings.authenticationURI, "");
+                    
+                    jsdoSession.login()
+                        .done(function (jsdosession, result, info) {
+                            logResult("BUG: login succeeded with 0 length token: " + result,
+                                  null,
+                                  authenticationSettings);
+                            callLogout(jsdosession);
+                        })
+                        .fail(function (jsdosession, result, info) {
+                            logResult("login correctly failed with 0 length token, result: " + result,
+                                  info.errorObject,
+                                  authenticationSettings);
+                            authProvider.invalidate();
+                            finishSimpleTest();
+                        });
+                } catch (e) {
+                    logResult("BUG: Error thrown trying to create JSDOSession and log in",
+                              e,
+                              authenticationSettings);
+                    authProvider.invalidate();
+                    finishSimpleTest();
+                }
+            });
+            promise.fail(function (ap, result, info) {
+                logResult(msgBUGUnexpectedFailure + ", result: " + result, info.errorObject,
+                          authenticationSettings);
+                finishSimpleTest();
+            });
+        } catch (f) {
+            logResult("BUG: Error thrown calling authenticate(): ", f, authenticationSettings);
+            finishSimpleTest();
+        }
+    }
+
+    function callLogout(jsdosession) {
+        var promise;
+            
+        promise = jsdosession.logout();
+        promise.always( handleLogoutResponse );
+    }
+        
+    function handleLogoutResponse(session, result, info ) { 
+        authProvider.invalidate();
+        logResult("result of JSDOSession.logout(): " + result,
+                  null,
+                  authenticationSettings);
+
+        finishSimpleTest();
+    }
+
+    // clean up storage (can delete this when we add the invalidate() method to AuthenticationProvider)
+    function cleanStorage() {
+        sessionStorage.removeItem(authenticationSettings.authenticationURI);
+        sessionStorage.removeItem(authenticationSettings.id);  // in case we use the id property        
+    }
+    
+    // 
+    function logResult(resultMsg, errorObject, authenticationSettings) {
+        var id = authenticationSettings.id || authenticationSettings.authenticationURI,
+            token;
+        actualOutputMsgs.push(resultMsg);
+        if (errorObject) {
+            actualOutputMsgs.push("errorObject: " + errorObject);
+        }
+        token = sessionStorage.getItem(id);
+        if (token && token !== "null") {
+            token = "TOKEN HAS A VALUE";
+        }
+        actualOutputMsgs.push("token: " + token);
+    }
+    
+    function finishTest() {
+        var lineIdx,
+            charIdx,
+            msgs = [],
+            outputString;
+        
+       // spit out the actual output. Also returns the output as a string for easy comparison
+       // with the correct output, which was set into correctOutputString at the beginning of the test
+        outputString = outputMsgs(actualOutputMsgs, document.getElementById("outdiv"));
+
+        msgs.push(" ");
+        if (outputString === correctOutputString) {
+            msgs.push("       TEST PASSED");
+        } else {
+            msgs.push("       TEST FAILED !!!!!!!!!!!!!  see console for details");
+            // uncomment this to identify the correct and actual output lines that don't match 
+               
+            for (lineIdx = 0; lineIdx < correctOutputMsgs.length; lineIdx += 1) {
+                if (actualOutputMsgs[lineIdx] !== correctOutputMsgs[lineIdx]) {
+                    console.log("MISMATCH ON LINE " + (lineIdx + 1) + "\n   correct: " +
+                                correctOutputMsgs[lineIdx] +
+                                "\n   actual: " + actualOutputMsgs[lineIdx]);
+                    // uncomment this to identify the correct and actual output characters that don't match 
+
+                    for (charIdx = 0; charIdx < correctOutputMsgs[lineIdx].length; charIdx += 1) {
+                        if (actualOutputMsgs[lineIdx][charIdx] !== correctOutputMsgs[lineIdx][charIdx]) {
+                            console.log(charIdx + "   " + actualOutputMsgs[lineIdx][charIdx] + "   " +
+                                        correctOutputMsgs[lineIdx][charIdx]);
+                        }
+                    }
+
+                }
+            }
+           
+        }
+        outputMsgs(msgs, document.getElementById("outdiv"));
+    }
+
+    function outputMsgs(msgs, writeElement) {
+        var arrayLength,
+            arrayIndex,
+            outMsg = "",
+            consolemsg = " ";
+
+        if (writeElement) {
+             outMsg = writeElement.innerHTML;
+        }
+        
+        arrayLength = msgs.length;
+        for (arrayIndex = 0; arrayIndex < arrayLength; arrayIndex = arrayIndex + 1) {
+            outMsg = outMsg + "<br>" + msgs[arrayIndex];
+            consolemsg = consolemsg + "\n" + msgs[arrayIndex];
+        }
+        
+        if (writeElement) {
+            writeElement.innerHTML = outMsg;
+        }
+        
+        
+        console.log(consolemsg); 
+        return consolemsg;
+    }
+
+
+}());
+
+</script>
+
+</body>
+
+</html>
