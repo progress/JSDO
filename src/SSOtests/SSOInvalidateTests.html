@@ -1,0 +1,139 @@
+<html>
+    <head>
+        <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.util.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.session.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
+        
+    </head>
+    
+    <body>
+        <br/>
+        <br/>
+        TEST OUTPUT
+        <br/>
+
+        <script type="text/javascript">
+            // These are tests for the story TP 39170 where there is no validation
+            // done on a consumer passed to a JSDOSession
+            
+            document.write("Consumer Validation Tests: <br/>");
+            
+            // Make the authProvider
+            try {
+                var auth = new progress.data.AuthenticationProvider(
+                    "http://nbbedaestrada:8810/TS102/static/auth/j_spring_security_check"
+                    //"http://nbbedsrapuri1:8810/SSO_Token_Server/static/auth/j_spring_security_check"
+                );
+                
+                auth.authenticate({ userName: "restuser", password: "password"})
+                    .done(function (ap, result, info) {
+                    console.log("authenticate method succeeded");
+                
+                })
+                .fail(function (ap, result, info) {
+                    console.log("authenticate method failed");
+                });
+
+            } catch (e) {
+                console.log("Failure: " + e);
+            } 
+            
+            sess = new progress.data.JSDOSession({
+                serviceURI: "fake",
+                authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                authImpl: {
+                    provider: auth
+                }    
+            });
+            
+            // Success case where we  get the token
+            try {
+                document.write("<br/><br/>Successful _getToken Test Case: <br/>");
+                
+                if (auth.isAuthenticated()) {
+                    document.write("auth is authenticated.<br/>");
+                                        
+                    if (auth._getToken() !== null) {
+                        document.write("Sucess: Token is " + auth._getToken() + "!<br/>");
+                    } else {
+                        document.write("Failure: No token.<br/>");
+                    }
+                }
+            } catch (e) {
+                // We should not print out anything
+                document.write("Exception: " + e);
+            }
+            
+            // Success case where token is invalidated
+            try {
+                document.write("<br/><br/>Token is Invalidated Test Case: <br/>");
+                
+                if (auth.isAuthenticated()) {
+                    document.write("auth is authenticated.<br/>");
+                    
+                    auth.invalidate();
+                    
+                    if (auth.isAuthenticated()) {
+                        document.write("Failure: We are still authenticated.<br/>");        
+                    } else {
+                        document.write("Sucess: We invalidated correctly!<br/>");
+                    }
+                }
+            } catch (e) {
+                // We should not print out anything
+                document.write("Exception: " + e);
+            }
+            
+            // Success case where we can't get an invalidated token
+            try {
+                document.write("<br/><br/>Failure invalid _getToken Case: <br/>");
+                
+                if (!auth.isAuthenticated()) {
+                    document.write("auth is NOT authenticated.<br/>");
+                    
+                    if (auth._getToken() !== null) {
+                        document.write("Failure: Token is " + auth._getToken() + "!<br/>");
+                    } else {
+                        document.write("Success: No token.<br/>");
+                    }
+                }
+            } catch (e) {
+                // We should not print out anything
+                document.write("Exception: " + e);
+            }
+            
+            // Failure case where we try to get the token
+            try {
+                document.write("<br/><br/>AddTokenToRequest Invalid Token Test Case: <br/>");
+                
+                // We'll need to revalidate because we invalidated it in the last test
+                sess.authImpl.addTokenToRequest({});
+                
+                document.write("Failure: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Success (Not valid token): " + e);
+            }
+            
+            // Failure case where we pass in an unauthenticated auth to a JSDOSession
+            try {
+                document.write("<br/><br/>JSDOSession Constructor Invalid Token Test Case: <br/>");
+                
+                // We'll need to revalidate because we invalidated it in the last test
+                sess1 = new progress.data.JSDOSession({
+                    serviceURI: "fake",
+                    authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                    authImpl: {
+                        provider: auth
+                    }    
+                });
+                                                      
+                document.write("Failure: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Success (Not valid token): " + e);
+            }
+            
+        </script> 
+    </body>
+</html>

@@ -3460,7 +3460,7 @@ limitations under the License.
                     // Our usage of isAuthenticated() here implies that if the user implements
                     // their own provider, it needs to have an isAuthenticated() method.
                     if (!options.authImpl.provider.isAuthenticated()) {
-                        // JSDOSession: The AuthenticationProvider given must already be authenticated.
+                        // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
                         throw new Error(progress.data._getMsgText("jsdoMSG125"));                        
                     }
                 }
@@ -3495,27 +3495,21 @@ limitations under the License.
                         }
                     }
                     
-                    // This is going to be harcoded for now. This can very 
-                    // possibly change in the future if we decide to expose 
-                    // the token to the user. We might move this to 
-                    // progress.auth.js.
-                    authImpl.provider._getToken = function () {
-                        return sessionStorage.getItem(
-                            authImpl.provider.authenticationURI
-                        );
-                    };
-
                     // TODO: Add a check to see if consumer.addTokenToRequest exists.
                     // Our usage of addTokenToRequest() here implies that if the user implements
                     // their own consumer, it needs to have an addTokenToRequest() method.
-                    // We don't need to worry about this now since we're not exposing the
-                    // consumer...yet.
+                    // It will be interesting to see how a consumer could implement this though
+                    // because they'll need to use _getToken, which is private.
                     authImpl.addTokenToRequest = function(xhr) {
-                        // TODO: Add a succeed/failure return value?
-                        authImpl.consumer.addTokenToRequest(
-                            xhr,
-                            authImpl.provider._getToken()
-                        );
+                        if (authImpl.provider.isAuthenticated()) {
+                            authImpl.consumer.addTokenToRequest(
+                                xhr,
+                                authImpl.provider._getToken()
+                            );
+                        } else {
+                            // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                            throw new Error(progress.data._getMsgText("jsdoMSG125"));   
+                        }
                     };
                     
                     return authImpl;

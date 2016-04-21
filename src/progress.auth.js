@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.3.0-6
+progress.auth.js    Version: 4.3.0-11
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -128,7 +128,7 @@ limitations under the License.
 
         // PRIVATE FUNCTIONS
 
-        function openTokenRequest(xhr, options) {
+        function openTokenRequest(xhr) {
             xhr.open('POST', that.authenticationURI, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.setRequestHeader("Cache-Control", "max-age=0");
@@ -218,21 +218,53 @@ limitations under the License.
 
         // METHODS
         this.isAuthenticated = function () {
-            return (retrieveToken() ? true : false);
+            return (retrieveToken() === null ? false : true);
         };
         
-        this.authenticate = function (options) {
+        this.authenticate = function (userName, password) {
             var deferred = $.Deferred(),
                 xhr;
 
-            if (retrieveToken()) {
+            if (typeof userName !== "string") {
+                // JSDO: {1} parameter must be a string in {2} call.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG116",
+                    "userName",
+                    "authenticate()"
+                ));
+            } else if (userName.length === 0) {
+                // {1}: '{2}' cannot be an empty string.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG501",
+                    "AuthenticationProvider",
+                    "userName"
+                ));
+            }
+            
+            if (typeof password !== "string") {
+                // JSDO: {1} parameter must be a string in {2} call.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG116",
+                    "password",
+                    "authenticate()"
+                ));
+            } else if (password.length === 0) {
+                // {1}: '{2}' cannot be an empty string.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG501",
+                    "AuthenticationProvider",
+                    "password"
+                ));
+            }
+            
+            if (this.isAuthenticated()) {
                 // "authenticate() failed because the AuthenticationProvider is already managing a 
                 // successful authentication."
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
             }
 
             xhr = new XMLHttpRequest();
-            openTokenRequest(xhr, this, options);
+            openTokenRequest(xhr);
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
@@ -241,12 +273,23 @@ limitations under the License.
                 }
             };
 
-            xhr.send("j_username=" + options.userName + "&j_password=" + options.password +
+            xhr.send("j_username=" + userName + "&j_password=" + password +
                      "&submit=Submit" + "&OECP=1");
-            return deferred;
-
+            return deferred.promise();
         };
-
+        
+        this.invalidate = function () {
+            if (this.isAuthenticated()) {
+                sessionStorage.removeItem(storageKey);
+            }
+        };
+        
+        // This is going to be harcoded for now. This can very 
+        // possibly change in the future if we decide to expose 
+        // the token to the user.
+        this._getToken = function () {
+            return retrieveToken();
+        };
     };
     
     progress.data.AuthenticationConsumer = function (options) {
@@ -278,7 +321,7 @@ limitations under the License.
                     // {1}: The object '{2}' has an invalid value in the '{3}' property.
                     throw new Error(progress.data._getMsgText(
                         "jsdoMSG502",
-                        "AuthenticationProvider",
+                        "AuthenticationConsumer",
                         "tokenRequestDescriptor",
                         "headerName"
                     ));
@@ -323,7 +366,6 @@ limitations under the License.
                 };
             }
         } else {
-            
             if (typeof options.addTokenToRequest !== "function") {
                 // {1}: The object '{2}' has an invalid value in the '{3}' property.
                 throw new Error(progress.data._getMsgText(
@@ -336,6 +378,5 @@ limitations under the License.
             this.addTokenToRequest = options.addTokenToRequest;
         }
     };
-
 }());
 
