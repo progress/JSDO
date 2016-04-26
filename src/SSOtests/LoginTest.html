@@ -2,13 +2,13 @@
 <head>
 
 <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
-<script src="/progress.jsdo.js"></script>
+<script src="./progress.jsdo.js"></script>
 
 <!--
 <script src="/progress.js"></script>
 -->
 
-<script src="/progress.session.js"></script>
+<script src="./progress.session.js"></script>
 
 <!--
 <script src="/progress.auth.js"></script>
@@ -48,6 +48,7 @@
         },
         jsdoSettings = {
             serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
+//            serviceURI: "http://172.29.37.63:8810/SSOConsumer",
             authenticationModel : progress.data.Session.AUTH_TYPE_OECP,
             authImpl: {provider: undefined   // set after new of AuthenticationProvider
                      //  consumer: {
@@ -59,6 +60,7 @@
             },
             catalogURIs: [
                 "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json"
+//                "http://172.29.37.63:8810/SSOConsumer/static/SSOConsumerService.json"
             ]
         },
         correctOutputString,
@@ -75,6 +77,7 @@
         ],
         actualOutputMsgs = [],
         resource = "Customer",
+//        resource = "SSOConsumerBE",
         fillFilter = "CustNum < 20",    
         authProvider,
         msgAuthSucceeded = "The authentication call succeeded.",
