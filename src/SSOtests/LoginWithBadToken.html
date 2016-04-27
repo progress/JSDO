@@ -2,13 +2,13 @@
 <head>
 
 <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
-<script src="/progress.jsdo.js"></script>
+<script src="./progress.jsdo.js"></script>
 
 <!--
 <script src="/progress.js"></script>
 -->
 
-<script src="/progress.session.js"></script>
+<script src="./progress.session.js"></script>
 
 <!--
 <script src="/progress.auth.js"></script>
@@ -67,7 +67,7 @@
             "* * * * * * * * * * * * * * * * * * log in with bad token * * * * * * * * * * * * * *",
             "The authentication call succeeded.",
             "token: TOKEN HAS A VALUE",
-            "login correctly failed with bad token, result: 2",
+            'login correctly failed with bad token, result: 2  response body: { "status_code": 401, "status_txt": "Not authenticated" }',
             "token: TOKEN HAS A VALUE",
         ],
         actualOutputMsgs = [],
@@ -127,7 +127,8 @@
                             callLogout(jsdosession);
                         })
                         .fail(function (jsdosession, result, info) {
-                            logResult("login correctly failed with bad token, result: " + result,
+                            logResult("login correctly failed with bad token, result: " + result +
+                                     "  response body: " + info.xhr.response,
                                   info.errorObject,
                                   authenticationSettings);
                             authProvider.invalidate();
@@ -214,15 +215,22 @@
                     // uncomment this to identify the correct and actual output characters that don't match 
 
                     for (charIdx = 0; charIdx < correctOutputMsgs[lineIdx].length; charIdx += 1) {
-                        if (actualOutputMsgs[lineIdx][charIdx] !== correctOutputMsgs[lineIdx][charIdx]) {
-                            console.log(charIdx + "   " + actualOutputMsgs[lineIdx][charIdx] + "   " +
-                                        correctOutputMsgs[lineIdx][charIdx]);
+                        if (actualOutputMsgs[lineIdx]) {
+                            if (actualOutputMsgs[lineIdx][charIdx] !== correctOutputMsgs[lineIdx][charIdx]) {
+                                console.log(charIdx + "   " + actualOutputMsgs[lineIdx][charIdx] + "   " +
+                                            correctOutputMsgs[lineIdx][charIdx]);
+                            }
                         }
                     }
-
                 }
             }
-           
+            if (actualOutputMsgs.length < correctOutputMsgs.length) {
+                console.log("ACTUAL OUTPUT HAS ONLY " + actualOutputMsgs.length + " lines");
+            }            
+            if (actualOutputMsgs.length > correctOutputMsgs.length) {
+                console.log("ACTUAL OUTPUT HAS MORE LINES THAN CORRECT OUTPUT (" + actualOutputMsgs.length + " lines vs. " +
+                             correctOutputMsgs.length + ")");
+            }
         }
         outputMsgs(msgs, document.getElementById("outdiv"));
     }

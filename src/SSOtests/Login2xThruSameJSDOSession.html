@@ -39,17 +39,15 @@
     /*global handleFillResponse, callLogout, handleLogoutResponse*/
     
     var authenticationSettings = {
-//            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
-            authenticationURI : "http://172.29.37.63:8810/TokenServer0331/static/auth/j_spring_security_check",
+            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
             tokenResponseDescriptor: {
                 type: progress.data.Session.HTTP_HEADER
                 //headerName: "X-OE-CLIENT-CONTEXT-ID"
               //  headerName: 7   // error test
             }
-        },
+        }, 
         jsdoSettings = {
-//            serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
-            serviceURI: "http://172.29.37.63:8810/SSOConsumer",
+            serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
             authenticationModel : progress.data.Session.AUTH_TYPE_OECP,
             authImpl: {provider: undefined   // set after new of AuthenticationProvider
                      //  consumer: {
@@ -60,25 +58,25 @@
                      //  }
             },
             catalogURIs: [
-//                "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json"
-                "http://172.29.37.63:8810/SSOConsumer/static/SSOConsumerService.json"
+                "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json"
             ]
         },
         correctOutputString,
         correctOutputMsgs = [
             "*",
-            "* * * * * * * * * * * * * * * * * * simpleTest * * * * * * * * * * * * * *",
+            "* * * * * * * * * * * * * * * * * * Login 2X Through Same JSDOSession * * * * * * * * * * * * * *",
             "The authentication call succeeded.",
             "token: TOKEN HAS A VALUE",
-            "Login result: 1",
+            "First login result: 1",
             "token: TOKEN HAS A VALUE",
-            "jsdo.fill result: true",
+            "Error correctly thrown logging in 2nd time to a session alreday logged in",
+            "errorObject: Error: JSDOSession: Unable to send login request. Attempted to call login() on a Session object that is already logged in.",
+            "token: TOKEN HAS A VALUE",
             "result of JSDOSession.logout(): 1",
-            "token: null"
+            "token: null",
         ],
         actualOutputMsgs = [],
         resource = "Customer",
-//        resource = "SSOConsumerBE",
         fillFilter = "CustNum < 20",    
         authProvider,
         msgAuthSucceeded = "The authentication call succeeded.",
@@ -90,7 +88,7 @@
 
     function startSimpleTest() {
         actualOutputMsgs.push("*");
-        actualOutputMsgs.push("* * * * * * * * * * * * * * * * * * simpleTest * * * * * * * * * * * * * *");
+        actualOutputMsgs.push("* * * * * * * * * * * * * * * * * * Login 2X Through Same JSDOSession * * * * * * * * * * * * * *");
         simpleTest();
     }
     startSimpleTest();
@@ -98,9 +96,6 @@
 
     function finishSimpleTest() {
         finishTest();
-        // if (runCount < 2) {
-            // startSimpleTest();
-        // }
     }
     
     function simpleTest() {
@@ -111,7 +106,6 @@
             
         try {
             cleanStorage();
-            
             
             authProvider = new progress.data.AuthenticationProvider(
                                     authenticationSettings.authenticationURI,
@@ -132,21 +126,29 @@
                       //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
                     jsdoSession.login()
                         .done(function (jsdosession, result, info) {
-                            logResult("Login result: " + result,
+                            logResult("First login result: " + result,
                                   null,
                                   authenticationSettings);
-                              // ERROR TEST SENDING BAD TOKEN  ON addCatalog
-                              //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
-                            jsdoSession.addCatalog(jsdoSettings.catalogURIs)
-                            .done(function (jsdosession, result, info) {
-                                callFill(jsdosession);
-                            })
-                            .fail(function (jsdosession, result, info) {
-                                logResult("addCatalog failed, result: " + result,
-                                      info.errorObject,
-                                      authenticationSettings);
-                                finishSimpleTest();
-                            });
+                            try {
+                                jsdosession.login()
+                                .done(function (jsdosession, result, info) {
+                                    logResult("BUG: second login through same session succeeded ",
+                                          info.errorObject,
+                                          authenticationSettings);
+                                    callLogout(jsdosession);
+                                })
+                                .fail(function (jsdosession, result, info) {
+                                    logResult("BUG: second login through same session didn't throw error",
+                                          info.errorObject,
+                                          authenticationSettings);
+                                    callLogout(jsdosession);
+                                });
+                            } catch(e) {
+                                logResult("Error correctly thrown logging in 2nd time to a session alreday logged in",
+                                          e,
+                                          authenticationSettings);
+                                    callLogout(jsdosession);
+                            }
                         })
                         .fail(function (jsdosession, result, info) {
                             logResult("Login result: " + result,
@@ -171,28 +173,6 @@
         }
     }
 
-    function callFill(jsdosession) {
-        var promise,
-            jsdo;
-
-        try {
-            jsdo = new progress.data.JSDO(resource);
-            jsdo._appjsdosession = jsdosession;
-          // TEST SENDING BAD TOKEN ON JSDO fill REQUEST -- uncomment
-          //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
-            promise = jsdo.fill(fillFilter);
-            promise.always(handleFillResponse);
-        } catch (e) {
-            actualOutputMsgs.push(e);
-            finishSimpleTest();
-        }
-    }
-
-    function handleFillResponse(jsdo, success, request) {
-        actualOutputMsgs.push("jsdo.fill result: " + success);
-        callLogout(jsdo._appjsdosession);
-    }
-    
     function callLogout(jsdosession) {
         var promise;
             
@@ -201,11 +181,11 @@
     }
         
     function handleLogoutResponse(session, result, info ) { 
+
         authProvider.invalidate();
         logResult("result of JSDOSession.logout(): " + result,
                   null,
                   authenticationSettings);
-
         finishSimpleTest();
     }
 

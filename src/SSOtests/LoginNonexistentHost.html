@@ -39,8 +39,7 @@
     /*global handleFillResponse, callLogout, handleLogoutResponse*/
     
     var authenticationSettings = {
-//            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
-            authenticationURI : "http://172.29.37.63:8810/TokenServer0331/static/auth/j_spring_security_check",
+            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
             tokenResponseDescriptor: {
                 type: progress.data.Session.HTTP_HEADER
                 //headerName: "X-OE-CLIENT-CONTEXT-ID"
@@ -49,7 +48,7 @@
         },
         jsdoSettings = {
 //            serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
-            serviceURI: "http://172.29.37.63:8810/SSOConsumer",
+            serviceURI: "http://Badhost:8810/SSOConsumer",
             authenticationModel : progress.data.Session.AUTH_TYPE_OECP,
             authImpl: {provider: undefined   // set after new of AuthenticationProvider
                      //  consumer: {
@@ -60,25 +59,21 @@
                      //  }
             },
             catalogURIs: [
-//                "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json"
                 "http://172.29.37.63:8810/SSOConsumer/static/SSOConsumerService.json"
             ]
         },
         correctOutputString,
         correctOutputMsgs = [
             "*",
-            "* * * * * * * * * * * * * * * * * * simpleTest * * * * * * * * * * * * * *",
+            "* * * * * * * * * * * * * * * * * * Nonexistent Host * * * * * * * * * * * * * *",
             "The authentication call succeeded.",
             "token: TOKEN HAS A VALUE",
-            "Login result: 1",
-            "token: TOKEN HAS A VALUE",
-            "jsdo.fill result: true",
-            "result of JSDOSession.logout(): 1",
-            "token: null"
+            "Login result: 3   xhr status: 0",
+            "token: TOKEN HAS A VALUE"
         ],
         actualOutputMsgs = [],
-        resource = "Customer",
-//        resource = "SSOConsumerBE",
+        //resource = "Customer",
+        resource = "SSOConsumerBE",
         fillFilter = "CustNum < 20",    
         authProvider,
         msgAuthSucceeded = "The authentication call succeeded.",
@@ -90,7 +85,7 @@
 
     function startSimpleTest() {
         actualOutputMsgs.push("*");
-        actualOutputMsgs.push("* * * * * * * * * * * * * * * * * * simpleTest * * * * * * * * * * * * * *");
+        actualOutputMsgs.push("* * * * * * * * * * * * * * * * * * Nonexistent Host * * * * * * * * * * * * * *");
         simpleTest();
     }
     startSimpleTest();
@@ -149,7 +144,7 @@
                             });
                         })
                         .fail(function (jsdosession, result, info) {
-                            logResult("Login result: " + result,
+                            logResult("Login result: " + result + "   xhr status: " + info.xhr.status,
                                   info.errorObject,
                                   authenticationSettings);
                             finishSimpleTest();

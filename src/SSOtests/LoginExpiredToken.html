@@ -2,13 +2,13 @@
 <head>
 
 <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
-<script src="/progress.jsdo.js"></script>
+<script src="./progress.jsdo.js"></script>
 
 <!--
 <script src="/progress.js"></script>
 -->
 
-<script src="/progress.session.js"></script>
+<script src="./progress.session.js"></script>
 
 <!--
 <script src="/progress.auth.js"></script>
@@ -39,7 +39,7 @@
     /*global handleFillResponse, callLogout, handleLogoutResponse*/
     
     var authenticationSettings = {
-            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
+            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServerShort/static/auth/j_spring_security_check",
             tokenResponseDescriptor: {
                 type: progress.data.Session.HTTP_HEADER
                 //headerName: "X-OE-CLIENT-CONTEXT-ID"
@@ -48,6 +48,7 @@
         },
         jsdoSettings = {
             serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
+//            serviceURI: "http://172.29.37.63:8810/SSOConsumer",
             authenticationModel : progress.data.Session.AUTH_TYPE_OECP,
             authImpl: {provider: undefined   // set after new of AuthenticationProvider
                      //  consumer: {
@@ -59,6 +60,7 @@
             },
             catalogURIs: [
                 "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json"
+//                "http://172.29.37.63:8810/SSOConsumer/static/SSOConsumerService.json"
             ]
         },
         correctOutputString,
@@ -67,16 +69,15 @@
             "* * * * * * * * * * * * * * * * * * simpleTest * * * * * * * * * * * * * *",
             "The authentication call succeeded.",
             "token: TOKEN HAS A VALUE",
-            "First login result: 1",
+            "Login result: 1",
             "token: TOKEN HAS A VALUE",
-            "Error correctly thrown logging in 2nd time to a session alreday logged in",
-            "errorObject: Error: JSDOSession: Unable to send login request. Attempted to call login() on a Session object that is already logged in.",
-            "token: TOKEN HAS A VALUE",
+            "jsdo.fill result: true",
             "result of JSDOSession.logout(): 1",
-            "token: null",
+            "token: null"
         ],
         actualOutputMsgs = [],
         resource = "Customer",
+//        resource = "SSOConsumerBE",
         fillFilter = "CustNum < 20",    
         authProvider,
         msgAuthSucceeded = "The authentication call succeeded.",
@@ -96,16 +97,19 @@
 
     function finishSimpleTest() {
         finishTest();
+        // if (runCount < 2) {
+            // startSimpleTest();
+        // }
     }
     
     function simpleTest() {
-        var promise,
-            jsdoSession;
+        var promise;
             
         // runCount += 1;    
             
         try {
             cleanStorage();
+            
             
             authProvider = new progress.data.AuthenticationProvider(
                                     authenticationSettings.authenticationURI,
@@ -119,48 +123,9 @@
 //            promise = authProvider.authenticate("restuser", "");
             promise.done(function (ap, result, info) {
                 logResult(msgAuthSucceeded, null, authenticationSettings);
+                
                 // use the token by creating a JSDOSession and calling login
-                try {
-                    jsdoSession = new progress.data.JSDOSession(jsdoSettings);
-                      // ERROR TEST SENDING BAD TOKEN on login
-                      //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
-                    jsdoSession.login()
-                        .done(function (jsdosession, result, info) {
-                            logResult("First login result: " + result,
-                                  null,
-                                  authenticationSettings);
-                            try {
-                                jsdosession.login()
-                                .done(function (jsdosession, result, info) {
-                                    logResult("BUG: second login through same session succeeded ",
-                                          info.errorObject,
-                                          authenticationSettings);
-                                    callLogout(jsdosession);
-                                })
-                                .fail(function (jsdosession, result, info) {
-                                    logResult("BUG: second login through same session didn't throw error",
-                                          info.errorObject,
-                                          authenticationSettings);
-                                    callLogout(jsdosession);
-                                });
-                            } catch(e) {
-                                logResult("Error correctly thrown logging in 2nd time to a session alreday logged in",
-                                          e,
-                                          authenticationSettings);
-                                    callLogout(jsdosession);
-                            }
-                        })
-                        .fail(function (jsdosession, result, info) {
-                            logResult("Login result: " + result,
-                                  info.errorObject,
-                                  authenticationSettings);
-                            finishSimpleTest();
-                        });
-                } catch (e) {
-                    logResult("BUG: Error thrown trying to create JSDOSession and log in",
-                              e,
-                              authenticationSettings);
-                }
+                setTimeout(callLogin, 10000);
             });
             promise.fail(function (ap, result, info) {
                 logResult(msgBUGUnexpectedFailure + ", result: " + result, info.errorObject,
@@ -173,6 +138,67 @@
         }
     }
 
+    function callLogin() {
+        var jsdoSession;
+        
+        try {
+            jsdoSession = new progress.data.JSDOSession(jsdoSettings);
+              // ERROR TEST SENDING BAD TOKEN on login
+              //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
+            jsdoSession.login()
+                .done(function (jsdosession, result, info) {
+                    logResult("Login result: " + result,
+                          null,
+                          authenticationSettings);
+                      // ERROR TEST SENDING BAD TOKEN  ON addCatalog
+                      //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
+                    jsdoSession.addCatalog(jsdoSettings.catalogURIs)
+                    .done(function (jsdosession, result, info) {
+                        callFill(jsdosession);
+                    })
+                    .fail(function (jsdosession, result, info) {
+                        logResult("addCatalog failed, result: " + result,
+                              info.errorObject,
+                              authenticationSettings);
+                        finishSimpleTest();
+                    });
+                })
+                .fail(function (jsdosession, result, info) {
+                    logResult("Login result: " + result,
+                          info.errorObject,
+                          authenticationSettings);
+                    finishSimpleTest();
+                });
+        } catch (e) {
+            logResult("BUG: Error thrown trying to create JSDOSession and log in",
+                      e,
+                      authenticationSettings);
+        }
+
+    }
+
+    function callFill(jsdosession) {
+        var promise,
+            jsdo;
+
+        try {
+            jsdo = new progress.data.JSDO(resource);
+            jsdo._appjsdosession = jsdosession;
+          // TEST SENDING BAD TOKEN ON JSDO fill REQUEST -- uncomment
+          //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
+            promise = jsdo.fill(fillFilter);
+            promise.always(handleFillResponse);
+        } catch (e) {
+            actualOutputMsgs.push(e);
+            finishSimpleTest();
+        }
+    }
+
+    function handleFillResponse(jsdo, success, request) {
+        actualOutputMsgs.push("jsdo.fill result: " + success);
+        callLogout(jsdo._appjsdosession);
+    }
+    
     function callLogout(jsdosession) {
         var promise;
             
@@ -181,11 +207,11 @@
     }
         
     function handleLogoutResponse(session, result, info ) { 
-
         authProvider.invalidate();
         logResult("result of JSDOSession.logout(): " + result,
                   null,
                   authenticationSettings);
+
         finishSimpleTest();
     }
 
@@ -235,15 +261,22 @@
                     // uncomment this to identify the correct and actual output characters that don't match 
 
                     for (charIdx = 0; charIdx < correctOutputMsgs[lineIdx].length; charIdx += 1) {
-                        if (actualOutputMsgs[lineIdx][charIdx] !== correctOutputMsgs[lineIdx][charIdx]) {
-                            console.log(charIdx + "   " + actualOutputMsgs[lineIdx][charIdx] + "   " +
-                                        correctOutputMsgs[lineIdx][charIdx]);
+                        if (actualOutputMsgs[lineIdx]) {
+                            if (actualOutputMsgs[lineIdx][charIdx] !== correctOutputMsgs[lineIdx][charIdx]) {
+                                console.log(charIdx + "   " + actualOutputMsgs[lineIdx][charIdx] + "   " +
+                                            correctOutputMsgs[lineIdx][charIdx]);
+                            }
                         }
                     }
-
                 }
             }
-           
+            if (actualOutputMsgs.length < correctOutputMsgs.length) {
+                console.log("ACTUAL OUTPUT HAS ONLY " + actualOutputMsgs.length + " lines");
+            }            
+            if (actualOutputMsgs.length > correctOutputMsgs.length) {
+                console.log("ACTUAL OUTPUT HAS MORE LINES THAN CORRECT OUTPUT (" + actualOutputMsgs.length + " lines vs. " +
+                             correctOutputMsgs.length + ")");
+            }
         }
         outputMsgs(msgs, document.getElementById("outdiv"));
     }
