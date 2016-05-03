@@ -1,0 +1,109 @@
+<html>
+    <head>
+        <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.util.js"></script>
+        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.js"></script>
+        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.session.js"></script>
+        <script src="C:\Users\Blade\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
+        
+    </head>
+    
+    <body>
+        <br/>
+        <br/>
+        <b>Bug 40740: tokenResponseDescriptor cannot have an empty string in the JSDO session consumer</b>
+        <br/>
+
+        <script type="text/javascript">
+            // A bug where we can make an empty string for the tokenResponseDescriptor in the 
+            // JSDO session constructor
+
+            var auth = new progress.data.AuthenticationProvider(
+                "http://172.29.37.63:8810/TokenServer/static/auth/j_spring_security_check"
+                //"http://nbbedsrapuri1:8810/SSO_Token_Server/static/auth/j_spring_security_check"
+            );
+            
+            //auth.invalidate();
+            try {
+                auth.authenticate("restuser","password")
+                    .done(function (ap, result, info) {
+                        console.log("authenticate method succeeded");
+
+                    })
+                    .fail(function (ap, result, info) {
+                        console.log("authenticate method failed");
+                });
+            } catch (e) {
+                
+            }
+            
+            try {
+                document.write("<br/><br/>Invalid Type for tokenResponseDescriptor: <br/>");
+                
+                myDataSession = new progress.data.JSDOSession( {
+                    serviceURI: "http://172.29.37.63:8810/SSOConsumer", 
+                    authenticationModel : progress.data.Session.AUTH_TYPE_OECP,                 
+                    authImpl: {                            
+                        provider: auth,
+                        consumer: {
+                            tokenRequestDescriptor : ""
+                        }
+                    }
+                } );
+                
+                document.write("Failure: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Success (must be of type object): " + e);
+            }
+            
+            try {
+                document.write("<br/><br/>Invalid Type for tokenResponseDescriptor: <br/>");
+                
+                var authProvider = new progress.data.AuthenticationProvider(
+                    "http://172.29.37.63:8810/TokenServer/static/auth/j_spring_security_check", 
+                    {
+                        tokenResponseDescriptor: "" 
+                    }
+                );
+                
+                document.write("Failure: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Success (must be of type object): " + e);
+            }
+            
+            try {
+                document.write("<br/><br/>Basic authProvider Success Case: <br/>");
+                
+                var authProvider = new progress.data.AuthenticationProvider(
+                    "http://172.29.37.63:8810/TokenServer/static/auth/j_spring_security_check", 
+                    {
+                        tokenResponseDescriptor: {
+                            type: "header"
+                        }
+                    }
+                );
+                
+                document.write("Success: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Failure: " + e);
+            }
+            
+            try {
+                document.write("<br/><br/>Basic authConsumer Success Case: <br/>");
+                
+                var authProvider = new progress.data.AuthenticationConsumer(
+                    {
+                        tokenResponseDescriptor: {
+                            type: "header"
+                        }
+                    }
+                );
+                
+                document.write("Success: We didn't throw an error<br/>");
+            } catch (e) {
+                document.write("Failure: " + e);
+            }
+            
+        </script> 
+    </body>
+</html>

@@ -71,9 +71,18 @@ limitations under the License.
                                            "object", "constructor"));
         }
         
-        if (options.tokenResponseDescriptor) {
-            // {1}: '{2}' objects must contain a '{3}' field.
+        if (typeof options.tokenResponseDescriptor !== "undefined" &&
+                typeof options.tokenResponseDescriptor !== "object") {
+            // "{1}: '{2}' must be of type '{3}'"
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503",
+                "AuthenticationProvider",
+                "tokenResponseDescriptor",
+                "object"
+            ));
+        } else if (options.tokenResponseDescriptor) {
             if (typeof options.tokenResponseDescriptor.type === "undefined") {
+                // {1}: '{2}' objects must contain a '{3}' field.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG500",
                     "AuthenticationProvider",
@@ -303,9 +312,29 @@ limitations under the License.
                                            "object", "constructor"));
         }
         
-        if (options.tokenRequestDescriptor) {
-            // {1}: '{2}' objects must contain a '{3}' field.
+                
+        if (typeof options.tokenRequestDescriptor !== "undefined" &&
+                typeof options.tokenRequestDescriptor !== "object") {
+            // "{1}: '{2}' must be of type '{3}'"
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503",
+                "AuthenticationProvider",
+                "tokenRequestDescriptor",
+                "object"
+            ));
+        } else if (options.tokenRequestDescriptor) {
+            if (typeof options.tokenRequestDescriptor !== "object") {
+                // "{1}: '{2}' must be of type '{3}'"
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG503",
+                    "AuthenticationConsumer",
+                    "tokenRequestDescriptor",
+                    "object"
+                ));
+            }
+            
             if (typeof options.tokenRequestDescriptor.type === "undefined") {
+                // {1}: '{2}' objects must contain a '{3}' field.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG500",
                     "AuthenticationConsumer",
