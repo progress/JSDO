@@ -288,9 +288,17 @@ limitations under the License.
         };
         
         this.invalidate = function () {
+            var deferred = $.Deferred();
+            
             if (this.isAuthenticated()) {
                 sessionStorage.removeItem(storageKey);
             }
+            
+            // This will return nothing for now since I'm not sure what we need 
+            // to return for invalidate() in the first place.
+            deferred.resolve();
+            
+            return deferred.promise();
         };
         
         // This is going to be harcoded for now. This can very 
