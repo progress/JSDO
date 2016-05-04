@@ -40,7 +40,8 @@
     
     var authenticationSettings = {
 //            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
-            authenticationURI : "http://172.29.37.63:8810/TokenServer0331/static/auth/j_spring_security_check",
+            authenticationURI : "http://172.29.37.63:8810/TokenServer/static/auth/j_spring_security_check",
+//            authenticationURI : "http://172.29.37.63:8810/SSOConsumer/static/auth/j_spring_security_check",
             tokenResponseDescriptor: {
                 type: progress.data.Session.HTTP_HEADER
                 //headerName: "X-OE-CLIENT-CONTEXT-ID"
@@ -48,8 +49,8 @@
             }
         },
         jsdoSettings = {
-//            serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
-            serviceURI: "http://172.29.37.63:8810/SSOConsumer",
+ //           serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
+           serviceURI: "http://172.29.37.63:8810/SSOConsumer",
             authenticationModel : progress.data.Session.AUTH_TYPE_OECP,
             authImpl: {provider: undefined   // set after new of AuthenticationProvider
                      //  consumer: {
@@ -77,10 +78,11 @@
             "token: null"
         ],
         actualOutputMsgs = [],
-        resource = "Customer",
-//        resource = "SSOConsumerBE",
+//        resource = "Customer",
+        resource = "SSOConsumerBE",
         fillFilter = "CustNum < 20",    
         authProvider,
+        jsdoSession,
         msgAuthSucceeded = "The authentication call succeeded.",
         msgBUGUnexpectedFailure = "BUG: Call to authenticate() failed unexpectedly";
 
@@ -104,8 +106,7 @@
     }
     
     function simpleTest() {
-        var promise,
-            jsdoSession;
+        var promise;
             
         // runCount += 1;    
             
@@ -139,7 +140,7 @@
                               //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
                             jsdoSession.addCatalog(jsdoSettings.catalogURIs)
                             .done(function (jsdosession, result, info) {
-                                callFill(jsdosession);
+                                callFill();
                             })
                             .fail(function (jsdosession, result, info) {
                                 logResult("addCatalog failed, result: " + result,
@@ -171,13 +172,13 @@
         }
     }
 
-    function callFill(jsdosession) {
+    function callFill() {
         var promise,
             jsdo;
 
         try {
             jsdo = new progress.data.JSDO(resource);
-            jsdo._appjsdosession = jsdosession;
+          // jsdo._appjsdosession = jsdosession;
           // TEST SENDING BAD TOKEN ON JSDO fill REQUEST -- uncomment
           //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
             promise = jsdo.fill(fillFilter);
@@ -190,13 +191,13 @@
 
     function handleFillResponse(jsdo, success, request) {
         actualOutputMsgs.push("jsdo.fill result: " + success);
-        callLogout(jsdo._appjsdosession);
+        callLogout();
     }
     
-    function callLogout(jsdosession) {
+    function callLogout() {
         var promise;
             
-        promise = jsdosession.logout();
+        promise = jsdoSession.logout();
         promise.always( handleLogoutResponse );
     }
         

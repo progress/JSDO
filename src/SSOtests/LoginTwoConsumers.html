@@ -122,7 +122,7 @@
             authProvider.authenticate("restuser", "password")
             .done(function (ap, result, info) {
                     logResult(msgAuthSucceeded, null, authenticationSettings);
-                    loginAddCat(jsdoSettings)
+                    loginAddCat(jsdoSettings);
                 })
             .fail(function (ap, result, info) {
                     logResult(msgBUGUnexpectedFailure + ", result: " + result, info.errorObject,
@@ -221,75 +221,6 @@
         }
     }
 
-    
-    function callLoginTwo(provider) {
-        var promise;
-            
-        // runCount += 1;    
-            
-        try {
-            jsdoSettingsTwo.authImpl.provider = provider;
-             // ERROR TEST SETTING PROVIDER PROPERTY TO A VALUE THAT IS NOT AN OBJECT
-            //jsdoSettingsTwo.authImpl.provider = "foo";
-            
-            jsdoSessionTwo = new progress.data.JSDOSession(jsdoSettingsTwo);
-              // ERROR TEST SENDING BAD TOKEN on login
-              //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
-            jsdoSessionTwo.login()
-                .done(function (jsdosession, result, info) {
-                    logResult("SECOND Login result: " + result,
-                          null,
-                          authenticationSettings);
-                      // ERROR TEST SENDING BAD TOKEN  ON addCatalog
-                      //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
-                    jsdosession.addCatalog(jsdoSettingsTwo.catalogURIs)
-                    .done(function (jsdosession, result, info) {
-                        logResult("SECOND addCatalog result: " + result,
-                              null,
-                              authenticationSettings);
-                        callFillTwo(jsdosession);
-                    })
-                    .fail(function (jsdosession, result, info) {
-                        logResult("SECOND addCatalog failed, result: " + result,
-                              info.errorObject,
-                              authenticationSettings);
-                        finishSimpleTest();
-                    });
-                })
-                .fail(function (jsdosession, result, info) {
-                    logResult("SECOND Login result: " + result,
-                          info.errorObject,
-                          authenticationSettings);
-                    finishSimpleTest();
-                });
-        } catch (f) {
-            logResult("BUG: Error thrown calling SECOND login(): ", f, authenticationSettings);
-            finishSimpleTest();
-        }
-    }
-    
-    function callFillTwo(jsdosession) {
-        var promise,
-            jsdo;
-
-        try {
-            jsdo = new progress.data.JSDO(jsdoSettingsTwo.resource);
-            jsdo._appjsdosession = jsdosession;
-          // TEST SENDING BAD TOKEN ON JSDO fill REQUEST -- uncomment
-          //  sessionStorage.setItem(authenticationSettings.authenticationURI, "12345");
-            promise = jsdo.fill(jsdoSettingsTwo.fillFilter);
-            promise.always(handleFillResponseTwo);
-        } catch (e) {
-            actualOutputMsgs.push(e);
-            finishSimpleTest();
-        }
-    }
-
-
-    function handleFillResponseTwo(jsdo, success, request) {
-        actualOutputMsgs.push("SECOND jsdo.fill result: " + success);
-        callLogout(jsdoSessionTwo);
-    }
 
     function callLogout(jsdosession) {
         var promise;
@@ -316,7 +247,6 @@
     // clean up storage (can delete this when we add the invalidate() method to AuthenticationProvider)
     function cleanStorage() {
         sessionStorage.removeItem(authenticationSettings.authenticationURI);
-        sessionStorage.removeItem(authenticationSettings.id);  // in case we use the id property        
     }
     
     // 
