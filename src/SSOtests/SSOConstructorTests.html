@@ -1,0 +1,126 @@
+<html>
+    <head>
+        <script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.util.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.session.js"></script>
+        <script src="C:\Users\aestrada\Documents\GitHub\JSDO\src\progress.auth.js"></script>	
+        
+    </head>
+
+    
+    <body>
+        <br/>
+        <br/>
+        TEST OUTPUT
+        <br/>
+
+        <script type="text/javascript">
+            // These are tests for the story TP 34435 where we're adding functionality
+            // for the JSDO constructor to accept an authProvider for SSO
+            
+            try {
+                var fail = new progress.data.AuthenticationProvider(
+                    //"http://localhost:8810/TS102/static/auth/j_spring_security_check",
+                    "i am a failure to mankind",
+                    {}
+                );
+                
+                var auth = new progress.data.AuthenticationProvider(
+                    //"http://localhost:8810/TS102/static/auth/j_spring_security_check",
+                    "http://nbbedaestrada:8810/TS102/static/auth/j_spring_security_check",
+                    {}
+                );
+                
+                auth.authenticate({ userName: "restuser", password: "password"})
+                    .done(function (ap, result, info) {
+                    alert("authenticate method succeeded");
+                
+                })
+                .fail(function (ap, result, info) {
+                    alert("authenticate method failed");
+                });
+                
+            } catch (e) {
+                console.log("Exception: " + e);
+            }
+            
+            // CONSTRUCTOR TESTS
+            
+            // Original success case
+            try {
+                document.write("<br/><br/>Successful Session Check: <br/>")
+                j = new progress.data.JSDOSession(
+                    {
+                        serviceURI: "holla@me.son.",
+                        authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                        authImpl: {
+                            provider: auth
+                        }
+                    }
+                );
+                
+                // If this succeeds, we should be able to print out 
+                // authImpl.addTokenToRequest() as a function and 
+                // get the token.
+                document.write("Success: " + j.authImpl.addTokenToRequest);
+                document.write("<br/>Success: " + j.authImpl.provider._getToken());
+            } catch (e) {
+                console.log("Exception: " + e);
+            }
+            
+            // Failure case when authImpl is not a object
+            try {
+                document.write("<br/><br/>authImpl Check: <br/>")
+                j = new progress.data.JSDOSession(
+                    {
+                        serviceURI: "holla@me.son.",
+                        authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                        authImpl: 2
+                    }
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            // Failure case when authImpl has no provider
+            try {
+                document.write("<br/><br/>authImpl.provider Check: <br/>")
+                j = new progress.data.JSDOSession(
+                    {
+                        serviceURI: "holla@me.son.",
+                        authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                        authImpl: {}
+                    }
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");                
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+            try {
+                document.write("<br/><br/>Unathenticated Provider Check: <br/>")
+                j = new progress.data.JSDOSession(
+                    {
+                        serviceURI: "holla@me.son.",
+                        authenticationModel: progress.data.Session.AUTH_TYPE_OECP,
+                        authImpl: {
+                            provider: fail
+                        }
+                    }
+                );
+                
+                // We should not print out anything
+                document.write("Failure: No exception thrown.");                
+            } catch (e) {
+                document.write("Sucess: " + e);
+            }
+            
+        </script> 
+    </body>
+</html>

@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.2.0-7
+progress.js    Version: 4.3.0-7
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -9,7 +9,7 @@ you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
  
     http://www.apache.org/licenses/LICENSE-2.0
- 
+  
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -52,6 +52,10 @@ limitations under the License.
 
     var msg = {};
     msg.msgs = {};
+//        msg numbers   0 -  99 are related to use of the API (methods and properties we expose to developers)
+//                    100 - 109 relate to network errors
+//                    110 - 998 are for miscellaneous errors
+                    
     msg.msgs.jsdoMSG000 = "JSDO, Internal Error: {1}";
     msg.msgs.jsdoMSG001 = "JSDO: JSDO has multiple tables. Please use {1} at the table reference level.";
     msg.msgs.jsdoMSG002 = "JSDO: Working record for '{1}' is undefined.";
@@ -91,10 +95,18 @@ limitations under the License.
         "Service named '{2}', but it has not loaded the definition of that service.";
     msg.msgs.jsdoMSG044 = "JSDO: In '{1}' function, {2} is missing {3} property.";
     msg.msgs.jsdoMSG045 = "JSDO: {1} function: {2} is missing {3} property.";    
-
+    msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
+    msg.msgs.jsdoMSG047 = "{1} timeout expired.";
+    msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG050 = "No token returned from server";
+    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
+    
+    //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
     msg.msgs.jsdoMSG101 = "Network error while executing HTTP request.";
 
+    //                    110 - 499 are for miscellaneous errors
     msg.msgs.jsdoMSG110 = "Catalog error: idProperty not specified for resource '{1}'. " +
         "idProperty is required {2}.";
     msg.msgs.jsdoMSG111 = "Catalog error: Schema '{1}' was not found in catalog.";
@@ -114,7 +126,14 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
-	
+    msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider needs to be managing a valid token.";
+    
+    //                    500 - 998 are for generic errors
+    msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
+    msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
+    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
+    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
+
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
     msg.getMsgText = function (n, args) {
@@ -2734,7 +2753,8 @@ limitations under the License.
                     this._resource.generic[operationStr](xhr, this._async);
                 }
                 else {
-                    throw new Error("JSDO: " + operationStr.toUpperCase() + " operation is not defined.");
+                    // "JSDO: {1} operation is not defined."
+                    throw new Error(msg.getMsgText("jsdoMSG046", operationStr.toUpperCase() ));
                 }
             }
         };
@@ -2750,7 +2770,8 @@ limitations under the License.
          * Saves changes in the JSDO. Save any outstanding changes for CREATES, UPDATE, and DELETEs
          */
         this.saveChanges = function (useSubmit) {
-            var promise;
+            var promise,
+                request;
 
             if (useSubmit === undefined) {
                 useSubmit = false;
@@ -2759,25 +2780,25 @@ limitations under the License.
                 throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "saveChanges()"));
             }
             
-            if (useSubmit &&  (!this._dataSetName) ) {
-                if (this.autoApplyChanges) {
-                    /* error message: "autoApplyChanges is not supported for submit with a temp-table */
-                    /* Use jsdo.autoApplyChanges = false." */
-                    throw new Error(msg.getMsgText("jsdoMSG124")); 
-                }
-            }
-            
             // _fireCUDTriggersForSubmit() needs to know how saveChanges() was called
             this._useSubmit = useSubmit; 
 
-            if (!this._hasCUDOperations && !this._hasSubmitOperation) {
-                throw new Error(msg.getMsgText("jsdoMSG026"));
+            // confirm the availability of the operations required for executing this saveChanges call
+            // (_checkThatJSDOHasRequiredOperations() throws an error if there's a missing operation,
+            // which this method deliberately allows to bubble up to the caller)
+            this._checkThatJSDOHasRequiredOperations(); 
+            
+            // Don't allow Submit with just a temp-table if autoApplyChanges is true
+            if ( !this._dataSetName && this._useSubmit && this.autoApplyChanges) {
+                  /* error message: "autoApplyChanges is not supported for submit with a temp-table */
+                  /* Use jsdo.autoApplyChanges = false." */
+                  throw new Error(msg.getMsgText("jsdoMSG124")); 
             }
-
+            
             // Clear errors before sending request
 			this._clearErrors();
 
-            var request = {
+            request = {
                 jsdo: this
             };
 
@@ -2789,13 +2810,90 @@ limitations under the License.
                  * are in sync in JSDO Submit Service. */
                 promise = this._syncDataSetForSubmit(request);
             }
-            else if (this._dataSetName)
+            else if (this._dataSetName) {
                 promise = this._syncDataSetForCUD();
+            }
             else {
                 promise = this._syncSingleTable();
             }
             
             return promise;
+        };
+
+        /* 
+         * _checkThatJSDOHasRequiredOperations
+            
+           This method is intended to be used by the saveChanges() method to determine whether 
+           the JSDO's resource definition includes the operations necessary for executing the
+           types of changes that are pending in the JSDO. It checks for Submit if saveChanges
+           was called with useSubmit set to true, otherwise it checks whatever CUD operations are
+           pending. 
+           The JSDO's internal _useSubmit property must be set correctly before this method 
+           is called
+         */
+        this._checkThatJSDOHasRequiredOperations = function( ) {
+            var checkedDelete = false,
+                checkedCreate = false,
+                checkedUpdate = false,
+                buf,
+                tableRef;
+
+            if (!this._hasCUDOperations && !this._hasSubmitOperation) {
+                throw new Error(msg.getMsgText("jsdoMSG026"));
+            }
+
+            // Validate the use of Submit
+            if (this._useSubmit) {
+                if (!this._hasSubmitOperation) {
+                    // "JSDO: {1} operation is not defined.";  
+                    throw new Error(msg.getMsgText("jsdoMSG046", "SUBMIT"));
+                }
+                else {
+                    return;
+                }
+            }
+            
+            if (!this._resource) {
+                // Need the _resource property to do the validation. If not present, just return 
+                // and let execution run as normal (presumably there will be an error)
+                return;
+            }
+           
+            // Find the pending operations and make sure they are defined
+            for (buf in this._buffers) {
+
+                tableRef = this._buffers[buf];
+
+                if (!checkedDelete && tableRef._deleted.length > 0) {
+                    this._confirmOperationExists( progress.data.JSDO._OP_DELETE );
+                    checkedDelete = true;
+                }
+                
+                if (!checkedCreate && tableRef._added.length > 0) {
+                    this._confirmOperationExists( progress.data.JSDO._OP_CREATE );
+                    checkedCreate = true;
+                }
+
+                if (!checkedUpdate && Object.keys(tableRef._changed).length > 0) {
+                    this._confirmOperationExists( progress.data.JSDO._OP_UPDATE );  
+                    checkedUpdate = true;
+                }
+                
+                if ( checkedDelete && checkedCreate && checkedUpdate ) {
+                    break;
+                }
+            }
+            
+        };
+
+        // Determines whether a given operation is defined by the JSDO's resource
+        // throws an error if it's not defined
+        this._confirmOperationExists = function(operation) {
+            var operationStr = PROGRESS_JSDO_OP_STRING[operation];
+            if (typeof(this._resource.generic[operationStr]) !== "function") {
+                // "JSDO: {1} operation is not defined."
+                throw new Error(msg.getMsgText("jsdoMSG046", operationStr.toUpperCase() ));
+            }
         };
         
         this.invoke = function (name, object) {
@@ -3158,6 +3256,13 @@ limitations under the License.
                         success: success
                     };
                     this._undefWorkingRecord();
+                    
+                    // Save error messages
+                    this._lastErrors = [];
+                    if (!success && batch.operations) {
+                        this._updateLastErrors(this, batch, null);
+                    }
+                        
                     this._fireAfterSaveChanges(success, request);
                 }
             }
@@ -3450,6 +3555,13 @@ limitations under the License.
                     batch: batch,
                     success: true
                 };
+                
+                // Save error messages
+                jsdo._lastErrors = [];
+                if (batch.operations) {
+                    jsdo._updateLastErrors(jsdo, batch, null);
+                }
+                    
                 jsdo._undefWorkingRecord();
                 jsdo._fireAfterSaveChanges(request.success, request);
             }
@@ -3763,7 +3875,7 @@ limitations under the License.
                     break;
                 }
             }
-
+            
             return hasChanges;
         };
 
@@ -4459,7 +4571,10 @@ limitations under the License.
         this._setErrorString = function (tableRef, recordId, errorString, setInBeforeTable) {
 
             if (setInBeforeTable) {
-                tableRef._beforeImage[recordId]._errorString = errorString;
+                // Ensure that object exists, it's null for deleted rows
+                if (tableRef._beforeImage[recordId]) {
+                    tableRef._beforeImage[recordId]._errorString = errorString;
+                }
             }
             else {
                 var index = tableRef._index[recordId].index;
@@ -4510,7 +4625,6 @@ limitations under the License.
             // Update dataset with changes from server
             if (this._dataSetName) {
                 var dataSetJsonObject = jsonObject[this._dataSetName];
-                var beforeJsonObject = dataSetJsonObject["prods:before"];
 
                 // only updates the specified record
                 var tableRef = xhr.request.jsrecord._tableRef;
@@ -5016,7 +5130,6 @@ limitations under the License.
         };
 
         this._updateError = function (jsdo, success, request) {
-            var makeSuccessFalse = true;
 
             if (jsdo.autoApplyChanges) {
                 request.success = false;
@@ -5128,47 +5241,58 @@ limitations under the License.
 
 
         this._updateLastErrors = function (jsdo, batch, changes) {
+            var errors,
+                request,
+                responseObject,
+                i;
+            
             if (batch) {
                 if (batch.operations === undefined) return;
-                for (var i = 0; i < batch.operations.length; i++) {
-                    var request = batch.operations[i];
-                    if (!request.success
-                        && request.xhr
-                        && request.xhr.status == 500) {
-                        var errors = "";
-                        try {
-                            var responseObject = JSON.parse(request.xhr.responseText);
+                for (i = 0; i < batch.operations.length; i++) {
+                    request = batch.operations[i];
+                    if (!request.success && request.xhr) {
+                        if (request.xhr.status == 500) {
+                            errors = "";
+                            try {
+                                responseObject = JSON.parse(request.xhr.responseText);
 
-                            if (responseObject._errors instanceof Array) {
-                                for (var j = 0; j < responseObject._errors.length; j++) {
-                                    errors += responseObject._errors[j]._errorMsg + '\n';
+                                if (responseObject._errors instanceof Array) {
+                                    for (var j = 0; j < responseObject._errors.length; j++) {
+                                        errors += responseObject._errors[j]._errorMsg + '\n';
+                                    }
+                                }
+                                if (responseObject._retVal) {
+                                    errors += responseObject._retVal;
                                 }
                             }
-                            if (responseObject._retVal) {
-                                errors += responseObject._retVal;
+                            catch (e) {
+                                // Ignore exceptions
                             }
+                            if (request.exception) {
+                                if (errors.length === 0)
+                                    errors = request.exception;
+                                else
+                                    errors += "\n" + request.exception;
+                            }
+                            jsdo._lastErrors.push({errorString: errors});
                         }
-                        catch (e) {
-                            // Ignore exceptions
+                        // Check if there's a row error on batched operation
+                        else if (request.xhr.status  >= 200 && request.xhr.status < 300) {
+                            jsdo._lastErrors.push({errorString: request.jsrecord.data._errorString});
+                            jsdo._buffers[request.jsrecord._tableRef._name]._lastErrors.push({
+                                    id: request.jsrecord.data._id,
+                                    error: request.jsrecord.data._errorString});
                         }
-                        if (request.exception) {
-                            if (errors.length === 0)
-                                errors = request.exception;
-                            else
-                                errors += "\n" + request.exception;
-                        }
-                        jsdo._lastErrors.push({errorString: errors});
                     }
                 }
             }
             else if (changes instanceof Array) {
-                for (var i = 0; i < changes.length; i++) {
+                for (i = 0; i < changes.length; i++) {
                     if (changes[i].record && changes[i].record.data._errorString !== undefined) {
                         jsdo._lastErrors.push({errorString: changes[i].record.data._errorString});
-
-						jsdo._buffers[changes[i].record._tableRef._name]._lastErrors.push({
-							id: changes[i].record.data._id,
-							error: changes[i].record.data._errorString});
+                        jsdo._buffers[changes[i].record._tableRef._name]._lastErrors.push({
+                                id: changes[i].record.data._id,
+                                error: changes[i].record.data._errorString});
                     }
                 }
             }
