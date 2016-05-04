@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.3.0-11
+progress.auth.js    Version: 4.3.0-12
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -288,9 +288,19 @@ limitations under the License.
         };
         
         this.invalidate = function () {
+            var deferred = $.Deferred();
+            
             if (this.isAuthenticated()) {
                 sessionStorage.removeItem(storageKey);
             }
+            
+            // This will return the authenticationProvider that invoked this method
+            // and the result, which will only be successful at the moment. We also
+            // reserve the right to throw in a third object hash for extra information
+            // in the nebulous future.
+            deferred.resolve(this, progress.data.Session.SUCCESS);
+            
+            return deferred.promise();
         };
         
         // This is going to be harcoded for now. This can very 
