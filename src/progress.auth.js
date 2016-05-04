@@ -294,9 +294,11 @@ limitations under the License.
                 sessionStorage.removeItem(storageKey);
             }
             
-            // This will return nothing for now since I'm not sure what we need 
-            // to return for invalidate() in the first place.
-            deferred.resolve();
+            // This will return the authenticationProvider that invoked this method
+            // and the result, which will only be successful at the moment. We also
+            // reserve the right to throw in a third object hash for extra information
+            // in the nebulous future.
+            deferred.resolve(this, progress.data.Session.SUCCESS);
             
             return deferred.promise();
         };

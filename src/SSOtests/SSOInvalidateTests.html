@@ -74,10 +74,12 @@
                     document.write("auth is authenticated.<br/>");
                     
                     auth.invalidate()
-                    .done(function() {
-                        document.writeln("Token is invalidated via promise!<br/>");
+                    .done(function(ap, result) {
+                        document.writeln("Token Invalidation Result: " + result + "<br/>");
+                        document.writeln("AuthProvider Correct: " + (auth === ap) + "<br/>");
+                        
                     }).fail(function() {
-                        document.writeln("I have no idea how you got here.<br/>"); 
+                        document.writeln("I have no idea how you got here. Fail.<br/>"); 
                     });
                     
                     if (auth.isAuthenticated()) {
