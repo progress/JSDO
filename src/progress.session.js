@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-9
+progress.session.js    Version: 4.3.0-11
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -1660,6 +1660,7 @@ limitations under the License.
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
+                    this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP ||
                     this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
@@ -2476,6 +2477,21 @@ limitations under the License.
          */
         this._setXHRCredentials = function (xhr, verb, uri, userName, password, async) {
 
+            // if using SSO, just add the token and ignore the rest of this method
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
+                xhr.open(verb, uri, async);
+                this.authImpl.addTokenToRequest(xhr);
+
+                // We specify application/json for the response so that, if a bad token is sent, an 
+                // OE Web application that's based on Form auth will directly send back a 401.
+                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
+                // user agent handles by getting login.jsp and returning it to our code with a status
+                // of 200. We could infer that authnetication failed from that, but it's much cleaner this 
+                // way.
+                xhr.setRequestHeader("Accept", "application/json");
+
+                return;
+            }            
             // note that we do not set credentials if userName is null. 
             // Null userName indicates that the developer is depending on the browser to
             // get and manage the credentials, and we need to make sure we don't interfere with that
