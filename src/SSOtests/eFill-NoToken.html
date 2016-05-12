@@ -1,0 +1,367 @@
+<html>
+<head>
+
+<script src="http://cdn.kendostatic.com/2014.3.1316/js/jquery.min.js"></script>
+<script src="./progress.jsdo.js"></script>
+
+<!--
+<script src="./progress.js"></script>
+-->
+
+<script src="./progress.session.js"></script>
+
+
+</head>
+<body>
+<div id="correct">
+    CORRECT OUTPUT<br/>
+<br/>
+</div>    
+
+<div id="outdiv"/>
+<br/>
+<br/>
+   TEST OUTPUT
+<br/>
+
+
+<script>
+
+var jsdoSession,
+    authProvider,
+    promise,
+    msgs = [],
+    doAlert = false,
+    authenticationSettings = {
+            authenticationURI : "http://nbbedwhenshaw2.bedford.progress.com:8810/TokenServer0331/static/auth/j_spring_security_check",
+ //           authenticationURI : "http://172.29.37.63:8810/TokenServer/static/auth/j_spring_security_check",
+            tokenResponseDescriptor: {
+                type: progress.data.Session.HTTP_HEADER
+                //headerName: "X-OE-CLIENT-CONTEXT-ID"
+              //  headerName: 7   // error test
+            }
+        },
+//    jsdoSettings = {  serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8980/Cust116FCSFormService",
+  //  jsdoSettings = {  serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/FormDefault0331",
+    jsdoSettings = {  serviceURI: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331",
+                  authenticationModel:  progress.data.Session.AUTH_TYPE_OECP,
+//                  catalogURIs: "http://nbbedwhenshaw2.bedford.progress.com:8980/Cust116FCSFormService/static/Cust116FCSFormService.json"},
+//                  catalogURIs: "http://nbbedwhenshaw2.bedford.progress.com:8810/FormDefault0331/static/FormDefault0331Service.json"},
+                  catalogURIs: "http://nbbedwhenshaw2.bedford.progress.com:8810/SSOwh0331/static/SSOwh0331Service.json",
+                  authImpl: {
+                              provider: undefined   // set after new of AuthenticationProvider
+                  },
+                  
+    },
+    outputString,
+    correctOutputString,
+    msgs = [
+    //correctOutput = [
+        '*',
+        '* * * * * * * * * * * * * * * * * * Fill - No Token * * * * * * * * * * * * * *',
+        'Login succeeded',
+        'addCatalog() result: 1',
+        'Error: JSDOSession: The AuthenticationProvider needs to be managing a valid token.',
+        'ping result: true',   // thsi may not always show up
+        'result of JSDOSession.logout(): 1',
+    ],
+    jsdo,
+    custNameCUD = "FFCORSBasicTest";
+//    custNameCUD = "Lift Tours";
+    custNameSubmitCreate= "FFCORSBasicTestSubmitCreate";
+    custNameSubmitUpdate = "FFCORSBasicTestSubmitUpdate";
+    custNameSubmitDelete = "FFCORSBasicTestSubmitDelete";
+
+correctOutputString = outputMsgs(msgs, document.getElementById("correct") );
+msgs = [];
+
+
+
+    startSimpleTest();
+
+// end of main line of code
+
+
+    function startSimpleTest() {
+        cleanStorage();
+
+        msgs.push("*");
+        msgs.push("* * * * * * * * * * * * * * * * * * Fill - No Token * * * * * * * * * * * * * *");
+        try {
+            authProvider = new progress.data.AuthenticationProvider(
+                                        authenticationSettings.authenticationURI,
+                                        authenticationSettings);
+                
+            authProvider.authenticate("restuser", "password")
+            .done(function (ap, result, info) {
+                    login(jsdoSettings);
+                })
+            .fail(function (ap, result, info) {
+                    finishSimpleTest();
+                });
+        } catch (f) {
+            msgs.push("BUG: Error thrown calling authenticate(): " + f);
+            finishSimpleTest();
+        }
+    }
+    
+
+    function finishSimpleTest() {
+        finishTest();
+    }
+    
+    
+    function login(jsdosettings) {
+        var promise,
+            jsdosession;
+        
+        jsdosettings.authImpl.provider = authProvider;
+        // use the token by creating a JSDOSession and calling login
+        try {
+            jsdosession = jsdoSession = new progress.data.JSDOSession(jsdosettings);
+            jsdosession.login()
+            .done(function (jsdosession, result, info) {
+                msgs.push("Login succeeded");
+                callAddCatalog( jsdosession, jsdosettings);
+            })
+            .fail(function (jsdosession, result, info) {
+                msgs.push("Login failed, result: " + result);
+                finishSimpleTest();
+            });
+        } catch (e) {
+             msgs.push("BUG: Error thrown trying to create JSDOSession and log in" + e);
+        }
+    }
+
+
+
+
+
+function callAddCatalog(jsdosession, settings) {
+    var catPromise;
+    
+    try {
+        promise = jsdosession.addCatalog( settings.catalogURIs );
+        promise.always( handleAddCatalogResponse );
+    }
+    catch(e) {
+        msgs.push("Error calling addCatalog: " + e);
+        finishTest();
+    }
+}
+
+function handleAddCatalogResponse(jsdosession, result, details ) {
+    var pingPromise,
+        promise;
+    msgs.push("addCatalog() result: " + result);
+    
+    if ( result === progress.data.Session.SUCCESS ) {
+        try {
+            pingPromise = jsdosession.ping();
+            pingPromise.always( function (session, result, info ) {
+                    msgs.push("ping result: " + result);
+                }
+            );
+            
+            jsdo = new progress.data.JSDO( "Customer" );
+            callFill();
+        }
+        catch(e) {
+            msgs.push(e);
+            callLogout(jsdosession);
+        }
+    }
+    else {
+        callLogout(jsdosession);    
+    }
+}
+
+function callFill() {
+    var promise;
+//    sessionStorage.setItem(authenticationSettings.authenticationURI, "OECP:xyz");
+    sessionStorage.removeItem(authenticationSettings.authenticationURI);
+    promise = jsdo.fill();
+    promise.always( handleFillResponse );
+}
+
+function handleFillResponse( jsdo, success, request ) {
+    msgs.push("jsdo.fill result: " + success);
+    callCreate();
+ //   callUpdate();
+}
+
+function callCreate() {
+    var promise;
+
+    jsdo.ttCustomer.add( {Name: custNameCUD} );
+    promise = jsdo.saveChanges(false);
+    promise.always( handleCreateResponse );
+}
+
+function handleCreateResponse( jsdo, success, request ) {    
+    msgs.push("result of jsdo.savechanges after add: " + success);
+    callUpdate();
+}
+
+function callUpdate() {
+    var row;
+    
+    row = jsdo.ttCustomer.find(function (row) {
+        return (row.data.Name === custNameCUD);
+    });
+    
+    if (row) {
+        row.assign( {Name: "Updated " + row.data.Name} );
+    }
+    saveChangesPromise = jsdo.saveChanges(false);
+    saveChangesPromise.always( handleUpdateResponse );
+}
+
+function handleUpdateResponse( jsdo, success, request ) {
+    msgs.push("result of jsdo.savechanges after update: " + success);
+    callDelete();
+}
+    
+function callDelete() {
+    var row,
+        promise;
+
+    row = jsdo.ttCustomer.find(function (row) {
+        return (row.data.Name === "Updated " + custNameCUD);
+    });
+    
+    if (row) {
+        row.remove();
+    }
+    promise = jsdo.saveChanges(false);
+    promise.always( handleDeleteResponse );
+}
+
+function  handleDeleteResponse( jsdo, success, request ) {
+    var promise;
+    
+    msgs.push("result of jsdo.savechanges after delete (remove): " + success);
+
+    // set up for Submit test
+    jsdo.ttCustomer.add( {Name: custNameSubmitUpdate} );
+    jsdo.ttCustomer.add( {Name: custNameSubmitDelete} );
+    
+    promise = jsdo.saveChanges(false);
+    promise.always( handleSubmitSetupResponse );
+}
+    
+function  handleSubmitSetupResponse( jsdo, success, request ) {
+    var promise;
+    
+    msgs.push("result of jsdo.savechanges for submit setup: " + success);
+
+    // test Submit
+        // add a customer
+    jsdo.ttCustomer.add( {Name: custNameSubmitCreate} );
+        // update a customer    
+    row = jsdo.ttCustomer.find(function (row) {
+        return (row.data.Name === custNameSubmitUpdate);
+    });
+    if (row) {
+        row.assign( {Name: "Updated " + row.data.Name} );
+    }
+        // delete a customer    
+    row = jsdo.ttCustomer.find(function (row) {
+        return (row.data.Name === custNameSubmitDelete);
+    });
+    if (row) {
+        row.remove();
+    }
+    
+    promise = jsdo.saveChanges(true);  // saveChanges with useSubmit = true
+    promise.always( handleSubmitResponse );
+}
+    
+function  handleSubmitResponse( jsdo, success, request ) {
+//    var promise;
+    
+    msgs.push("result of jsdo.savechanges using Submit: " + success);
+    
+    callLogout(jsdoSession);
+/*
+    promise = jsdosession.logout();
+    promise.always( handleLogoutResponse );
+  */
+}
+
+function callLogout(jsdosession) {
+    var promise;
+        
+    promise = jsdosession.logout();
+    promise.always( handleLogoutResponse );
+}
+    
+function handleLogoutResponse(session, result, info ) { 
+
+    msgs.push("result of JSDOSession.logout(): " + result);
+
+    finishTest();
+}
+
+
+// clean up storage (can delete this when we add the invalidate() method to AuthenticationProvider)
+function cleanStorage() {
+    sessionStorage.removeItem(authenticationSettings.authenticationURI);
+}
+
+
+
+function finishTest() {
+    var idx;
+   outputString = outputMsgs(msgs, document.getElementById("outdiv") );
+    
+   msgs = [];    
+   msgs.push(" ");
+   if (outputString === correctOutputString) {
+       msgs.push("       TEST PASSED ");
+   }
+   else {
+        msgs.push("       TEST FAILED !!!!!!!!!!!!!");
+        for (idx = 0; idx < outputString.length; idx += 1) {
+            if (outputString[idx] !== correctOutputString[idx] ) {
+                console.log(idx + "   " + outputString[idx] + "   " + correctOutputString[idx]);
+            }
+        }
+   }
+   outputMsgs( msgs, document.getElementById("outdiv") );
+}
+
+
+
+function outputMsgs(msgs, writeElement) {
+    var arrayLength,
+        arrayIndex,
+        outMsg = "",
+        consolemsg = " ";
+
+    if (writeElement) {
+         outMsg = writeElement.innerHTML;
+    }
+    
+    arrayLength = msgs.length;
+    for (arrayIndex = 0; arrayIndex < arrayLength; arrayIndex = arrayIndex + 1) {
+        outMsg = outMsg + "<br>" + msgs[arrayIndex];
+        consolemsg = consolemsg + "\n" + msgs[arrayIndex];
+    }
+    
+    if (writeElement) {
+        writeElement.innerHTML = outMsg;
+    }
+    
+    
+    console.log(consolemsg); 
+    return consolemsg;
+}
+
+
+
+</script>
+
+</body>
+
+</html>
