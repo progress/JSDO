@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-11
+progress.session.js    Version: 4.3.0-12
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -1623,32 +1623,32 @@ limitations under the License.
         /* logout
          *
          */
-        this.logout = function () {
+        this.logout = function (args) {
             var isAsync = false,
                 errorObject = null,
                 xhr,
                 deferred,
-                jsdosession;
+                jsdosession,
+                params;
+
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                 throw new Error("Attempted to call logout when there is no active session.");
             }
 
-            if (arguments.length > 0) {
-                if (typeof(arguments[0]) === 'object') {
-                    isAsync = arguments[0].async;
-                    if (isAsync && (typeof isAsync != 'boolean')) {
-                        throw new Error( progress.data._getMsgText("jsdoMSG033", 
-                                                                   "Session", 
-                                                                   'logout', 
-                                                                   'The async argument was invalid.'));
-                    }
-                    /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
-                        deferred and jsdosession and we need to eventually attach them to the XHR we use 
-                        so that the promise created by the JSDOSession will work correctly
-                    */ 
-                    deferred = arguments[0].deferred;
-                    jsdosession = arguments[0].jsdosession;                    
+            if (typeof(args) === 'object') {
+                isAsync = args.async;
+                if (isAsync && (typeof isAsync !== 'boolean')) {
+                    throw new Error( progress.data._getMsgText("jsdoMSG033", 
+                                                               "Session", 
+                                                               'logout', 
+                                                               'The async argument was invalid.'));
                 }
+                /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
+                    deferred and jsdosession and we need to eventually attach them to the XHR we use 
+                    so that the promise created by the JSDOSession will work correctly
+                */ 
+                deferred = args.deferred;
+                jsdosession = args.jsdosession;                    
             }
 
             xhr = new XMLHttpRequest();
@@ -1667,29 +1667,40 @@ limitations under the License.
                         xhr.onResponseFn = this._processLogoutResult;
                         xhr.onResponseProcessedFn = this._logoutComplete;
                     }
-                    xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
+                    
+                    
+                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
+                        // Even though we don't call _setXHRCredentials on logout for the other 
+                        // auth models, it does exactly what we need for OECP (SSO), so call it for that case
+                        this._setXHRCredentials(xhr, 'GET', 
+                                                this.serviceURI + "/static/auth/j_spring_security_logout", 
+                                                null, null, isAsync);
+                    } else {
+                        xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
 
-                    /* instead of calling _addWithCredentialsAndAccept, we code the withCredentials
-                     * and setRequiestHeader inline so we can do it slightly differently. That
-                     * function deliberately sets the request header inside the try so we don't
-                     * run into a FireFox oddity that would give us a successful login and then
-                     * a failure on getCatalog (see the comment on that function). On logout,
-                     * however, we don't care -- just send the Accept header so we can get a 200
-                     * response
-                     */
-                    try {
-                        xhr.withCredentials = true;
-                    }
-                    catch (e) {
-                    }
+                        /* instead of calling _addWithCredentialsAndAccept, we code the withCredentials
+                         * and setRequestHeader inline so we can do it slightly differently. That
+                         * function deliberately sets the request header inside the try so we don't
+                         * run into a FireFox oddity that would give us a successful login and then
+                         * a failure on getCatalog (see the comment on that function). On logout,
+                         * however, we don't care -- just send the Accept header so we can get a 200
+                         * response
+                         */
+                        try {
+                            xhr.withCredentials = true;
+                        }
+                        catch (e) {
+                        }
 
-                    xhr.setRequestHeader("Accept", "application/json");
+                        xhr.setRequestHeader("Accept", "application/json");
+                    }
+                    
                     // set X-CLIENT-PROPS header
                     setRequestHeaderFromContextProps(this, xhr);
 
                     if (typeof this.onOpenRequest === 'function') {
                         setLastSessionXHR(xhr, this);
-                        var params = {
+                        params = {
                             "xhr": xhr,
                             "verb": "GET",
                             "uri": this.serviceURI + "/static/auth/j_spring_security_logout",
