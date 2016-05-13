@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-12
+progress.session.js    Version: 4.2.0-2
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -836,7 +836,6 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_FORM :
                             case progress.data.Session.AUTH_TYPE_BASIC :
                             case progress.data.Session.AUTH_TYPE_ANON :
-                            case progress.data.Session.AUTH_TYPE_OECP :
                             case null :
                                 _authenticationModel = newval;
                                 break;
@@ -883,22 +882,19 @@ limitations under the License.
                         return _pingInterval;
                     },
                     set: function (newval) {
-                        if ( (typeof newval === "number") && (newval >= 0) ) {
+                        if (newval >= 0) {
                             _pingInterval = newval;
                             if (newval > 0) {
-                                // if we're logged in, start autopinging
-                                if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                                    _timeoutID = setTimeout(this._autoping, newval);
-                                }
+                                _timeoutID = setTimeout(this._autoping, newval);
                             }
                             else if (newval === 0) {
                                 clearTimeout(_timeoutID);
                                 _pingInterval = 0;
                             }
-                        }
-                        else {
-                            throw new Error("Error setting Session.pingInterval. '" + 
-                                newval + "' is an invalid value.");
+                            else {
+                                throw new Error("Error setting Session.pingInterval. '" + 
+                                    newval + "' is an invalid value.");
+                            }
                         }
                     },
                     enumerable: true
@@ -1318,7 +1314,6 @@ limitations under the License.
                          && iOSBasicAuthTimeout > 0 ) { 
                         xhr._requestTimeout = setTimeout(  function (){
                                                         clearTimeout(xhr._requestTimeout);
-                                                        xhr._iosTimeOutExpired = true;
                                                         xhr.abort();
                                                     }, 
                                                     iOSBasicAuthTimeout);
@@ -1605,9 +1600,6 @@ limitations under the License.
             // null the temporary credentials variables
             unameSave = null;
             pwSave = null;
-            if (xhr._iosTimeOutExpired) {
-                throw new Error( progress.data._getMsgText("jsdoMSG047", "login") );
-            }
 
             // return loginResult even if it's an async operation -- the async handler
             // (e.g., onReadyStateChangeGeneric) will just ignore
@@ -1623,32 +1615,32 @@ limitations under the License.
         /* logout
          *
          */
-        this.logout = function (args) {
+        this.logout = function () {
             var isAsync = false,
                 errorObject = null,
                 xhr,
                 deferred,
-                jsdosession,
-                params;
-
+                jsdosession;
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                 throw new Error("Attempted to call logout when there is no active session.");
             }
 
-            if (typeof(args) === 'object') {
-                isAsync = args.async;
-                if (isAsync && (typeof isAsync !== 'boolean')) {
-                    throw new Error( progress.data._getMsgText("jsdoMSG033", 
-                                                               "Session", 
-                                                               'logout', 
-                                                               'The async argument was invalid.'));
+            if (arguments.length > 0) {
+                if (typeof(arguments[0]) === 'object') {
+                    isAsync = arguments[0].async;
+                    if (isAsync && (typeof isAsync != 'boolean')) {
+                        throw new Error( progress.data._getMsgText("jsdoMSG033", 
+                                                                   "Session", 
+                                                                   'logout', 
+                                                                   'The async argument was invalid.'));
+                    }
+                    /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
+                        deferred and jsdosession and we need to eventually attach them to the XHR we use 
+                        so that the promise created by the JSDOSession will work correctly
+                    */ 
+                    deferred = arguments[0].deferred;
+                    jsdosession = arguments[0].jsdosession;                    
                 }
-                /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
-                    deferred and jsdosession and we need to eventually attach them to the XHR we use 
-                    so that the promise created by the JSDOSession will work correctly
-                */ 
-                deferred = args.deferred;
-                jsdosession = args.jsdosession;                    
             }
 
             xhr = new XMLHttpRequest();
@@ -1660,47 +1652,35 @@ limitations under the License.
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-                    this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP ||
                     this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                         xhr.onResponseFn = this._processLogoutResult;
                         xhr.onResponseProcessedFn = this._logoutComplete;
                     }
-                    
-                    
-                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
-                        // Even though we don't call _setXHRCredentials on logout for the other 
-                        // auth models, it does exactly what we need for OECP (SSO), so call it for that case
-                        this._setXHRCredentials(xhr, 'GET', 
-                                                this.serviceURI + "/static/auth/j_spring_security_logout", 
-                                                null, null, isAsync);
-                    } else {
-                        xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
+                    xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
 
-                        /* instead of calling _addWithCredentialsAndAccept, we code the withCredentials
-                         * and setRequestHeader inline so we can do it slightly differently. That
-                         * function deliberately sets the request header inside the try so we don't
-                         * run into a FireFox oddity that would give us a successful login and then
-                         * a failure on getCatalog (see the comment on that function). On logout,
-                         * however, we don't care -- just send the Accept header so we can get a 200
-                         * response
-                         */
-                        try {
-                            xhr.withCredentials = true;
-                        }
-                        catch (e) {
-                        }
-
-                        xhr.setRequestHeader("Accept", "application/json");
+                    /* instead of calling _addWithCredentialsAndAccept, we code the withCredentials
+                     * and setRequiestHeader inline so we can do it slightly differently. That
+                     * function deliberately sets the request header inside the try so we don't
+                     * run into a FireFox oddity that would give us a successful login and then
+                     * a failure on getCatalog (see the comment on that function). On logout,
+                     * however, we don't care -- just send the Accept header so we can get a 200
+                     * response
+                     */
+                    try {
+                        xhr.withCredentials = true;
                     }
-                    
+                    catch (e) {
+                    }
+
+                    xhr.setRequestHeader("Accept", "application/json");
                     // set X-CLIENT-PROPS header
                     setRequestHeaderFromContextProps(this, xhr);
 
                     if (typeof this.onOpenRequest === 'function') {
                         setLastSessionXHR(xhr, this);
-                        params = {
+                        var params = {
                             "xhr": xhr,
                             "verb": "GET",
                             "uri": this.serviceURI + "/static/auth/j_spring_security_logout",
@@ -1803,7 +1783,6 @@ limitations under the License.
                 oepingAvailable = false;
                 partialPingURI = defaultPartialPingURI;
                 setLastSessionXHR(null, pdsession);
-                clearTimeout(_timeoutID);   //  stop autopinging 
             }
         };
 
@@ -1954,7 +1933,6 @@ limitations under the License.
                      && iOSBasicAuthTimeout ) { 
                     xhr._requestTimeout = setTimeout(  function (){
                                                     clearTimeout(xhr._requestTimeout);
-                                                    xhr._iosTimeOutExpired = true;
                                                     xhr.abort();
                                                 }, 
                                                 iOSBasicAuthTimeout);
@@ -2045,9 +2023,6 @@ limitations under the License.
             else if (_catalogHttpStatus == 401) {
                 return progress.data.Session.AUTHENTICATION_FAILURE;
             }
-            else if (xhr._iosTimeOutExpired) { 
-                throw new Error( progress.data._getMsgText("jsdoMSG047", "addCatalog") );
-            }
             else {
                 throw new Error("Error retrieving catalog '" + catalogURI + 
                     "'. Http status: " + _catalogHttpStatus + ".");
@@ -2097,10 +2072,6 @@ limitations under the License.
                 offlineReason: null
             };
 
-            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS) {
-                throw new Error("Attempted to call ping when not logged in.");
-            }
-            
             if (args) {
                 if (args.async !== undefined) {
                     // when we do background pinging (because pingInterval is set),
@@ -2143,12 +2114,6 @@ limitations under the License.
                 }
                 else {
                     pingResult = false; // no xhr returned from _sendPing, something must have gone wrong
-                }
-                if ( args.xhr !== undefined ) {
-                    // if it's a sync ping, return the xhr if caller indicates they want it
-                    // (there's almost guaranteed to be one, even if the ping was never sent
-                    // if for some reason there isn't, we give them the null or undefined we ended up with)
-                    args.xhr = pingArgs.xhr;  
                 }
             }
             // else it's async, deliberately returning false 
@@ -2282,12 +2247,10 @@ limitations under the License.
          * Return true if the response meets these conditions, false if it doesn't
          */
         this._processPingResult = function (args) {
-            var xhr = args.xhr,
-                pingResponseJSON,
-                appServerStatus = null,
-                wasOnline = this.connected,
-                connectedBeforeCallback;
-
+            var xhr = args.xhr;
+            var pingResponseJSON;
+            var appServerStatus = null;
+            var wasOnline = this.connected;
 
             /* first determine whether the Web server and the Mobile Web Application (MWA)
              * are available
@@ -2356,20 +2319,6 @@ limitations under the License.
                 }
             }
 
-            /* We call any async ping callback handler and then, after that returns, fire an
-               offline or online event if necessary. 
-               When deciding whether to fire an event, the responsibility of this _processPingResult()
-               function is to decide about the event on the basis of the data returned from the ping
-               that it is currently processing. Therefore, since the ping callback that is just about
-               to be called could change the outcome of the event decision (for example, if the handler
-               calls logout(), thus setting Session.connected to false)), we save the current value of
-               Session.connected and use that saved value to decide about the event after the ping 
-               handler returns.
-               (If the application programmer wants to get an event fired as a result of something
-               that happens in the ping handler, they should call a ping() *after* that. 
-             */
-            connectedBeforeCallback = this.connected;
-
             if ((typeof xhr.onCompleteFn) == 'function') {
                 xhr.onCompleteFn({
                     pingResult: this.connected,
@@ -2380,10 +2329,10 @@ limitations under the License.
 
             // decide whether to fire an event, and if so do it
             if (args.fireEventIfOfflineChange) {
-                if (wasOnline && !connectedBeforeCallback) { 
+                if (wasOnline && !this.connected) {
                     myself.trigger("offline", myself, args.offlineReason, null);
                 }
-                else if (!wasOnline && connectedBeforeCallback) {
+                else if (!wasOnline && this.connected) {
                     myself.trigger("online", myself, null);
                 }
             }
@@ -2421,12 +2370,6 @@ limitations under the License.
                     partialPingURI = myself.loginTarget;
                     console.warn("Default ping target not available, will use loginTarget instead.");
                 }
-                
-                // If we're here, we've just logged in. If pingInterval has been set, we need
-                // to start autopinging
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(myself._autoping, _pingInterval);
-                }
             }
         };
 
@@ -2460,7 +2403,7 @@ limitations under the License.
             catch (e) {
                 args.error = e;
             }
-            
+            // ASYNC??
             args.xhr = xhr;
         };
 
@@ -2488,21 +2431,6 @@ limitations under the License.
          */
         this._setXHRCredentials = function (xhr, verb, uri, userName, password, async) {
 
-            // if using SSO, just add the token and ignore the rest of this method
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
-                xhr.open(verb, uri, async);
-                this.authImpl.addTokenToRequest(xhr);
-
-                // We specify application/json for the response so that, if a bad token is sent, an 
-                // OE Web application that's based on Form auth will directly send back a 401.
-                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
-                // user agent handles by getting login.jsp and returning it to our code with a status
-                // of 200. We could infer that authnetication failed from that, but it's much cleaner this 
-                // way.
-                xhr.setRequestHeader("Accept", "application/json");
-
-                return;
-            }            
             // note that we do not set credentials if userName is null. 
             // Null userName indicates that the developer is depending on the browser to
             // get and manage the credentials, and we need to make sure we don't interfere with that
@@ -2835,17 +2763,6 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM', {
             value: "form", enumerable: true
         });
-        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_OECP', {
-            value: "oecp", enumerable: true
-        });
- 
-        Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
-            value: "header", enumerable: true
-        }); 
-        
-        Object.defineProperty(progress.data.Session, 'DEFAULT_HEADER_NAME', {
-            value: "X-OE-CLIENT-CONTEXT-ID", enumerable: true
-        }); 
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -2876,7 +2793,6 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_ANON = "anonymous";
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
-        progress.data.Session.AUTH_TYPE_OECP = "oecp";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -2962,16 +2878,7 @@ limitations under the License.
                 },
                 enumerable: true
             });        
-
-        // TODO: What are the use cases of giving the user the authImpl?
-        Object.defineProperty(this, 'authImpl',
-            {
-                get: function () {
-                    return _pdsession ? _pdsession.authImpl : undefined;
-                },
-                enumerable: true
-            });
-
+        
         Object.defineProperty(this, 'catalogURIs',
             {
                 get: function () {
@@ -3418,6 +3325,7 @@ limitations under the License.
             _myself.trigger( "offline", _myself, offlineReason, request );            
         };    
         
+        
         // PROCESS CONSTRUCTOR ARGUMENTS 
         // validate constructor input arguments
         if ( (arguments.length > 0) && (typeof(arguments[0]) === 'object') ) {
@@ -3436,46 +3344,6 @@ limitations under the License.
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
-                
-                if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
-                    
-                    if (typeof options.authImpl !== "object") {
-                        throw new Error(
-                            progress.data._getMsgText(
-                                "jsdoMSG033", 
-                                "JSDOSession", 
-                                "the constructor",
-                                "The authImpl property of the options parameter must be an object."));
-                    }
-                    
-                    if (typeof options.authImpl.provider !== "object") {
-                        throw new Error(
-                            progress.data._getMsgText(
-                                "jsdoMSG033", 
-                                "JSDOSession", 
-                                "the constructor",
-                                "The authImpl property of the options parameter must have a provider object property."));                        
-                    }
-                    
-                    // Though the consumer is optional, it needs to be an object
-                    if (options.authImpl.hasOwnProperty('consumer') && 
-                        typeof options.authImpl.consumer !== "object") {
-                        throw new Error(
-                            progress.data._getMsgText(
-                                "jsdoMSG033", 
-                                "JSDOSession", 
-                                "the constructor",
-                                "The authImpl.consumer property of the options parameter must be an object if it is present."));
-                    }
-                    
-                    // TODO: Add a check if the provider has an isAuthenticated() function.
-                    // Our usage of isAuthenticated() here implies that if the user implements
-                    // their own provider, it needs to have an isAuthenticated() method.
-                    if (!options.authImpl.provider.isAuthenticated()) {
-                        // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                        throw new Error(progress.data._getMsgText("jsdoMSG125"));                        
-                    }
-                }
             }
         }
         else {
@@ -3488,44 +3356,6 @@ limitations under the License.
         try {
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
-            }
-            
-            // Enhance the authImpl to hand over to the session.
-            // We should never get here without an implementation if the type is OECP
-            if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
-
-                // TODO: Maybe make this into an actual object in progress.auth.js?
-                _pdsession.authImpl = (function(authImpl) {
-
-                    if (typeof authImpl.consumer === "undefined") {
-                        authImpl.consumer = new progress.data.AuthenticationConsumer();
-                    } else if (typeof authImpl.consumer === "object") {
-                        // If the consumer is an AuthenticationConsumer, we're good.
-                        // Otherwise, create our own AuthenticationConsumer from what was passed in
-                        if (!(authImpl.consumer instanceof progress.data.AuthenticationConsumer)) {
-                            authImpl.consumer = new progress.data.AuthenticationConsumer(authImpl.consumer);
-                        }
-                    }
-                    
-                    // TODO: Add a check to see if consumer.addTokenToRequest exists.
-                    // Our usage of addTokenToRequest() here implies that if the user implements
-                    // their own consumer, it needs to have an addTokenToRequest() method.
-                    // It will be interesting to see how a consumer could implement this though
-                    // because they'll need to use _getToken, which is private.
-                    authImpl.addTokenToRequest = function(xhr) {
-                        if (authImpl.provider.isAuthenticated()) {
-                            authImpl.consumer.addTokenToRequest(
-                                xhr,
-                                authImpl.provider._getToken()
-                            );
-                        } else {
-                            // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                            throw new Error(progress.data._getMsgText("jsdoMSG125"));   
-                        }
-                    };
-                    
-                    return authImpl;
-                }(options.authImpl));
             }
             if (options.context) {
                 this.setContext(options.context);                
