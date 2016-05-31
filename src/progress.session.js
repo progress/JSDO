@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-12
+progress.session.js    Version: 4.3.0-13
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -836,7 +836,7 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_FORM :
                             case progress.data.Session.AUTH_TYPE_BASIC :
                             case progress.data.Session.AUTH_TYPE_ANON :
-                            case progress.data.Session.AUTH_TYPE_OECP :
+                            case progress.data.Session.AUTH_TYPE_SSO :
                             case null :
                                 _authenticationModel = newval;
                                 break;
@@ -1660,7 +1660,7 @@ limitations under the License.
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-                    this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP ||
+                    this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO ||
                     this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
@@ -1669,9 +1669,9 @@ limitations under the License.
                     }
                     
                     
-                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
+                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                         // Even though we don't call _setXHRCredentials on logout for the other 
-                        // auth models, it does exactly what we need for OECP (SSO), so call it for that case
+                        // auth models, it does exactly what we need for SSO, so call it for that case
                         this._setXHRCredentials(xhr, 'GET', 
                                                 this.serviceURI + "/static/auth/j_spring_security_logout", 
                                                 null, null, isAsync);
@@ -2489,7 +2489,7 @@ limitations under the License.
         this._setXHRCredentials = function (xhr, verb, uri, userName, password, async) {
 
             // if using SSO, just add the token and ignore the rest of this method
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 xhr.open(verb, uri, async);
                 this.authImpl.addTokenToRequest(xhr);
 
@@ -2835,8 +2835,8 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM', {
             value: "form", enumerable: true
         });
-        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_OECP', {
-            value: "oecp", enumerable: true
+        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_SSO', {
+            value: "sso", enumerable: true
         });
  
         Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
@@ -2876,7 +2876,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_ANON = "anonymous";
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
-        progress.data.Session.AUTH_TYPE_OECP = "oecp";
+        progress.data.Session.AUTH_TYPE_SSO = "sso";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -3190,6 +3190,80 @@ limitations under the License.
             
             if ( typeof(options) === 'object' ) {
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
+                
+                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                    
+                    if (typeof options.authImpl !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "login",
+                                "The authImpl property of the options parameter must be an object."));
+                    }
+                    
+                    if (typeof options.authImpl.provider !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "login",
+                                "The authImpl property of the options parameter must have a provider object property."));                        
+                    }
+                    
+                    // Though the consumer is optional, it needs to be an object
+                    if (options.authImpl.hasOwnProperty('consumer') && 
+                        typeof options.authImpl.consumer !== "object") {
+                        throw new Error(
+                            progress.data._getMsgText(
+                                "jsdoMSG033", 
+                                "JSDOSession", 
+                                "login",
+                                "The authImpl.consumer property of the options parameter must be an object if it is present."));
+                    }
+                    
+                    // TODO: Add a check if the provider has an isAuthenticated() function.
+                    // Our usage of isAuthenticated() here implies that if the user implements
+                    // their own provider, it needs to have an isAuthenticated() method.
+                    if (!options.authImpl.provider.isAuthenticated()) {
+                        // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                        throw new Error(progress.data._getMsgText("jsdoMSG125"));                        
+                    }
+                    // TODO: Maybe make this into an actual object in progress.auth.js?
+                    _pdsession.authImpl = (function(authImpl) {
+
+                        if (typeof authImpl.consumer === "undefined") {
+                            authImpl.consumer = new progress.data.AuthenticationConsumer();
+                        } else if (typeof authImpl.consumer === "object") {
+                            // If the consumer is an AuthenticationConsumer, we're good.
+                            // Otherwise, create our own AuthenticationConsumer from what was passed in
+                            if (!(authImpl.consumer instanceof progress.data.AuthenticationConsumer)) {
+                                authImpl.consumer = new progress.data.AuthenticationConsumer(authImpl.consumer);
+                            }
+                        }
+                        
+                        // TODO: Add a check to see if consumer.addTokenToRequest exists.
+                        // Our usage of addTokenToRequest() here implies that if the user implements
+                        // their own consumer, it needs to have an addTokenToRequest() method.
+                        // It will be interesting to see how a consumer could implement this though
+                        // because they'll need to use _getToken, which is private.
+                        authImpl.addTokenToRequest = function(xhr) {
+                            if (authImpl.provider.isAuthenticated()) {
+                                authImpl.consumer.addTokenToRequest(
+                                    xhr,
+                                    authImpl.provider._getToken()
+                                );
+                            } else {
+                                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                                throw new Error(progress.data._getMsgText("jsdoMSG125"));   
+                            }
+                        };
+                        
+                        return authImpl;
+                    }(options.authImpl));
+
+                }
+                
             }
 
             try {
@@ -3437,45 +3511,6 @@ limitations under the License.
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
                 
-                if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
-                    
-                    if (typeof options.authImpl !== "object") {
-                        throw new Error(
-                            progress.data._getMsgText(
-                                "jsdoMSG033", 
-                                "JSDOSession", 
-                                "the constructor",
-                                "The authImpl property of the options parameter must be an object."));
-                    }
-                    
-                    if (typeof options.authImpl.provider !== "object") {
-                        throw new Error(
-                            progress.data._getMsgText(
-                                "jsdoMSG033", 
-                                "JSDOSession", 
-                                "the constructor",
-                                "The authImpl property of the options parameter must have a provider object property."));                        
-                    }
-                    
-                    // Though the consumer is optional, it needs to be an object
-                    if (options.authImpl.hasOwnProperty('consumer') && 
-                        typeof options.authImpl.consumer !== "object") {
-                        throw new Error(
-                            progress.data._getMsgText(
-                                "jsdoMSG033", 
-                                "JSDOSession", 
-                                "the constructor",
-                                "The authImpl.consumer property of the options parameter must be an object if it is present."));
-                    }
-                    
-                    // TODO: Add a check if the provider has an isAuthenticated() function.
-                    // Our usage of isAuthenticated() here implies that if the user implements
-                    // their own provider, it needs to have an isAuthenticated() method.
-                    if (!options.authImpl.provider.isAuthenticated()) {
-                        // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                        throw new Error(progress.data._getMsgText("jsdoMSG125"));                        
-                    }
-                }
             }
         }
         else {
@@ -3490,43 +3525,6 @@ limitations under the License.
                 _pdsession.authenticationModel = options.authenticationModel;
             }
             
-            // Enhance the authImpl to hand over to the session.
-            // We should never get here without an implementation if the type is OECP
-            if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
-
-                // TODO: Maybe make this into an actual object in progress.auth.js?
-                _pdsession.authImpl = (function(authImpl) {
-
-                    if (typeof authImpl.consumer === "undefined") {
-                        authImpl.consumer = new progress.data.AuthenticationConsumer();
-                    } else if (typeof authImpl.consumer === "object") {
-                        // If the consumer is an AuthenticationConsumer, we're good.
-                        // Otherwise, create our own AuthenticationConsumer from what was passed in
-                        if (!(authImpl.consumer instanceof progress.data.AuthenticationConsumer)) {
-                            authImpl.consumer = new progress.data.AuthenticationConsumer(authImpl.consumer);
-                        }
-                    }
-                    
-                    // TODO: Add a check to see if consumer.addTokenToRequest exists.
-                    // Our usage of addTokenToRequest() here implies that if the user implements
-                    // their own consumer, it needs to have an addTokenToRequest() method.
-                    // It will be interesting to see how a consumer could implement this though
-                    // because they'll need to use _getToken, which is private.
-                    authImpl.addTokenToRequest = function(xhr) {
-                        if (authImpl.provider.isAuthenticated()) {
-                            authImpl.consumer.addTokenToRequest(
-                                xhr,
-                                authImpl.provider._getToken()
-                            );
-                        } else {
-                            // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                            throw new Error(progress.data._getMsgText("jsdoMSG125"));   
-                        }
-                    };
-                    
-                    return authImpl;
-                }(options.authImpl));
-            }
             if (options.context) {
                 this.setContext(options.context);                
             }
