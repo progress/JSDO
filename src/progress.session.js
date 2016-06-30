@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-12
+progress.session.js    Version: 4.3.0-14
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -277,6 +277,7 @@ limitations under the License.
                                         case 'update':
                                         case 'invoke':
                                         case 'submit':
+                                        case 'count':
                                             resource.operations[idx].verb = "PUT";
                                             break;
                                         case 'delete':
@@ -454,6 +455,7 @@ limitations under the License.
                                     case 'update':
                                     case 'delete':
                                     case 'submit':
+                                    case 'count':                                                                                
                                         if (typeof(resource.generic[opname]) == "function") {
                                             throw new Error("Catalog error: Multiple '" + 
                                                 resource.operations[idx].type + 
@@ -471,7 +473,7 @@ limitations under the License.
 
                                 // Set fnName
                                 var name = resource.operations[idx].name;
-                                if (opname == "invoke") {
+                                if (opname === "invoke" || opname === "count") {
                                     resource.fn[name] = {};
                                     resource.fn[name]["function"] = func;
                                 }
@@ -688,7 +690,7 @@ limitations under the License.
      *       than one session
      *
      */
-    progress.data.Session = function Session() {
+    progress.data.Session = function Session(options) {  // page refresh -- added options parameter
 
         var defPropSupported = false;
         if ((typeof Object.defineProperty) == 'function') {
@@ -705,7 +707,8 @@ limitations under the License.
                                               // (value is always false if session is not logged in)
             oepingAvailable = false,
             defaultPartialPingURI = "/rest/_oeping",
-            partialPingURI = defaultPartialPingURI;
+            partialPingURI = defaultPartialPingURI,
+            _storageKey;  // page refresh
 
         if (typeof navigator  !== "undefined") {
             if (typeof navigator.userAgent !== "undefined") {
@@ -728,7 +731,6 @@ limitations under the License.
             window.addEventListener("online", this._onlineHandler, false);
             window.addEventListener("offline", this._offlineHandler, false);
         }
-
 
         /* constants and properties - define them as properties via the defineProperty()
          * function, which has "writable" and "configurable" parameters that both
@@ -931,6 +933,12 @@ limitations under the License.
         function setUserName(newname, sessionObject) {
             if (defPropSupported) {
                 _userName = newname;
+
+                // page refresh
+                if (typeof(sessionStorage) === 'object' && _storageKey ) {
+                    sessionStorage.setItem(_storageKey + "." + "userName", newname);
+                }
+                
             }
             else {
                 sessionObject.userName = newname;
@@ -949,6 +957,12 @@ limitations under the License.
         function setServiceURI(url, sessionObject) {
             if (defPropSupported) {
                 _serviceURI = url;
+
+                // page refresh
+                if (typeof(sessionStorage) === 'object' && _storageKey ) {
+                    sessionStorage.setItem(_storageKey + "." + "serviceURI", url);
+                }
+                
             }
             else {
                 sessionObject.serviceURI = url;
@@ -986,6 +1000,12 @@ limitations under the License.
         function setLoginResult(result, sessionObject) {
             if (defPropSupported) {
                 _loginResult = result;
+                
+                // page refresh
+                if (typeof(sessionStorage) === 'object' && _storageKey ) {
+                    sessionStorage.setItem(_storageKey + "." + "loginResult", result);
+                }
+                
             }
             else {
                 sessionObject.loginResult = result;
@@ -995,6 +1015,12 @@ limitations under the License.
         function setLoginHttpStatus(status, sessionObject) {
             if (defPropSupported) {
                 _loginHttpStatus = status;
+
+                // page refresh
+                if (typeof(sessionStorage) === 'object' && _storageKey ) {
+                    sessionStorage.setItem(_storageKey + "." + "loginHttpStatus", status);
+                }
+                
             }
             else {
                 sessionObject.loginHttpStatus = status;
@@ -1010,6 +1036,12 @@ limitations under the License.
         function setClientContextID(ccid, sessionObject) {
             if (defPropSupported) {
                 _clientContextId = ccid;
+                
+                // page refresh
+                if (typeof(sessionStorage) === 'object' && _storageKey ) {
+                    sessionStorage.setItem(_storageKey + "." + "clientContextId", ccid);
+                }
+                                
             }
             else {
                 sessionObject.clientContextId = ccid;
@@ -1025,6 +1057,25 @@ limitations under the License.
             }
         }
 
+        
+        // page refresh
+        if (typeof(options) === 'object') {
+            _storageKey = options._storageKey;
+            if (_storageKey) {
+                setLoginResult(parseInt(sessionStorage.getItem(_storageKey + "." + "loginResult")));
+                setUserName(sessionStorage.getItem(_storageKey + "." + "userName"));
+                setServiceURI(sessionStorage.getItem(_storageKey + "." + "serviceURI"));
+                setLoginHttpStatus(parseInt(sessionStorage.getItem(_storageKey + "." + "loginHttpStatus")));
+                setClientContextID(sessionStorage.getItem(_storageKey + "." + "clientContextId"));
+                
+                                // && restApplicationIsOnline 
+                                // && deviceIsOnline;
+                
+                
+                
+            }
+        }
+        
         /*
             When using CORS, if the client asks for a response header that is not among 
             the headers exposed by the Web application, the user agent may write an error
@@ -1780,6 +1831,12 @@ limitations under the License.
                 else {
                     // for Form auth, any error on logout is an error
                     logoutSucceeded = false;
+
+            // page refresh - we should call _reinitializeAfterLogout, or do soemthing, so that 
+            // caller can try logging in again (this is not a problem specific to page refresh,
+            // but the case of a page refresh after a server has gone down emphasizes it)
+
+
                     throw new Error("Error logging out, HTTP status = " + xhr.status);                    
                 }
             }
@@ -2800,6 +2857,9 @@ limitations under the License.
 
 // Constants for progress.data.Session
     if ((typeof Object.defineProperty) == 'function') {
+        Object.defineProperty(progress.data.Session, 'NO_CREDENTIALS', {   // page refresh
+            value: 0, enumerable: true
+        });
         Object.defineProperty(progress.data.Session, 'LOGIN_SUCCESS', {
             value: 1, enumerable: true
         });
@@ -2948,7 +3008,8 @@ limitations under the License.
     progress.data.JSDOSession = function JSDOSession( options ){
         var _pdsession,
             _serviceURI,
-            _myself = this;
+            _myself = this,
+            _id;   // page refresh
 
         // PROPERTIES
         // Approach: Use the properties of the underlying progress.data.Session object whenever
@@ -3071,6 +3132,15 @@ limitations under the License.
             {
                 get: function () {
                     return _pdsession ? _pdsession.userName: undefined;
+                },
+                enumerable: true
+            });        
+        
+        // page refresh
+        Object.defineProperty(this, 'id',
+            {
+                get: function () {
+                    return _id;
                 },
                 enumerable: true
             });        
@@ -3372,6 +3442,57 @@ limitations under the License.
             return deferred.promise(); 
         };
     
+      // page refresh -- the entire checkAuthorization fn is new for page refresh  
+        // Determine whether the JSDOSession can currently access its web application.
+         // The use expected for this method is to determine a JSDOSession that has
+         // previously authenticated to its web application still has authorization.
+         // For example, if the JSDOSession is using Form authentication, is the server
+         // session still valid or did it expire? 
+        this.checkAuthorization = function() {
+            var deferred = $.Deferred(),
+                that = this,
+                xhr = new XMLHttpRequest,
+                result;
+            
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
+                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true);
+                xhr.onreadystatechange = function () {
+                                var xhr = this,
+                                    cbresult;
+                                if (xhr.readyState == 4) {
+                                    if (xhr.status >= 200 && xhr.status < 300) {
+                                        deferred.resolve(that, 
+                                                         progress.data.Session.SUCCESS, 
+                                                         { xhr: xhr } );
+                                    } else {
+                                        if (xhr.status === 401) {
+                                // change the value of loginResult and anything else relevant ???
+                                            cbresult = progress.data.Session.AUTHENTICATION_FAILURE;
+                                        } else {
+                                            cbresult = progress.data.Session.GENERAL_FAILURE;
+                                        }
+                                        deferred.reject(that, cbresult, {xhr: xhr});
+                                    }
+                                }
+                            };
+
+                try {
+                    xhr.send();
+                }
+                catch(e) {
+                    throw new Error("JSDOSession: Unable to validate authorization. " + e.message);                
+                }
+            } else {
+                if (this.loginResult) {
+                    result = this.loginResult;
+                } else {
+                    result = progress.data.Session.NO_CREDENTIALS;
+                }
+                deferred.reject(that, result, {xhr: xhr});
+            }
+
+            return deferred.promise(); 
+        }
         
         /* 
            set the properties that are passed between client and Web application in the 
@@ -3410,6 +3531,7 @@ limitations under the License.
             return _pdsession._contextProperties.getContextProperty( propertyName );
         };
 
+        
         this._onlineHandler = function( session, request ) {
             _myself.trigger( "online", _myself, request );            
         };    
@@ -3431,6 +3553,8 @@ limitations under the License.
                        "The options parameter must include a 'serviceURI' property that is a string.") );
             }
 
+            _id = options.id;  // page refresh
+            
             if (options.authenticationModel) {
                 if (typeof(options.authenticationModel) !== "string" ) {
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
@@ -3483,7 +3607,7 @@ limitations under the License.
                 "The options argument was missing or invalid.") );            
         }    
         
-        _pdsession = new progress.data.Session();
+        _pdsession = new progress.data.Session( {_storageKey: options.id}); // page refresh - added options arg
 
         try {
             if (options.authenticationModel) {
