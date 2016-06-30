@@ -1068,6 +1068,7 @@ limitations under the License.
                 setLoginHttpStatus(parseInt(sessionStorage.getItem(_storageKey + "." + "loginHttpStatus")));
                 setClientContextID(sessionStorage.getItem(_storageKey + "." + "clientContextId"));
                 
+                          // need to get these too for the connected property
                                 // && restApplicationIsOnline 
                                 // && deviceIsOnline;
                 
