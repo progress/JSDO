@@ -3715,7 +3715,85 @@ limitations under the License.
         return "progress.data.JSDOSession";
     };
     
-    
+
+    progress.data.getSession = function(options) {
+
+         var deferred = $.Deferred(), 
+             jsdosession;
+             
+        function rejectHandler(jsdosession, result, info) {
+            deferred.reject(result, info); 
+        }; 
+                 
+        function loginHandler(jsdosession, result, info) {
+            jsdosession.addCatalog(options.catalogURI)
+            .then(function(jsdosession, result, info) {
+                deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+            }, rejectHandler);
+            
+        };
+        //
+        if (typeof options !== 'object') {
+            // getSession(): 'options' must be of type 'object'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503", 
+                "getSession()",
+                "options",
+                "object"
+            ));
+        }
+        
+        if (options.authenticationModel !== progress.data.Session.AUTH_TYPE_FORM &&
+            options.authenticationModel !== progress.data.Session.AUTH_TYPE_BASIC &&
+            options.authenticationModel !== progress.data.Session.AUTH_TYPE_ANON) {
+            // getSession(): The object 'options' has an invalid value 
+            // in the 'authenticationModel' property.
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG502", 
+                "getSession()",
+                "options",
+                "authenticationModel"
+            ));
+        }
+        
+        // Check to make sure that we pass in a username/password.
+        // Note to Wayne: Do we want to do this or should we just pass whatever?
+        if (options.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
+            options.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+            if (typeof options.username === 'undefined') {
+                // getSession(): 'options' objects must contain a 'username' property
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG500", 
+                    "getSession()",
+                    "options",
+                    "username"
+                ));
+            }
+            if (typeof options.password === 'undefined') {
+                // getSession(): 'options' objects must contain a 'password' property
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG500", 
+                    "getSession()",
+                    "options",
+                    "password"
+                ));
+            }
+        }
+        
+        // Create the JSDOSession and let it handle the argument parsing
+        try {
+            jsdosession = new progress.data.JSDOSession(options);
+            
+            jsdosession.login(options.username, options.password)
+            .then(loginHandler, rejectHandler);
+
+        } catch (e) {
+            throw e;
+        }
+
+        deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+        return deferred.promise();
+    };
 })();
 
 if (typeof exports !== "undefined") {
