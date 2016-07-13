@@ -3718,11 +3718,13 @@ limitations under the License.
 
     progress.data.getSession = function(options) {
 
-         var deferred = $.Deferred(), 
-             jsdosession;
+         var deferred = $.Deferred();
              
         function rejectHandler(jsdosession, result, info) {
-            deferred.reject(result, info); 
+            if (jsdosession.loginResult) {
+                jsdosession.logout();
+            }
+            deferred.reject(result, info);
         }; 
                  
         function loginHandler(jsdosession, result, info) {
@@ -3740,43 +3742,6 @@ limitations under the License.
                 "options",
                 "object"
             ));
-        }
-        
-        if (options.authenticationModel !== progress.data.Session.AUTH_TYPE_FORM &&
-            options.authenticationModel !== progress.data.Session.AUTH_TYPE_BASIC &&
-            options.authenticationModel !== progress.data.Session.AUTH_TYPE_ANON) {
-            // getSession(): The object 'options' has an invalid value 
-            // in the 'authenticationModel' property.
-            throw new Error(progress.data._getMsgText(
-                "jsdoMSG502", 
-                "getSession()",
-                "options",
-                "authenticationModel"
-            ));
-        }
-        
-        // Check to make sure that we pass in a username/password.
-        // Note to Wayne: Do we want to do this or should we just pass whatever?
-        if (options.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-            options.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
-            if (typeof options.username === 'undefined') {
-                // getSession(): 'options' objects must contain a 'username' property
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG500", 
-                    "getSession()",
-                    "options",
-                    "username"
-                ));
-            }
-            if (typeof options.password === 'undefined') {
-                // getSession(): 'options' objects must contain a 'password' property
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG500", 
-                    "getSession()",
-                    "options",
-                    "password"
-                ));
-            }
         }
         
         // Create the JSDOSession and let it handle the argument parsing
