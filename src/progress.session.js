@@ -3722,7 +3722,47 @@ limitations under the License.
         return "progress.data.JSDOSession";
     };
     
-    
+
+    progress.data.getSession = function(options) {
+
+         var deferred = $.Deferred();
+             
+        function rejectHandler(jsdosession, result, info) {
+            if (jsdosession.loginResult) {
+                jsdosession.logout();
+            }
+            deferred.reject(result, info);
+        }; 
+                 
+        function loginHandler(jsdosession, result, info) {
+            jsdosession.addCatalog(options.catalogURI)
+            .then(function(jsdosession, result, info) {
+                deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+            }, rejectHandler);
+        };
+        
+        if (typeof options !== 'object') {
+            // getSession(): 'options' must be of type 'object'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503", 
+                "getSession()",
+                "options",
+                "object"
+            ));
+        }
+        
+        // Create the JSDOSession and let it handle the argument parsing
+        try {
+            jsdosession = new progress.data.JSDOSession(options);
+
+            jsdosession.login(options.username, options.password)
+            .then(loginHandler, rejectHandler);
+        } catch (error) {
+            throw error;
+        }
+        
+        return deferred.promise();
+    };
 })();
 
 if (typeof exports !== "undefined") {
