@@ -3443,7 +3443,7 @@ limitations under the License.
          // previously authenticated to its web application still has authorization.
          // For example, if the JSDOSession is using Form authentication, is the server
          // session still valid or did it expire? 
-        this.checkServerAuthorization = function () {
+        this.isAuthorized = function () {
             var deferred = $.Deferred(),
                 that = this,
                 xhr = new XMLHttpRequest(),
@@ -3452,7 +3452,7 @@ limitations under the License.
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
                 _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true);
                 xhr.onreadystatechange = function () {
-                    var xhr = this,  // do we need this var? The one declared in checkServerAUthorization seems to be in scope
+                    var xhr = this,  // do we need this var? The one declared in isAuthorized seems to be in scope
                         cbresult,
                         fakePingArgs,
                         info;
@@ -3722,15 +3722,11 @@ limitations under the License.
         return "progress.data.JSDOSession";
     };
     
-
     progress.data.getSession = function(options) {
 
          var deferred = $.Deferred();
              
         function rejectHandler(jsdosession, result, info) {
-            if (jsdosession.loginResult) {
-                jsdosession.logout();
-            }
             deferred.reject(result, info);
         }; 
                  
@@ -3754,9 +3750,39 @@ limitations under the License.
         // Create the JSDOSession and let it handle the argument parsing
         try {
             jsdosession = new progress.data.JSDOSession(options);
+            
+            jsdosession.isAuthorized()
+            .then(function(jsdosession, result, info) {
+                // If we are logged in, then we just re-add the catalog.
+                loginHandler(jsdosession, result, info);
+            }, function(jsdosession, result, info) {
+                // If model is anon, just log in.
+                if (jsdosession.authenticationModel === progress.data.Session.AUTH_TYPE_ANON &&
+                    result !== progress.data.Session.GENERAL_FAILURE) {
+                    jsdosession.login(options.username, options.password)
+                    .then(loginHandler, rejectHandler);
+                } 
+                // We need to log-in with credentials.
+                else if (result === progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED || 
+                    result === progress.data.Session.AUTHENTICATION_FAILURE) {
+                    
+                    if (typeof options.loginCallback !== 'undefined') {
+                        options.loginCallback()
+                        .then(function (result) {
+                            jsdosession.login(result.username, result.password)
+                            .then(loginHandler, rejectHandler);
+                        });
+                    } else {
+                        jsdosession.login(options.username, options.password)
+                        .then(loginHandler, rejectHandler);
+                    }
+                }
+                // If we get here, it's because the server is down unfortunately.
+                else {
+                    rejectHandler(jsdosession, result, info);
+                }
+            });
 
-            jsdosession.login(options.username, options.password)
-            .then(loginHandler, rejectHandler);
         } catch (error) {
             throw error;
         }
