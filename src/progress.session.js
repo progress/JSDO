@@ -3730,9 +3730,8 @@ limitations under the License.
             .then(function(jsdosession, result, info) {
                 deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
             }, rejectHandler);
-            
         };
-        //
+        
         if (typeof options !== 'object') {
             // getSession(): 'options' must be of type 'object'
             throw new Error(progress.data._getMsgText(
@@ -3783,15 +3782,13 @@ limitations under the License.
         // Create the JSDOSession and let it handle the argument parsing
         try {
             jsdosession = new progress.data.JSDOSession(options);
-            
+
             jsdosession.login(options.username, options.password)
             .then(loginHandler, rejectHandler);
-
-        } catch (e) {
-            throw e;
+        } catch (error) {
+            throw error;
         }
-
-        deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+        
         return deferred.promise();
     };
 })();
