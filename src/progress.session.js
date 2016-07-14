@@ -3747,6 +3747,16 @@ limitations under the License.
             ));
         }
         
+        if (typeof options.loginCallback !== 'function') {
+            // getSession(): 'options.loginCallback' must be of type 'function'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503", 
+                "getSession()",
+                "options.loginCallback",
+                "function"
+            ));
+        }
+        
         // Create the JSDOSession and let it handle the argument parsing
         try {
             jsdosession = new progress.data.JSDOSession(options);
