@@ -930,11 +930,34 @@ limitations under the License.
             this.lastSessionXHR = null;
         }
 
+        // stores data value using the JSDOSession's storage key plus the infoName
+        // argument as a key. If there is no infoName, just uses the storage key
+        // by itself (the latter case is inetnded to serev as a flag that we have
+        // stored this JSDOSession's data before)
+        // 
         function storeSessionInfo(infoName, value) {
+            var key;
             if (typeof (sessionStorage) === 'object' && _storageKey) {
-                sessionStorage.setItem(_storageKey + "." + infoName, value);
+                key = _storageKey;
+                if (infoName) {
+                    key = key + "." + infoName;
+                }
+                sessionStorage.setItem(key, JSON.stringify(value));
             }
         }
+
+        function retrieveSessionInfo(infoName, value) {
+            var key;
+            if (typeof (sessionStorage) === 'object' && _storageKey) {
+                key = _storageKey;
+                if (infoName) {
+                    key = key + "." + infoName;
+                }
+                return (JSON.parse(sessionStorage.getItem(key)));
+            }
+        }
+
+
         
         function setUserName(newname, sessionObject) {
             if (defPropSupported) {
@@ -1060,17 +1083,23 @@ limitations under the License.
         // use it to try to retrieve state data from a previous JSDOSession instance that 
         // had the same name. This code was introduced to handle page refreshes, but could
         // be used for other purposes.
-        if (typeof(options) === 'object') {
+        if (typeof (options) === 'object') {
             _storageKey = options._storageKey;
             if (_storageKey) {
-                setLoginResult(parseInt(sessionStorage.getItem(_storageKey + "." + "loginResult")));
-                setUserName(sessionStorage.getItem(_storageKey + "." + "userName"));
-                setServiceURI(sessionStorage.getItem(_storageKey + "." + "serviceURI"));
-                setLoginHttpStatus(parseInt(sessionStorage.getItem(_storageKey + "." + "loginHttpStatus")));
-                setClientContextID(sessionStorage.getItem(_storageKey + "." + "clientContextId"));
-                setDeviceIsOnline(sessionStorage.getItem(_storageKey + "." + "deviceIsOnline"));
-                setRestApplicationIsOnline(
-                         sessionStorage.getItem(_storageKey + "." + "restApplicationIsOnline"));
+                if (retrieveSessionInfo(_storageKey)) {
+                    setLoginResult(retrieveSessionInfo("loginResult"));
+                    setUserName(retrieveSessionInfo("userName"));
+                    setServiceURI(retrieveSessionInfo("serviceURI"));
+                    setLoginHttpStatus(retrieveSessionInfo("loginHttpStatus"));
+                    setClientContextID(retrieveSessionInfo("clientContextId"));
+                    setDeviceIsOnline(retrieveSessionInfo("deviceIsOnline"));
+                    setRestApplicationIsOnline(retrieveSessionInfo("restApplicationIsOnline"));
+                } else {
+                    // A storage key was passed in, but has not been used for storing yet. Therefore
+                    // we are creating this particular Session for the first time, so store the key
+                    // so we know to read data from storage in the future
+                    storeSessionInfo(_storageKey, true);
+                }
             }
         }
         
@@ -3443,7 +3472,7 @@ limitations under the License.
          // previously authenticated to its web application still has authorization.
          // For example, if the JSDOSession is using Form authentication, is the server
          // session still valid or did it expire? 
-        this.checkServerAuthorization = function () {
+        this.isAuthorized = function () {
             var deferred = $.Deferred(),
                 that = this,
                 xhr = new XMLHttpRequest(),
@@ -3452,7 +3481,7 @@ limitations under the License.
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
                 _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true);
                 xhr.onreadystatechange = function () {
-                    var xhr = this,  // do we need this var? The one declared in checkServerAUthorization seems to be in scope
+                    var xhr = this,  // do we need this var? The one declared in isAuthorized seems to be in scope
                         cbresult,
                         fakePingArgs,
                         info;
@@ -3722,23 +3751,23 @@ limitations under the License.
         return "progress.data.JSDOSession";
     };
     
-
     progress.data.getSession = function(options) {
 
          var deferred = $.Deferred();
              
-        function rejectHandler(jsdosession, result, info) {
-            if (jsdosession.loginResult) {
-                jsdosession.logout();
-            }
+        function sessionRejectHandler(jsdosession, result, info) {
             deferred.reject(result, info);
-        }; 
+        };
+        
+        function callbackRejectHandler(reason) {
+            deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
+        }
                  
         function loginHandler(jsdosession, result, info) {
             jsdosession.addCatalog(options.catalogURI)
             .then(function(jsdosession, result, info) {
                 deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
-            }, rejectHandler);
+            }, sessionRejectHandler);
         };
         
         if (typeof options !== 'object') {
@@ -3751,12 +3780,52 @@ limitations under the License.
             ));
         }
         
+        if (typeof options.loginCallback !== 'undefined' && 
+            typeof options.loginCallback !== 'function') {
+            // getSession(): 'options.loginCallback' must be of type 'function'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503", 
+                "getSession()",
+                "options.loginCallback",
+                "function"
+            ));
+        }
+        
         // Create the JSDOSession and let it handle the argument parsing
         try {
             jsdosession = new progress.data.JSDOSession(options);
+            
+            jsdosession.isAuthorized()
+            .then(function(jsdosession, result, info) {
+                // If we are logged in, then we just re-add the catalog.
+                loginHandler(jsdosession, result, info);
+            }, function(jsdosession, result, info) {
+                // If model is anon, just log in.
+                if (jsdosession.authenticationModel === progress.data.Session.AUTH_TYPE_ANON &&
+                    result !== progress.data.Session.GENERAL_FAILURE) {
+                    jsdosession.login(options.username, options.password)
+                    .then(loginHandler, sessionRejectHandler);
+                } 
+                // We need to log-in with credentials.
+                else if (result === progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED || 
+                    result === progress.data.Session.AUTHENTICATION_FAILURE) {
+                    if (typeof options.loginCallback !== 'undefined') {
+                        options.loginCallback()
+                        .then(function (result) {
+                            jsdosession.login(result.username, result.password)
+                            .then(loginHandler, sessionRejectHandler);
+                        }, callbackRejectHandler);
+                    } else {
+                        jsdosession.login(options.username, options.password)
+                        .then(loginHandler, sessionRejectHandler);
+                    }
+                }
+                // If we get here, it's probably because the server is down.
+                else {
+                    sessionRejectHandler(jsdosession, result, info);
+                }
+            });
 
-            jsdosession.login(options.username, options.password)
-            .then(loginHandler, rejectHandler);
         } catch (error) {
             throw error;
         }
