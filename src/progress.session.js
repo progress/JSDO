@@ -3726,15 +3726,19 @@ limitations under the License.
 
          var deferred = $.Deferred();
              
-        function rejectHandler(jsdosession, result, info) {
+        function sessionRejectHandler(jsdosession, result, info) {
             deferred.reject(result, info);
-        }; 
+        };
+        
+        function callbackRejectHandler(reason) {
+            deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
+        }
                  
         function loginHandler(jsdosession, result, info) {
             jsdosession.addCatalog(options.catalogURI)
             .then(function(jsdosession, result, info) {
                 deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
-            }, rejectHandler);
+            }, sessionRejectHandler);
         };
         
         if (typeof options !== 'object') {
@@ -3747,7 +3751,8 @@ limitations under the License.
             ));
         }
         
-        if (typeof options.loginCallback !== 'function') {
+        if (typeof options.loginCallback !== 'undefined' && 
+            typeof options.loginCallback !== 'function') {
             // getSession(): 'options.loginCallback' must be of type 'function'
             throw new Error(progress.data._getMsgText(
                 "jsdoMSG503", 
@@ -3770,26 +3775,25 @@ limitations under the License.
                 if (jsdosession.authenticationModel === progress.data.Session.AUTH_TYPE_ANON &&
                     result !== progress.data.Session.GENERAL_FAILURE) {
                     jsdosession.login(options.username, options.password)
-                    .then(loginHandler, rejectHandler);
+                    .then(loginHandler, sessionRejectHandler);
                 } 
                 // We need to log-in with credentials.
                 else if (result === progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED || 
                     result === progress.data.Session.AUTHENTICATION_FAILURE) {
-                    
                     if (typeof options.loginCallback !== 'undefined') {
                         options.loginCallback()
                         .then(function (result) {
                             jsdosession.login(result.username, result.password)
-                            .then(loginHandler, rejectHandler);
-                        });
+                            .then(loginHandler, sessionRejectHandler);
+                        }, callbackRejectHandler);
                     } else {
                         jsdosession.login(options.username, options.password)
-                        .then(loginHandler, rejectHandler);
+                        .then(loginHandler, sessionRejectHandler);
                     }
                 }
-                // If we get here, it's because the server is down unfortunately.
+                // If we get here, it's probably because the server is down.
                 else {
-                    rejectHandler(jsdosession, result, info);
+                    sessionRejectHandler(jsdosession, result, info);
                 }
             });
 
