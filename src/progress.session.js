@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-14
+progress.session.js    Version: 4.3.0-15
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -942,18 +942,30 @@ limitations under the License.
                 if (infoName) {
                     key = key + "." + infoName;
                 }
-                sessionStorage.setItem(key, JSON.stringify(value));
+                if (typeof (value) !== 'undefined') {
+                    sessionStorage.setItem(key, JSON.stringify(value));
+                }
             }
         }
 
-        function retrieveSessionInfo(infoName, value) {
-            var key;
+        function retrieveSessionInfo(infoName) {
+            var key,
+                jsonStr,
+                value = null;
             if (typeof (sessionStorage) === 'object' && _storageKey) {
                 key = _storageKey;
                 if (infoName) {
                     key = key + "." + infoName;
                 }
-                return (JSON.parse(sessionStorage.getItem(key)));
+                jsonStr = sessionStorage.getItem(key);
+                if (jsonStr !== null) {
+                    try {
+                        value = JSON.parse(jsonStr);
+                    } catch (e) {
+                        value = null;
+                    }
+                }
+                return value;
             }
         }
 
