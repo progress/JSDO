@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-15
+progress.session.js    Version: 4.3.0-16
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3765,22 +3765,40 @@ limitations under the License.
     
     progress.data.getSession = function(options) {
 
-         var deferred = $.Deferred();
-             
+        var deferred = $.Deferred();
+        
+        // This is the reject handler for session-related operations
+        // login, addCatalog, and logout
         function sessionRejectHandler(jsdosession, result, info) {
             deferred.reject(result, info);
         };
         
+        // This is the reject handler for the login callback
         function callbackRejectHandler(reason) {
             deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
         }
-                 
+        
         function loginHandler(jsdosession, result, info) {
             jsdosession.addCatalog(options.catalogURI)
             .then(function(jsdosession, result, info) {
                 deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
             }, sessionRejectHandler);
         };
+        
+        // This function calls login using credentials from the appropriate source
+        function callLogin(jsdosession, result, info) {
+            // Use the login callback if we are passed one 
+            if (typeof options.loginCallback !== 'undefined') {
+                options.loginCallback()
+                .then(function (result) {
+                    jsdosession.login(result.username, result.password)
+                    .then(loginHandler, sessionRejectHandler);
+                }, callbackRejectHandler);
+            } else {
+                jsdosession.login(options.username, options.password)
+                .then(loginHandler, sessionRejectHandler);
+            }
+        }
         
         if (typeof options !== 'object') {
             // getSession(): 'options' must be of type 'object'
@@ -3815,21 +3833,20 @@ limitations under the License.
                 // If model is anon, just log in.
                 if (jsdosession.authenticationModel === progress.data.Session.AUTH_TYPE_ANON &&
                     result !== progress.data.Session.GENERAL_FAILURE) {
+                    
                     jsdosession.login(options.username, options.password)
                     .then(loginHandler, sessionRejectHandler);
                 } 
                 // We need to log-in with credentials.
                 else if (result === progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED || 
                     result === progress.data.Session.AUTHENTICATION_FAILURE) {
-                    if (typeof options.loginCallback !== 'undefined') {
-                        options.loginCallback()
-                        .then(function (result) {
-                            jsdosession.login(result.username, result.password)
-                            .then(loginHandler, sessionRejectHandler);
-                        }, callbackRejectHandler);
+                    
+                    // If we were logged in, we need to logout
+                    if (result === progress.data.Session.AUTHENTICATION_FAILURE) {
+                        jsdosession.logout()
+                        .then(callLogin, sessionRejectHandler);
                     } else {
-                        jsdosession.login(options.username, options.password)
-                        .then(loginHandler, sessionRejectHandler);
+                        callLogin(jsdosession);
                     }
                 }
                 // If we get here, it's probably because the server is down.
@@ -3837,7 +3854,6 @@ limitations under the License.
                     sessionRejectHandler(jsdosession, result, info);
                 }
             });
-
         } catch (error) {
             throw error;
         }
