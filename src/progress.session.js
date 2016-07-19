@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-16
+progress.session.js    Version: 4.3.0-17
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3532,11 +3532,24 @@ limitations under the License.
                     throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
                 }
             } else {
-                if (this.loginResult) {
-                    result = this.loginResult;
-                } else {
+                if (this.loginResult === null ||
+                    this.loginResult === progress.data.Session.AUTHENTICATION_FAILURE) {
+                    // Although this method can return a result of AUTHENTICATION_FAILURE,
+                    // this is not the place to do it. We only do that if loginResult was
+                    // LOGIN_SUCCESS -- i.e., the JSDOSession considered itself to be logged in, 
+                    // and then we discovered that the credentials are no longer good. 
+                    // The significance of isAuthorized() returning AUTHENTICATION_FAILURE is that
+                    // the JSDOSession needs to log in again, but first it needs to be "reinitialized",
+                    // and the caller needs to be able to distinguish that from the case where it does
+                    // not need reinitialization. Therefore, if we are here, 
+                    // we need to return LOGIN_AUTHENTICATION_REQUIRED, which means "you weren't in a
+                    // logged in state, so don't try to log out, just go ahead and try to log in"
                     result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
+                } else {
+                    // whatever
+                    result = this.loginResult;
                 }
+                
                 deferred.reject(that, result, {xhr: xhr});
             }
 
