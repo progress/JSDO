@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-16
+progress.session.js    Version: 4.3.0-17
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3532,11 +3532,9 @@ limitations under the License.
                     throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
                 }
             } else {
-                if (this.loginResult) {
-                    result = this.loginResult;
-                } else {
-                    result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
-                }
+                // Never logged in (or logged in and logged out). Regardless of what the reason
+                // was that there wasn't a login, the bottom line is that authentication is required
+                result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
                 deferred.reject(that, result, {xhr: xhr});
             }
 
