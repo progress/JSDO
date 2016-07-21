@@ -968,6 +968,17 @@ limitations under the License.
                 return value;
             }
         }
+        
+        function clearSessionInfo(infoName) {
+            var key;
+            if (typeof (sessionStorage) === 'object' && _storageKey) {
+                key = _storageKey;
+                if (infoName) {
+                    key = key + "." + infoName;
+                    sessionStorage.removeItem(key);
+                }
+            }
+        }
 
 
         
@@ -1739,6 +1750,20 @@ limitations under the License.
                 */ 
                 deferred = args.deferred;
                 jsdosession = args.jsdosession;                    
+            }
+            
+            // Let's clear sessionStorage since we are logging out!
+            if (_storageKey) {
+                if (retrieveSessionInfo(_storageKey)) {
+                    clearSessionInfo("loginResult");
+                    clearSessionInfo("userName");
+                    clearSessionInfo("serviceURI");
+                    clearSessionInfo("loginHttpStatus");
+                    clearSessionInfo("clientContextId");
+                    clearSessionInfo("deviceIsOnline");
+                    clearSessionInfo("restApplicationIsOnline");
+                    clearSessionInfo(_storageKey);
+                }
             }
 
             xhr = new XMLHttpRequest();
