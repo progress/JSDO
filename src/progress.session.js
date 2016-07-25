@@ -980,7 +980,20 @@ limitations under the License.
             }
         }
 
-
+        function clearAllSessionInfo() {
+            if (_storageKey) {
+                if (retrieveSessionInfo(_storageKey)) {
+                    clearSessionInfo("loginResult");
+                    clearSessionInfo("userName");
+                    clearSessionInfo("serviceURI");
+                    clearSessionInfo("loginHttpStatus");
+                    clearSessionInfo("clientContextId");
+                    clearSessionInfo("deviceIsOnline");
+                    clearSessionInfo("restApplicationIsOnline");
+                    clearSessionInfo(_storageKey);
+                }
+            }
+        }
         
         function setUserName(newname, sessionObject) {
             if (defPropSupported) {
@@ -1050,6 +1063,11 @@ limitations under the License.
             }
             
             storeSessionInfo("loginResult", result);
+            
+            if (result !== progress.data.Session.LOGIN_SUCCESS) {
+                // Let's clear sessionStorage since something went bad!
+                clearAllSessionInfo();
+            }
         }
 
         function setLoginHttpStatus(status, sessionObject) {
@@ -1750,20 +1768,6 @@ limitations under the License.
                 */ 
                 deferred = args.deferred;
                 jsdosession = args.jsdosession;                    
-            }
-            
-            // Let's clear sessionStorage since we are logging out!
-            if (_storageKey) {
-                if (retrieveSessionInfo(_storageKey)) {
-                    clearSessionInfo("loginResult");
-                    clearSessionInfo("userName");
-                    clearSessionInfo("serviceURI");
-                    clearSessionInfo("loginHttpStatus");
-                    clearSessionInfo("clientContextId");
-                    clearSessionInfo("deviceIsOnline");
-                    clearSessionInfo("restApplicationIsOnline");
-                    clearSessionInfo(_storageKey);
-                }
             }
 
             xhr = new XMLHttpRequest();
