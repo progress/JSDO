@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-17
+progress.session.js    Version: 4.3.0-18
 
 Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -937,7 +937,9 @@ limitations under the License.
         // 
         function storeSessionInfo(infoName, value) {
             var key;
-            if (typeof (sessionStorage) === 'object' && _storageKey) {
+            if (myself.loginResult === progress.data.Session.LOGIN_SUCCESS &&
+                typeof (sessionStorage) === 'object' && _storageKey) {
+                    
                 key = _storageKey;
                 if (infoName) {
                     key = key + "." + infoName;
@@ -947,7 +949,20 @@ limitations under the License.
                 }
             }
         }
-
+        
+        function storeAllSessionInfo() {
+            if (_storageKey) {
+                storeSessionInfo("loginResult", myself.loginResult);
+                storeSessionInfo("userName", myself.userName);
+                storeSessionInfo("serviceURI", myself.serviceURI);
+                storeSessionInfo("loginHttpStatus", myself.loginHttpStatus);
+                storeSessionInfo("clientContextId", myself.clientContextId);
+                storeSessionInfo("deviceIsOnline", deviceIsOnline);
+                storeSessionInfo("restApplicationIsOnline", restApplicationIsOnline);
+                storeSessionInfo(_storageKey, true);
+            }
+        }
+        
         function retrieveSessionInfo(infoName) {
             var key,
                 jsonStr,
@@ -1057,15 +1072,14 @@ limitations under the License.
         function setLoginResult(result, sessionObject) {
             if (defPropSupported) {
                 _loginResult = result;
-            }
-            else {
+            } else {
                 sessionObject.loginResult = result;
             }
             
             storeSessionInfo("loginResult", result);
             
             if (result !== progress.data.Session.LOGIN_SUCCESS) {
-                // Let's clear sessionStorage since something went bad!
+                // Let's clear sessionStorage since we logged out or something went bad!
                 clearAllSessionInfo();
             }
         }
@@ -1128,18 +1142,16 @@ limitations under the License.
             _storageKey = options._storageKey;
             if (_storageKey) {
                 if (retrieveSessionInfo(_storageKey)) {
-                    setLoginResult(retrieveSessionInfo("loginResult"));
-                    setUserName(retrieveSessionInfo("userName"));
-                    setServiceURI(retrieveSessionInfo("serviceURI"));
-                    setLoginHttpStatus(retrieveSessionInfo("loginHttpStatus"));
-                    setClientContextID(retrieveSessionInfo("clientContextId"));
+                    setUserName(retrieveSessionInfo("userName"), this);
+                    setServiceURI(retrieveSessionInfo("serviceURI"), this);
+                    setLoginHttpStatus(retrieveSessionInfo("loginHttpStatus"), this);
+                    setClientContextID(retrieveSessionInfo("clientContextId"), this);
                     setDeviceIsOnline(retrieveSessionInfo("deviceIsOnline"));
                     setRestApplicationIsOnline(retrieveSessionInfo("restApplicationIsOnline"));
-                } else {
-                    // A storage key was passed in, but has not been used for storing yet. Therefore
-                    // we are creating this particular Session for the first time, so store the key
-                    // so we know to read data from storage in the future
-                    storeSessionInfo(_storageKey, true);
+                    // setLoginResult is at the end so the other calls won't result
+                    // in the values that were just read from storage being unnecessarily set 
+                    // into storage again (storeSessionInfo only stores when loginResult is LOGIN_SUCCESS)
+                    setLoginResult(retrieveSessionInfo("loginResult"), this);
                 }
             }
         }
@@ -1702,7 +1714,8 @@ limitations under the License.
                 setUserName(unameSave, pdsession);
                 _password = pwSave;
                 pdsession._saveClientContextId(xhr);
-
+                storeAllSessionInfo();  // save info to persistent storage 
+                
                 var pingTestArgs = {
                     pingURI: null, async: true, onCompleteFn: null,
                     fireEventIfOfflineChange: true, onReadyStateFn: pdsession._pingtestOnReadyStateChange
@@ -3628,8 +3641,6 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                        "The options parameter must include a 'serviceURI' property that is a string.") );
             }
-
-            _name = options.name;
             
             if (options.authenticationModel) {
                 if (typeof(options.authenticationModel) !== "string" ) {
@@ -3637,6 +3648,7 @@ limitations under the License.
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
                 
+                options.authenticationModel = options.authenticationModel.toLowerCase();
                 if (options.authenticationModel === progress.data.Session.AUTH_TYPE_OECP) {
                     
                     if (typeof options.authImpl !== "object") {
@@ -3683,7 +3695,12 @@ limitations under the License.
                 "The options argument was missing or invalid.") );            
         }    
         
-        _pdsession = new progress.data.Session({_storageKey: options.name});
+
+        if (options.authenticationModel !== progress.data.Session.AUTH_TYPE_BASIC) {
+            // _name is in essence the flag for page refresh; not supporting page refresh for Basic
+            _name = options.name;
+        }
+        _pdsession = new progress.data.Session({_storageKey: _name});
 
         try {
             if (options.authenticationModel) {
