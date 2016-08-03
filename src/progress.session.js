@@ -2,7 +2,7 @@
 /* 
 progress.session.js    Version: 4.3.0-18
 
-Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -841,6 +841,8 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_OECP :
                             case null :
                                 _authenticationModel = newval;
+                                storeSessionInfo("authenticationModel", newval);
+
                                 break;
                             default:
                                 throw new Error("Error setting Session.authenticationModel. '" + 
@@ -887,6 +889,7 @@ limitations under the License.
                     set: function (newval) {
                         if ( (typeof newval === "number") && (newval >= 0) ) {
                             _pingInterval = newval;
+                            storeSessionInfo("pingInterval", newval);
                             if (newval > 0) {
                                 // if we're logged in, start autopinging
                                 if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
@@ -950,19 +953,6 @@ limitations under the License.
             }
         }
         
-        function storeAllSessionInfo() {
-            if (_storageKey) {
-                storeSessionInfo("loginResult", myself.loginResult);
-                storeSessionInfo("userName", myself.userName);
-                storeSessionInfo("serviceURI", myself.serviceURI);
-                storeSessionInfo("loginHttpStatus", myself.loginHttpStatus);
-                storeSessionInfo("clientContextId", myself.clientContextId);
-                storeSessionInfo("deviceIsOnline", deviceIsOnline);
-                storeSessionInfo("restApplicationIsOnline", restApplicationIsOnline);
-                storeSessionInfo(_storageKey, true);
-            }
-        }
-        
         function retrieveSessionInfo(infoName) {
             var key,
                 jsonStr,
@@ -995,6 +985,23 @@ limitations under the License.
             }
         }
 
+        function storeAllSessionInfo() {
+            if (_storageKey) {
+                storeSessionInfo("loginResult", myself.loginResult);
+                storeSessionInfo("userName", myself.userName);
+                storeSessionInfo("serviceURI", myself.serviceURI);
+                storeSessionInfo("loginHttpStatus", myself.loginHttpStatus);
+                storeSessionInfo("authenticationModel", myself.authenticationModel);
+                storeSessionInfo("pingInterval", myself.pingInterval);
+                storeSessionInfo("oepingAvailable", oepingAvailable);
+                storeSessionInfo("partialPingURI", partialPingURI);
+                storeSessionInfo("clientContextId", myself.clientContextId);
+                storeSessionInfo("deviceIsOnline", deviceIsOnline);
+                storeSessionInfo("restApplicationIsOnline", restApplicationIsOnline);
+                storeSessionInfo(_storageKey, true);
+            }
+        }
+        
         function clearAllSessionInfo() {
             if (_storageKey) {
                 if (retrieveSessionInfo(_storageKey)) {
@@ -1005,11 +1012,31 @@ limitations under the License.
                     clearSessionInfo("clientContextId");
                     clearSessionInfo("deviceIsOnline");
                     clearSessionInfo("restApplicationIsOnline");
+                    clearSessionInfo("authenticationModel");
+                    clearSessionInfo("pingInterval");
+                    clearSessionInfo("oepingAvailable");
+                    clearSessionInfo("partialPingURI");
                     clearSessionInfo(_storageKey);
                 }
             }
         }
         
+        function setSessionInfoFromStorage(key) {
+            if (retrieveSessionInfo(key)) {
+                setLoginResult(retrieveSessionInfo("loginResult"), this);
+                setUserName(retrieveSessionInfo("userName"), this);
+                setServiceURI(retrieveSessionInfo("serviceURI"), this);
+                setLoginHttpStatus(retrieveSessionInfo("loginHttpStatus"), this);
+                setClientContextID(retrieveSessionInfo("clientContextId"), this);
+                setDeviceIsOnline(retrieveSessionInfo("deviceIsOnline"));
+                setRestApplicationIsOnline(retrieveSessionInfo("restApplicationIsOnline"));
+                myself.authenticationModel = retrieveSessionInfo("authenticationModel");
+                myself.pingInterval = retrieveSessionInfo("pingInterval");
+                setOepingAvailable(retrieveSessionInfo("oepingAvailable"));
+                setPartialPingURI(retrieveSessionInfo("partialPingURI"));
+            }
+        }
+
         function setUserName(newname, sessionObject) {
             if (defPropSupported) {
                 _userName = newname;
@@ -1075,10 +1102,11 @@ limitations under the License.
             } else {
                 sessionObject.loginResult = result;
             }
+
             
-            storeSessionInfo("loginResult", result);
-            
-            if (result !== progress.data.Session.LOGIN_SUCCESS) {
+            if (result === progress.data.Session.LOGIN_SUCCESS) {
+                storeSessionInfo("loginResult", result);
+            } else {
                 // Let's clear sessionStorage since we logged out or something went bad!
                 clearAllSessionInfo();
             }
@@ -1133,27 +1161,16 @@ limitations under the License.
             storeSessionInfo("restApplicationIsOnline", value);
         }
 
-        // retrieveSessionInfo (could be a separate function) 
-        // If a storage key (name property of a JSDOSession) was passed to the constructor, 
-        // use it to try to retrieve state data from a previous JSDOSession instance that 
-        // had the same name. This code was introduced to handle page refreshes, but could
-        // be used for other purposes.
-        if (typeof (options) === 'object') {
-            _storageKey = options._storageKey;
-            if (_storageKey) {
-                if (retrieveSessionInfo(_storageKey)) {
-                    setUserName(retrieveSessionInfo("userName"), this);
-                    setServiceURI(retrieveSessionInfo("serviceURI"), this);
-                    setLoginHttpStatus(retrieveSessionInfo("loginHttpStatus"), this);
-                    setClientContextID(retrieveSessionInfo("clientContextId"), this);
-                    setDeviceIsOnline(retrieveSessionInfo("deviceIsOnline"));
-                    setRestApplicationIsOnline(retrieveSessionInfo("restApplicationIsOnline"));
-                    // setLoginResult is at the end so the other calls won't result
-                    // in the values that were just read from storage being unnecessarily set 
-                    // into storage again (storeSessionInfo only stores when loginResult is LOGIN_SUCCESS)
-                    setLoginResult(retrieveSessionInfo("loginResult"), this);
-                }
-            }
+        function setOepingAvailable(value) {
+            oepingAvailable = value;
+
+            storeSessionInfo("oepingAvailable", value);
+        }
+
+        function setPartialPingURI(value) {
+            partialPingURI = value;
+
+            storeSessionInfo("partialPingURI", value);
         }
         
         /*
@@ -1251,12 +1268,9 @@ limitations under the License.
 
         // callback used in login to determine whether ping is available on server
         this.pingTestCallback = function (cbArgs) {
-            if (cbArgs.pingResult) {
-                oepingAvailable = true;
-            }
-            else {
-                oepingAvailable = false;
-            }
+            var foundOeping = cbArgs.pingResult ? true : false;
+
+            setOepingAvailable(foundOeping);
         };
 
         // generic async callback, currently used by login(), addCatalog(), and logout()
@@ -1937,8 +1951,8 @@ limitations under the License.
 
             if (success) {
                 setRestApplicationIsOnline(false);
-                oepingAvailable = false;
-                partialPingURI = defaultPartialPingURI;
+                setOepingAvailable(false);
+                setPartialPingURI(defaultPartialPingURI);
                 setLastSessionXHR(null, pdsession);
                 clearTimeout(_timeoutID);   //  stop autopinging 
             }
@@ -2408,7 +2422,7 @@ limitations under the License.
             }
         };
 
-        /* Decide whether, on the basis of information returned by a ping request, the
+        /* Decide whether, on the basis of information returned by a server request, the
          * Mobile Web Application managed by this Session object is online, where online
          * means that the ping response was a 200 and, IF the body of the response contains
          * JSON with an AppServerStatus property, that AppServerStatus Status property has
@@ -2416,14 +2430,39 @@ limitations under the License.
          *     i.e., the body has an AppServerStatus.PingStatus set to true
          * (if the body doesn't contain JSON with an AppServerStatus, we use just the HTTP
          * response status code to decide)
-         * Return true if the response meets these conditions, false if it doesn't
+         * 
+         * Returns:  true if the response meets the above conditions, false if it doesn't
+         *   
+         * Parameters:
+         *   args, with properties:
+         *      xhr - the XMLHttpRequest used to make the request
+         *      offlineReason - if the function determines that the app is offline,
+         *                      it sets offlineReason to the reason for that decision,
+         *                      for the use of the caller
+         *      fireEventIfOfflineChange - if true, the function fires an offline or online
+         *                      event if there has been a change (i.e., the online state determined 
+         *                      by the function is different from what it had been when the function
+         *                      began executing)
+         *      usingOepingFormat - OPTIONAL. The function's default assumption is that the value
+         *                      of the session's internal oepingAvailable variable indicates whether the
+         *                      the response body will be in the format used by the OpenEdge oeping service.
+         *                      A caller can override this assumption by using this property to true or false.
+         *                     (the isAuthorized code sets this to false because it doesn't use oeping 
+         *                     but does call this function)
          */
         this._processPingResult = function (args) {
             var xhr = args.xhr,
                 pingResponseJSON,
                 appServerStatus = null,
                 wasOnline = this.connected,
-                connectedBeforeCallback;
+                connectedBeforeCallback,
+                assumeOepingFormat;
+                
+            if (args.hasOwnProperty('usingOepingFormat')) {
+                assumeOepingFormat = args.usingOepingFormat;
+            } else {
+                assumeOepingFormat = oepingAvailable;
+            }
 
 
             /* first determine whether the Web server and the Mobile Web Application (MWA)
@@ -2431,7 +2470,7 @@ limitations under the License.
              */
             if (xhr.status >= 200 && xhr.status < 300) {
                 updateContextPropsFromResponse(this, xhr);
-                if (oepingAvailable) {
+                if (assumeOepingFormat) {
                     try {
                         pingResponseJSON = JSON.parse(xhr.responseText);
                         appServerStatus = pingResponseJSON.AppServerStatus;
@@ -2550,14 +2589,15 @@ limitations under the License.
             var xhr = this;
 
             if (xhr.readyState == 4) {
+                var foundOeping = false;
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    oepingAvailable = true;
+                    foundOeping = true;
                 }
                 else {
-                    oepingAvailable = false;  // should be false anyway, just being sure
-                    partialPingURI = myself.loginTarget;
+                    setPartialPingURI(myself.loginTarget);
                     console.warn("Default ping target not available, will use loginTarget instead.");
                 }
+                setOepingAvailable(foundOeping);
                 
                 // If we're here, we've just logged in. If pingInterval has been set, we need
                 // to start autopinging
@@ -2932,6 +2972,48 @@ limitations under the License.
             }
         }        
 
+        
+        // process constructor options and do other initialization
+        
+        // If a storage key (name property of a JSDOSession) was passed to the constructor, 
+        // use it to try to retrieve state data from a previous JSDOSession instance that 
+        // had the same name. This code was introduced to handle page refreshes, but could
+        // be used for other purposes.
+        if (typeof (options) === 'object') {
+            var authModel,
+                storedURI,
+                newURI;
+            
+            _storageKey = options._storageKey;
+            if (_storageKey) {
+                if (retrieveSessionInfo(_storageKey)) {
+                    authModel = retrieveSessionInfo("authenticationModel");
+                    uri = retrieveSessionInfo("serviceURI");
+                    newURI = options.serviceURI;
+                    
+                    if (newURI[newURI.length - 1] === "/") {
+                        newURI = newURI.substring(0, newURI.length - 1);
+                    }
+                
+                    if ((authModel !== options.authenticationModel) ||
+                        (uri !== newURI)) {
+                            clearAllSessionInfo();
+                    } else {
+                            setSessionInfoFromStorage(_storageKey);
+                    }
+                }
+                // _storageKey is in essence the flag for page refresh; we are not supporting page refresh for Basic
+                // auth, so clear it even if it was passed in. 
+                // (But had to set and keep _storageKey until this point so that the above validation of
+                // serviceURI and auth model will be done even in the case where there's a mismatch and
+                // the new auth model is Basic. This statement will go away when we support page refresh with
+                // Basic)
+                if (options.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                    _storageKey = undefined;
+                }
+            }
+        }
+        
     }; // End of Session
     progress.data.Session._useTimeStamp = true;
 
@@ -3543,14 +3625,12 @@ limitations under the License.
                     if (xhr.readyState === 4) {
                         info = {xhr: xhr,
                                 offlineReason: undefined,
-                                fireEventIfOfflineChange: true
+                                fireEventIfOfflineChange: true,
+                                usingOepingFormat: false
                                };
 
                         // call _processPingResult because it has logic for 
                         // detecting change in online/offline state
-                        // Future: get that logic out of _processPingResult into
-                        // its own function that can be called from here and
-                        // from _processPingResult
                         _pdsession._processPingResult(info);
 
                         if (xhr.status >= 200 && xhr.status < 300) {
@@ -3696,11 +3776,15 @@ limitations under the License.
         }    
         
 
-        if (options.authenticationModel !== progress.data.Session.AUTH_TYPE_BASIC) {
-            // _name is in essence the flag for page refresh; not supporting page refresh for Basic
-            _name = options.name;
+        if (!options.authenticationModel) {
+            options.authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
         }
-        _pdsession = new progress.data.Session({_storageKey: _name});
+        _name = options.name;
+        
+        // Note: passing auth model and serviceURI just for validation in the case of page refresh
+        _pdsession = new progress.data.Session({_storageKey: _name,
+                                                authenticationModel: options.authenticationModel,
+                                                serviceURI: options.serviceURI});
 
         try {
             if (options.authenticationModel) {
