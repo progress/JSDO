@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-18
+progress.session.js    Version: 4.3.0-19
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -700,6 +700,7 @@ limitations under the License.
         var myself = this,
             isUserAgentiOS = false,  // checked just below this var statement
             isFirefox = false,  // checked just below this var statement
+            isEdge = false,  // checked just below this var statement
             defaultiOSBasicAuthTimeout = 4000,
             deviceIsOnline = true,  // online until proven offline
             restApplicationIsOnline = false,  // was the Mobile Web Application that this Session object
@@ -714,6 +715,7 @@ limitations under the License.
             if (typeof navigator.userAgent !== "undefined") {
                 isUserAgentiOS = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)/i);
                 isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+                isEdge = navigator.userAgent.indexOf('Edge/') > -1;
             }
         }
         
@@ -2686,7 +2688,7 @@ limitations under the License.
             if (userName
                 && this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
 
-                if ( isFirefox ) {
+                if (isFirefox || isEdge) {
                     // Firefox will throw an error on the send() if CORS is being used for the request
                     // and we have included credentials in the URI (which is what passing them to open() does)
                     xhr.open(verb, uri, async);
