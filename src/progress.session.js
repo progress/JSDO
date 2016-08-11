@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-19
+progress.session.js    Version: 4.3.0-20
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -701,6 +701,8 @@ limitations under the License.
             isUserAgentiOS = false,  // checked just below this var statement
             isFirefox = false,  // checked just below this var statement
             isEdge = false,  // checked just below this var statement
+            isIE = false,  // checked just below this var statement
+            canPassCredentialsToOpenWithCORS = false,  // False will always work if creds are correct
             defaultiOSBasicAuthTimeout = 4000,
             deviceIsOnline = true,  // online until proven offline
             restApplicationIsOnline = false,  // was the Mobile Web Application that this Session object
@@ -715,8 +717,29 @@ limitations under the License.
             if (typeof navigator.userAgent !== "undefined") {
                 isUserAgentiOS = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)/i);
                 isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+                // detect that we're running in MS Edge browser
                 isEdge = navigator.userAgent.indexOf('Edge/') > -1;
+                // detect that we're running in IE 11 (or IE 11 in pre-11 mode) or IE 10 browser
+                isIE = ( (navigator.userAgent.indexOf('Trident/')) > -1 || (navigator.userAgent.indexOf('MSIE 10') > -1));
             }
+        }
+        
+        // Firefox, Edge, and IE will throw an error on the send() if CORS is being used for the request
+        // and we have included credentials in the URI (which is what passing them to open() does),
+        canPassCredentialsToOpenWithCORS = !(isFirefox || isEdge || isIE);
+        
+        // When using basic authentication, we can pass the user name and password to the XMLHttpRequest.open()
+        // method. However, in some browsers, passing credentials to open() will result in the xhr's .send() 
+        // method throwing an error. The goal of this function is to figure out whether it's safe to include
+        // the credentials. It returns false if there could be a problem, true otherwise.
+        // Note: currently it does this solely on the basis of what browser we are running in, regardless
+        // of whether the request will actually use the CORS protocol. Ideally, we should take into account whether 
+        // the request will actually require CORS. The question is whether we can reliably do that.
+        // The reason for taking the specific request into account is that there are drawbacks to not passing the
+        // credentials when we are NOT using CORS, namely that if the credentials are invalid, some browsers will 
+        // put up their own prompt for credentials in non-CORS situations (those browsers are IE, Edge, and Chrome)
+        function canPassCredentialsToOpen() {
+            return canPassCredentialsToOpenWithCORS;
         }
         
         this._onlineHandler = function () {
@@ -2676,7 +2699,7 @@ limitations under the License.
                 // OE Web application that's based on Form auth will directly send back a 401.
                 // If we don't specify application/json, we'll get a redirect to login.jsp, which the
                 // user agent handles by getting login.jsp and returning it to our code with a status
-                // of 200. We could infer that authnetication failed from that, but it's much cleaner this 
+                // of 200. We could infer that authentication failed from that, but it's much cleaner this 
                 // way.
                 xhr.setRequestHeader("Accept", "application/json");
 
@@ -2688,13 +2711,14 @@ limitations under the License.
             if (userName
                 && this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
 
-                if (isFirefox || isEdge) {
-                    // Firefox will throw an error on the send() if CORS is being used for the request
-                    // and we have included credentials in the URI (which is what passing them to open() does)
-                    xhr.open(verb, uri, async);
+                // See the comment at the definition of the canPassCredentialsToOpen() function
+                // for why we pass credentials to open() in some cases but not others. (If we're not using
+                // Basic auth, we never pass credentials)
+                if (canPassCredentialsToOpen()) {
+                    xhr.open(verb, uri, async, userName, password);
                 }
                 else {
-                    xhr.open(verb, uri, async, userName, password);
+                    xhr.open(verb, uri, async);
                 }
                 
                 // set Authorization header
