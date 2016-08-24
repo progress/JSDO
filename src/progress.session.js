@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-21
+progress.session.js    Version: 4.3.0-22
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2710,18 +2710,26 @@ limitations under the License.
          *  previously stored one from a response from the server
          */
         this._addCCIDtoURL = function (url) {
+            var urlPart1,
+                urlPart2,
+                jsessionidStr,
+                index;
+                
             if (this.clientContextId && (this.clientContextId !== "0")) {
                 // Should we test protocol, 
                 // host and port in addition to path to ensure that jsessionid is only sent
                 // when request applies to the REST app (it might not be if the catalog is somewhere else)
                 if (url.substring(0, this.serviceURI.length) == this.serviceURI) {
-                    var jsessionidStr = "JSESSIONID=" + this.clientContextId + ";";
-                    var index = url.indexOf('?');
+                    jsessionidStr = ";" + "JSESSIONID=" + this.clientContextId;
+                    index = url.indexOf('?');
                     if (index == -1) {
-                        url += "?" + jsessionidStr;
+                        url += jsessionidStr;  // just append the jsessionid path parameter to the path
                     }
                     else {
-                        url = url.substring(0, index + 1) + jsessionidStr + url.substring(index + 1);
+                        // insert jsessionid path parameter before the first query parameter
+                        urlPart1 = url.substring(0, index);
+                        urlPart2 = url.substring(index);
+                        url = urlPart1 + jsessionidStr + urlPart2;
                     }
                 }
             }
