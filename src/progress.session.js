@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-22
+progress.session.js    Version: 4.3.0-23
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3826,7 +3826,12 @@ limitations under the License.
         };
         
         // This function calls login using credentials from the appropriate source
+        // Note that as currently implemented, this should NOT be called when
+        // ANONYMOUS auth is being used, because it unconditionally returns 
+        // AUTHENTICATION_FAILURE if there are no credentials and no loginCallback
         function callLogin(jsdosession, result, info) {
+            var errorObject;
+            
             // Use the login callback if we are passed one 
             if (typeof options.loginCallback !== 'undefined') {
                 options.loginCallback()
@@ -3834,9 +3839,23 @@ limitations under the License.
                     jsdosession.login(result.username, result.password)
                     .then(loginHandler, sessionRejectHandler);
                 }, callbackRejectHandler);
-            } else {
+            } else if (options.username && options.password) {
                 jsdosession.login(options.username, options.password)
                 .then(loginHandler, sessionRejectHandler);
+            } else {
+                errorObject = new Error(progress.data._getMsgText(
+                    "jsdoMSG052",
+                    "getSession()"
+                ));
+                sessionRejectHandler(
+                    jsdosession,
+                    progress.data.Session.AUTHENTICATION_FAILURE,
+                    {
+                        // including an Error object to make clear why there is no xhr (normally there would
+                        // be one for an authentication failure)
+                        errorObject: errorObject
+                    }
+                );
             }
         }
         
