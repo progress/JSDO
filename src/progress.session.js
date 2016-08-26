@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.3.0-22
+progress.session.js    Version: 4.3.0-23
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3834,9 +3834,18 @@ limitations under the License.
                     jsdosession.login(result.username, result.password)
                     .then(loginHandler, sessionRejectHandler);
                 }, callbackRejectHandler);
-            } else {
+            } else if (options.username && options.password) {
                 jsdosession.login(options.username, options.password)
                 .then(loginHandler, sessionRejectHandler);
+            } else {
+                sessionRejectHandler(
+                    jsdosession,
+                    progress.data.Session.AUTHENTICATION_FAILURE,
+                    {
+                        // make this into a jsdoMsg
+                        errorObject: new Error("Login not attempted because no credentials were supplied.")
+                    }
+                );
             }
         }
         
