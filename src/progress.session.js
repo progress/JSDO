@@ -3826,7 +3826,12 @@ limitations under the License.
         };
         
         // This function calls login using credentials from the appropriate source
+        // Note that as currently implemented, this should NOT be called when
+        // ANONYMOUS auth is being used, because it unconditionally returns 
+        // AUTHENTICATION_FAILURE if there are no credentials and no loginCallback
         function callLogin(jsdosession, result, info) {
+            var errorObject;
+            
             // Use the login callback if we are passed one 
             if (typeof options.loginCallback !== 'undefined') {
                 options.loginCallback()
@@ -3838,12 +3843,17 @@ limitations under the License.
                 jsdosession.login(options.username, options.password)
                 .then(loginHandler, sessionRejectHandler);
             } else {
+                errorObject = new Error(progress.data._getMsgText(
+                    "jsdoMSG052",
+                    "getSession()"
+                ));
                 sessionRejectHandler(
                     jsdosession,
                     progress.data.Session.AUTHENTICATION_FAILURE,
                     {
-                        // make this into a jsdoMsg
-                        errorObject: new Error("Login not attempted because no credentials were supplied.")
+                        // including an Error object to make clear why there is no xhr (normally there would
+                        // be one for an authentication failure)
+                        errorObject: errorObject
                     }
                 );
             }
