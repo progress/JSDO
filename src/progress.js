@@ -1,8 +1,8 @@
 
 /* 
-progress.js    Version: 4.3.0-22
+progress.js    Version: 4.3.0-24
 
-Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -3013,11 +3013,7 @@ limitations under the License.
                     case "DATE":
                     case "DATETIME":
                         if (typeof value === 'string') {
-                            try {
-                                result = this._convertDate(new Date(value), ablType.toUpperCase());
-                            } catch(e) {
-                                result = value;
-                            }
+                            result = value;
                         }
                         else if (value instanceof Date) {
                             result = this._convertDate(value, ablType.toUpperCase());
