@@ -960,7 +960,7 @@ limitations under the License.
 
         // stores data value using the JSDOSession's storage key plus the infoName
         // argument as a key. If there is no infoName, just uses the storage key
-        // by itself (the latter case is inetnded to serev as a flag that we have
+        // by itself (the latter case is intended to serve as a flag that we have
         // stored this JSDOSession's data before)
         // 
         function storeSessionInfo(infoName, value) {
@@ -1826,7 +1826,7 @@ limitations under the License.
             xhr.pdsession = this;
             try {
                 /* logout when auth model is anonymous is a no-op on the server side 
-                   (but we need to set _jsdosession and _deferred anyway to amke promise work
+                   (but we need to set _jsdosession and _deferred anyway to make promise work
                     if logout was called by a JSDOSession) */
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
@@ -3792,10 +3792,10 @@ limitations under the License.
                                 "The authImpl.consumer property of the options parameter must be an object if it is present."));
                     }
                     
-                    // TODO: Add a check if the provider has a hasValidAuthorizationCredential property.
-                    // Our usage of hasValidAuthorizationCredential here implies that if the user implements
-                    // their own provider, it needs to have an hasValidAuthorizationCredential property.
-                    if (!options.authImpl.provider.hasValidAuthorizationCredential) {
+                    // TODO: Add a check if the provider has a hasCredential property.
+                    // Our usage of hasCredential here implies that if the user implements
+                    // their own provider, it needs to have an hasCredential property.
+                    if (!options.authImpl.provider.hasCredential()) {
                         // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
                         throw new Error(progress.data._getMsgText("jsdoMSG125"));                        
                     }
@@ -3846,7 +3846,7 @@ limitations under the License.
                     // It will be interesting to see how a consumer could implement this though
                     // because they'll need to use _getToken, which is private.
                     authImpl.addTokenToRequest = function(xhr) {
-                        if (authImpl.provider.hasValidAuthorizationCredential) {
+                        if (authImpl.provider.hasCredential()) {
                             authImpl.consumer.addTokenToRequest(
                                 xhr,
                                 authImpl.provider._getToken()

@@ -1,7 +1,7 @@
 /* 
-progress.util.js    Version: 4.3.0-1
+progress.util.js    Version: 4.4.0-1
 
-Copyright (c) 2014-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
@@ -300,7 +300,8 @@ limitations under the License.
 
         /*global localStorage */
         if (typeof localStorage === "undefined") {
-            throw new Error(progress.data._getMsgText("jsdoMSG002", this._name));
+            // "progress.data.LocalStorage: No support for localStorage."
+            throw new Error(progress.data._getMsgText("jsdoMSG126", "progress.data.LocalStorage", "localStorage"));
         }
 
 

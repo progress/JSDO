@@ -1,8 +1,8 @@
 
 /* 
-progress.js    Version: 4.3.0-22
+progress.js    Version: 4.4.0-3
 
-Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,11 +100,14 @@ limitations under the License.
     msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
     msg.msgs.jsdoMSG047 = "{1} timeout expired.";
     msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
-    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error calling {2}: {3}";
     msg.msgs.jsdoMSG050 = "No token returned from server";
-    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
+    msg.msgs.jsdoMSG051 = "{1} login() was not attempted because the AuthenticationProvider is already logged in.";
     msg.msgs.jsdoMSG052 = "{1}: Login was not attempted because no credentials were supplied.";
-    
+    msg.msgs.jsdoMSG053 = "{1}: {2} was not attempted because the AuthenticationProvider is not logged in.";
+    msg.msgs.jsdoMSG054 = "{1}: Token refresh was not attempted because the AuthenticationProvider does not have a refresh token.";
+    msg.msgs.jsdoMSG055 = "{1}: Token refresh was not attempted because the authentication model is not SSO.";
+
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
     msg.msgs.jsdoMSG101 = "Network error while executing HTTP request.";
@@ -130,12 +133,16 @@ limitations under the License.
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
     msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider needs to be managing a valid token.";
+    msg.msgs.jsdoMSG126 = "{1}: No support for {2}.";
     
     //                    500 - 998 are for generic errors
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
     msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
     msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
     msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
+    msg.msgs.jsdoMSG504 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
+    //      use the message below if the invalid value is an object
+    msg.msgs.jsdoMSG505 = "{1}: Invalid value for the {2} parameter in {3} call.";
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
@@ -3013,11 +3020,7 @@ limitations under the License.
                     case "DATE":
                     case "DATETIME":
                         if (typeof value === 'string') {
-                            try {
-                                result = this._convertDate(new Date(value), ablType.toUpperCase());
-                            } catch(e) {
-                                result = value;
-                            }
+                            result = value;
                         }
                         else if (value instanceof Date) {
                             result = this._convertDate(value, ablType.toUpperCase());
@@ -3898,7 +3901,6 @@ limitations under the License.
 
             if (this.autoApplyChanges) {
                 // Arrays to keep track of changes
-                tableRef._beforeImage = {};
                 tableRef._added = [];
                 tableRef._changed = {};
                 tableRef._deleted = [];
