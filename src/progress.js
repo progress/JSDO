@@ -107,6 +107,7 @@ limitations under the License.
     msg.msgs.jsdoMSG053 = "{1}: {2} was not attempted because the AuthenticationProvider is not logged in.";
     msg.msgs.jsdoMSG054 = "{1}: Token refresh was not attempted because the AuthenticationProvider does not have a refresh token.";
     msg.msgs.jsdoMSG055 = "{1}: Token refresh was not attempted because the authentication model is not SSO.";
+    msg.msgs.jsdoMSG056 = "{1}: Attempted to call connect() when already connected or logged in.";
 
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -132,7 +133,7 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
-    msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider needs to be managing a valid token.";
+    msg.msgs.jsdoMSG125 = "{1}: The AuthenticationProvider is not managing valid credentials.";
     msg.msgs.jsdoMSG126 = "{1}: No support for {2}.";
     
     //                    500 - 998 are for generic errors

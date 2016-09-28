@@ -22,7 +22,7 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false, storage, XMLHttpRequest*/
+    /*global $ : false, storage, XMLHttpRequest, msg*/
 
     /* define these if not defined yet - they may already be defined if
        progress.js was included first */
@@ -39,7 +39,7 @@ limitations under the License.
         var uri,
             authenticationModel,
             that = this,
-            storage,  // ref to what what we use to store session state and token data (currently sessionStorage)
+            storage,  // ref to what we use to store session state and token data (currently sessionStorage)
             storageKey,
             tokenDataKeys = {
                 token: ".access_token",
@@ -199,8 +199,9 @@ limitations under the License.
                     );
                 }
             } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when processing login result"
-                throw new Error(msg.getMsgText("jsdoMSG000", 
+                // "Internal error: AuthenticationProvider: deferred object missing when processing login 
+                //  result"
+                throw new Error(msg.getMsgText("jsdoMSG000",
                     "AuthenticationProvider: deferred object missing when processing login result"));
             }
         }
@@ -276,8 +277,9 @@ limitations under the License.
                     );
                 }
             } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when processing login result"
-                throw new Error(msg.getMsgText("jsdoMSG000", 
+                // "Internal error: AuthenticationProvider: deferred object missing when
+                //  processing login result"
+                throw new Error(msg.getMsgText("jsdoMSG000",
                     "AuthenticationProvider: deferred object missing when processing refresh result"));
             }
         }
@@ -319,8 +321,9 @@ limitations under the License.
                     );
                 }
             } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when processing login result"
-                throw new Error(msg.getMsgText("jsdoMSG000", 
+                // "Internal error: AuthenticationProvider: deferred object missing when 
+                //  processing login result"
+                throw new Error(msg.getMsgText("jsdoMSG000",
                     "AuthenticationProvider: deferred object missing when processing logout result"));
             }
         }
@@ -381,23 +384,23 @@ limitations under the License.
         } else {
             authModelParam = authModelParam.toLowerCase();
             switch (authModelParam) {
-                // case progress.data.Session.AUTH_TYPE_FORM :
-                // case progress.data.Session.AUTH_TYPE_BASIC :
-                // case progress.data.Session.AUTH_TYPE_ANON :
-                case progress.data.Session.AUTH_TYPE_SSO :
-                    authenticationModel = authModelParam;
-                    // for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
+            // case progress.data.Session.AUTH_TYPE_FORM :
+            // case progress.data.Session.AUTH_TYPE_BASIC :
+            // case progress.data.Session.AUTH_TYPE_ANON :
+            case progress.data.Session.AUTH_TYPE_SSO:
+                authenticationModel = authModelParam;
+                // for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
 
-                    break;
-                default:
-                    // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
-                    //     parameter in constructor call."
-                    throw new Error(progress.data._getMsgText(
-                        "jsdoMSG504",
-                        "AuthenticationProvider",
-                        authModelParam,
-                        "authenticationModel",
-                        "constructor"
+                break;
+            default:
+                // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
+                //     parameter in constructor call."
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG504",
+                    "AuthenticationProvider",
+                    authModelParam,
+                    "authenticationModel",
+                    "constructor"
                 ));
             }
         }
@@ -405,10 +408,12 @@ limitations under the License.
     // SSO specific    
         if (typeof sessionStorage === "undefined") {
             // "AuthenticationProvider: No support for sessionStorage."
-            throw new Error(progress.data._getMsgText("jsdoMSG126", "AuthenticationProvider", "sessionStorage"));
+            throw new Error(progress.data._getMsgText("jsdoMSG126",
+                                                      "AuthenticationProvider",
+                                                      "sessionStorage"));
         }
         // if you switch to a different type of storage, change the error message argument above
-        storage = sessionStorage;  
+        storage = sessionStorage;
 
         // We're currently storing the token in storage with the 
         // uri as the key. This is subject to change later.
@@ -431,11 +436,12 @@ limitations under the License.
             if (userName && typeof userName !== "string") {
                 // {1}: Argument {2} must be of type {3} in {4} call.
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG121", 
-                    "AuthenticationProvider", 
+                    "jsdoMSG121",
+                    "AuthenticationProvider",
                     "1",
-                    "string", 
-                    "login"));
+                    "string",
+                    "login"
+                ));
             } else if (userName.length === 0) {
                 //    {1}: '{2}' cannot be an empty string.
                 throw new Error(progress.data._getMsgText(
@@ -448,11 +454,12 @@ limitations under the License.
             if (password && typeof password !== "string") {
                 // {1}: Argument {2} must be of type {3} in {4} call.
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG121", 
-                    "AuthenticationProvider", 
+                    "jsdoMSG121",
+                    "AuthenticationProvider",
                     "2",
-                    "string", 
-                    "login"));
+                    "string",
+                    "login"
+                ));
             } else if (password.length === 0) {
                // {1}: '{2}' cannot be an empty string.
                 throw new Error(progress.data._getMsgText(
