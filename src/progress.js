@@ -102,12 +102,12 @@ limitations under the License.
     msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
     msg.msgs.jsdoMSG049 = "{1}: Unexpected error calling {2}: {3}";
     msg.msgs.jsdoMSG050 = "No token returned from server";
-    msg.msgs.jsdoMSG051 = "{1} login() was not attempted because the AuthenticationProvider is already logged in.";
-    msg.msgs.jsdoMSG052 = "{1}: Login was not attempted because no credentials were supplied.";
-    msg.msgs.jsdoMSG053 = "{1}: {2} was not attempted because the AuthenticationProvider is not logged in.";
-    msg.msgs.jsdoMSG054 = "{1}: Token refresh was not attempted because the AuthenticationProvider does not have a refresh token.";
-    msg.msgs.jsdoMSG055 = "{1}: Token refresh was not attempted because the authentication model is not SSO.";
-    msg.msgs.jsdoMSG056 = "{1}: Attempted to call connect() when already connected or logged in.";
+    msg.msgs.jsdoMSG051 = "{1} The login method was not executed because the AuthenticationProvider is already logged in.";
+    msg.msgs.jsdoMSG052 = "{1}: The login method was not executed because no credentials were supplied.";
+    msg.msgs.jsdoMSG053 = "{1}: {2} was not executed because the AuthenticationProvider is not logged in.";
+    msg.msgs.jsdoMSG054 = "{1}: Token refresh was not executed because the AuthenticationProvider does not have a refresh token.";
+    msg.msgs.jsdoMSG055 = "{1}: Token refresh was not executed  because the authentication model is not SSO.";
+    msg.msgs.jsdoMSG056 = "{1}: Already connected or logged in.";
 
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -140,10 +140,11 @@ limitations under the License.
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
     msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
     msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
-    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
+    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'.";
     msg.msgs.jsdoMSG504 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
     //      use the message below if the invalid value is an object
     msg.msgs.jsdoMSG505 = "{1}: Invalid value for the {2} parameter in {3} call.";
+    msg.msgs.jsdoMSG506 = "{1}: '{2}' objects must contain a '{3}' method.";
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 

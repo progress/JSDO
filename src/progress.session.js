@@ -712,7 +712,18 @@ limitations under the License.
             oepingAvailable = false,
             defaultPartialPingURI = "/rest/_oeping",
             partialPingURI = defaultPartialPingURI,
-            _storageKey;
+            needsReconnectAfterPageRefresh = false,
+            _storageKey,
+            // initializ authImpl to null to indicate that we deliberatey want it not to have a value 
+            // except when connected
+            _authImpl = null,
+
+            // Note: the variables above here are used during the lifetime of the object; the ones below
+            // are only used while the constructor is executing
+            storedAuthModel,
+            storedURI,
+            newURI,
+            stateWasReadFromStorage = false;
 
         if (typeof navigator  !== "undefined") {
             if (typeof navigator.userAgent !== "undefined") {
@@ -941,6 +952,18 @@ limitations under the License.
                                    {  
                                        get: function () {
                                             return _contextProperties;
+                                       },
+                                       enumerable: false
+                                   }
+                                 );
+
+            // used internally, not supported as part of the Session API (tho authImpl is part
+            // of the JSDOSession API)
+            Object.defineProperty( this, 
+                                   "_authImpl",
+                                   {  
+                                       get: function () {
+                                            return _authImpl;
                                        },
                                        enumerable: false
                                    }
@@ -1181,6 +1204,10 @@ limitations under the License.
             storeSessionInfo("deviceIsOnline", value);
         }
 
+        function setAuthImpl(value) {
+            _authImpl = value;
+        }
+
         function setRestApplicationIsOnline(value) {
             restApplicationIsOnline = value;
 
@@ -1288,10 +1315,6 @@ limitations under the License.
             }
         };
 
-        /* login
-         *
-         */
-
         // callback used in login to determine whether ping is available on server
         this.pingTestCallback = function (cbArgs) {
             var foundOeping = cbArgs.pingResult ? true : false;
@@ -1299,7 +1322,7 @@ limitations under the License.
             setOepingAvailable(foundOeping);
         };
 
-        // generic async callback, currently used by login(), addCatalog(), and logout()
+        // generic async callback, currently used by login(), addCatalog(), logout(), connect, and disconnect
         this._onReadyStateChangeGeneric = function () {
             var xhr = this;
             var result;
@@ -1336,46 +1359,57 @@ limitations under the License.
         // Confirm that the JSDOSession has access to the Web application at the specified serviceURI.
         // The method does this by doing a GET of a specific resource (<serviceURI>/static/home.html by
         // default, using the AuthenticationProvider passed in )
-        this._connect = function (args) {
+        // Parameters:
+        //      authProvider   (broken out separately from the others to reflect the JSDOSession.connect API)
+        //      args
+        //          .deferred  Deferred object created by caller, just attached to the xhr here
+        this._connect = function (authProvider, deferred) {
             var uriForRequest,   // "decorated" version of serviceURI, used to actually send the request
                 xhr,
                 params;
 
-            if (typeof args === 'object') {
-                // TODO: Add a check if the provider exposes the API?
-                // Our usage of hasCredential here implies that if the user implements
-                // their own provider, it needs to have an hasCredential property.
-                
-                if (!args.authProvider.hasCredential()) {
-                    // JSDOSession: : The AuthenticationProvider is not managing valid credentials.
-                    throw new Error(progress.data._getMsgText("jsdoMSG125", "JSDOSession"));
-                }
-            } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when processing login 
-                //  result"
-                throw new Error(msg.getMsgText("jsdoMSG000",
-                    "JSDOSession: invalid argument passed to connect"));
+            if ((typeof authProvider !== 'object') || (typeof deferred !== 'object')) {
+                // Internal error: progress.data.Session: invalid argument passed to _connect
+                throw new Error(progress.data._getMsgText("jsdoMSG000",
+                    "progress.data.Session: invalid argument(s) passed to _connect"));
             }
 
-            this.authImpl = (function (authProvider) {
-                var authImpl = {};
-                authImpl.provider = authProvider;
-                authImpl.consumer = new progress.data.AuthenticationConsumer();
-                
-                authImpl.addTokenToRequest = function (xhr) {
-                    if (authImpl.provider.hasCredential()) {
-                        authImpl.consumer.addTokenToRequest(
-                            xhr,
-                            authImpl.provider._getToken()
-                        );
+            if (typeof authProvider === 'object') {
+                // Check if the provider exposes the required API.
+                // Our usage of hasCredential requires that if the developer implements their own provider, 
+                // it needs to have an hasCredential property.
+                if (typeof authProvider === 'object') {
+                    // Check if the provider exposes the required API.
+                    if (typeof authProvider.hasCredential === 'function') {
+                        if (!authProvider.hasCredential()) {
+                            // progress.data.Session: The AuthenticationProvider is not managing 
+                            //   valid credentials.
+                            throw new Error(progress.data._getMsgText("jsdoMSG125", "progress.data.Session"));
+                        }
                     } else {
-                        // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                        throw new Error(progress.data._getMsgText("jsdoMSG125"));
+                        // JSDOSession: AuthenticationProvider objects must contain a hasCredential method.
+                        throw new Error(progress.data._getMsgText("jsdoMSG506",
+                                                                  "progress.data.Session",
+                                                                  "AuthenticationProvider",
+                                                                  "hasCredential"));
                     }
-                };
-                
-                return authImpl;
-            }(args.authProvider));
+                } else {
+                    // progress.data.Session: authenticationProvider must be of type object.
+                    throw new Error(progress.data._getMsgText("jsdoMSG121",
+                                                   "progress.data.Session",
+                                                   "authenticationProvider",
+                                                   "object"));
+                }
+            }
+            
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
+                    !needsReconnectAfterPageRefresh) {
+                // Session: Already connected or logged in.
+                throw new Error(progress.data._getMsgText("jsdoMSG056", "progress.data.Session"));
+            }
+            
+            // doesn't need try-catch because we just validated the authProvider
+            setAuthImpl(new progress.data.AuthenticationImplementation(authProvider));
 
             xhr = new XMLHttpRequest();
             xhr.pdsession = this;
@@ -1396,12 +1430,11 @@ limitations under the License.
                         "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
                 }
 
-                xhr._isAsync = true;
                 xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                 xhr.onResponseFn = this._processConnectResult;
                 xhr.onResponseProcessedFn = this._connectComplete;
                 xhr._jsdosession = jsdosession;
-                xhr._deferred = args.deferred;
+                xhr._deferred = deferred;
 
                 if (typeof this.onOpenRequest === 'function') {
 
@@ -1411,7 +1444,7 @@ limitations under the License.
                         "xhr": xhr,
                         "verb": "GET",
                         "uri": this.serviceURI + this.loginTarget,
-                        "async": false,
+                        "async": true,
                         "formPreTest": false,
                         "session": this
                     };
@@ -1428,20 +1461,22 @@ limitations under the License.
 
             // Note: although login returns ASYNC_PENDING, there is currently no need for connect
             // to return anything. It either throws an error or eventually _processConnectResult will fire
-            // the "afterConnect" event. (In fact, login only returns ASYNC_PENDING when invoked async
-            // to make the behavior consistent when it's invoked synchronously -- it returns the reuslt 
-            // in that case
+            // the "afterConnect" event. (In fact, the only reason login even returns ASYNC_PENDING when it is 
+            // invoked async is because it's documented as returning a result (and that's because login was 
+            // originally spec'ed to be called synchronously)
         };
         
 
         this._processConnectResult = function (xhr) {
             var pdsession = xhr.pdsession,
                 pingTestArgs = {
-                    pingURI: null, async: true, onCompleteFn: null,
-                    fireEventIfOfflineChange: true, onReadyStateFn: pdsession._pingtestOnReadyStateChange
+                    pingURI: null,
+                    async: true,
+                    onCompleteFn: null,
+                    fireEventIfOfflineChange: true,
+                    onReadyStateFn: pdsession._pingtestOnReadyStateChange
                 };
             
-                
             setLoginHttpStatus(xhr.status, xhr.pdsession);
 
             if (pdsession.loginHttpStatus === 200) {
@@ -1449,22 +1484,20 @@ limitations under the License.
                 setRestApplicationIsOnline(true);
                 pdsession._saveClientContextId(xhr);
                 storeAllSessionInfo();  // save info to persistent storage 
+                needsReconnectAfterPageRefresh = false;
                 
                 pingTestArgs.pingURI = pdsession._makePingURI();
                 pdsession._sendPing(pingTestArgs);  // see whether the ping feature is available
-            }
-            else {
-                if (pdsession.loginHttpStatus == 401) {
+            } else {
+                if (pdsession.loginHttpStatus === 401) {
                     setLoginResult(progress.data.Session.LOGIN_AUTHENTICATION_FAILURE, pdsession);
-                }
-                else {
+                } else {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
                 }
             }
             setLastSessionXHR(xhr, pdsession);
             updateContextPropsFromResponse(pdsession, xhr);
 
-         // MAYBE GET RID OF THIS?
             // return loginResult even if it's an async operation -- the async handler
             // (e.g., onReadyStateChangeGeneric) will just ignore
             return pdsession.loginResult;
@@ -1475,6 +1508,56 @@ limitations under the License.
             pdsession.trigger("afterConnect", pdsession, result, errObj, xhr);
         };
         
+        // Intended only for internal use by the JSDO library
+        // This method terminates the JSDOSession's ability to send requests to its serviceURI. 
+        // Remove the reference to the AuthenticationProvider that was passed to connect(). 
+        // Will be a no-op if connect() has not yet been called successfully.
+        // This method reinitializes the Session object back to the state it was in just after being created. 
+        // Retains the serviceURI, authenticationModel, and name values. 
+        // Delete any of the object's data that had been persisted (for example, to sessionStorage to support 
+        // page refresh). 
+        // Data for any catalogs loaded by the JSDOSession will NOT be deleted.
+        // NOTE: disconnect does not currently send a request to the Web application for the Anonymous or 
+        // OE SSO models. 
+    // NEED TO DECIDE WHETHER DISCONNECT LOGS OUT OF FORM BASED WEB APPLICATIONS
+        this._disconnect = function (deferred) {
+            var deferred;
+
+            // Note: we use the "no harm, no foul" approach for disconnect. If you aren't connected, it's
+            // regarded as a success rather than cause for throwing an error.
+            this._processDisconnectResult(null, deferred);
+            
+        };
+        
+
+        // This is separate from _disconnect for cases in wghich _disconnect makes a server request. 
+        // If there has been a server request, xhr should be valid and deferred will be undefined
+        // If there was no server request, xhr will be undefined  and deferred will be valid
+        // Probably the only time thsi will be caleld as the result of a server request is with
+        // Form authentication, and even then it's questionable
+        this._processDisconnectResult = function (xhr, deferred) {
+            var pdsession;
+            
+            
+            if (xhr) {
+                // like processLogoutResult, e.g., pdsession = xhr._pdsession;
+            } else {
+                this._reinitializeAfterLogout(this, progress.data.Session.SUCCESS);
+                this._disconnectComplete(this, progress.data.Session.SUCCESS, null, null, deferred);
+            }
+            
+        };
+
+
+        this._disconnectComplete = function (pdsession, result, errObj, xhr, deferred) {
+            pdsession.trigger("afterDisconnect", pdsession, result, errObj, xhr, deferred);
+        };
+        
+
+        /* login
+         *
+         */
+
         // store password here until successful login; only then do we store it in the Session object
         var pwSave = null;
         // store user name here until successful login; only then do we store it in the Session object
@@ -2112,6 +2195,8 @@ limitations under the License.
             setClientContextID(null, pdsession);
             setUserName(null, pdsession);
             _password = null;
+            setAuthImpl(null);
+
 
             if (success) {
                 setRestApplicationIsOnline(false);
@@ -2831,7 +2916,7 @@ limitations under the License.
             // if using SSO, just add the token and ignore the rest of this method
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 xhr.open(verb, uri, async);
-                this.authImpl.addTokenToRequest(xhr);
+                this._authImpl.addTokenToRequest(xhr);
 
                 // We specify application/json for the response so that, if a bad token is sent, an 
                 // OE Web application that's based on Form auth will directly send back a 401.
@@ -3152,10 +3237,6 @@ limitations under the License.
         // had the same name. This code was introduced to handle page refreshes, but could
         // be used for other purposes.
         if (typeof (options) === 'object') {
-            var storedAuthModel,
-                storedURI,
-                newURI,
-                readFromStorage = false;
             
             jsdosession = options.jsdosession;
             newURI = options.serviceURI;
@@ -3177,7 +3258,8 @@ limitations under the License.
                         clearAllSessionInfo();
                     } else {
                         setSessionInfoFromStorage(_storageKey);
-                        readFromStorage = true;
+                        needsReconnectAfterPageRefresh = true;
+                        stateWasReadFromStorage = true;
                     }
                 }
                 // _storageKey is in essence the flag for page refresh; we are not supporting page refresh for Basic
@@ -3191,7 +3273,9 @@ limitations under the License.
                 }
             }
 
-            if (!readFromStorage) {
+            // If we didn't read state info from storage, we need to set the serviceURI and probably
+            // the authenticationModel
+            if (!stateWasReadFromStorage) {
                 if (newURI) {
                     setServiceURI(newURI, this);
                 }
@@ -3372,11 +3456,10 @@ limitations under the License.
                 enumerable: true
             });        
 
-        // TODO: What are the use cases of giving the user the authImpl?
         Object.defineProperty(this, 'authImpl',
             {
                 get: function () {
-                    return _pdsession ? _pdsession.authImpl : undefined;
+                    return _pdsession ? _pdsession._authImpl : undefined;
                 },
                 enumerable: true
             });
@@ -3525,6 +3608,28 @@ limitations under the License.
             }
         }
 
+        function onAfterDisconnect(pdsession, result, errorObject, xhr, deferred) {
+            var myDeferred;
+            
+            if (xhr) {
+                myDeferred = xhr._deferred;
+            } else {
+                myDeferred = deferred;
+            }
+
+            if (result === progress.data.Session.SUCCESS) {
+                myDeferred.resolve(_myself,
+                                   result,
+                                   { errorObject: errorObject,
+                                     xhr: xhr });
+            } else {
+                myDeferred.reject(_myself,
+                                  result,
+                                  { errorObject: errorObject,
+                                       xhr: xhr });
+            }
+        }
+
         function onAfterAddCatalog( pdsession, result, errorObject, xhr ) {
             var deferred;
             
@@ -3655,22 +3760,35 @@ limitations under the License.
             var deferred = $.Deferred(),
                 errorObject;
 
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                // "JSDOSession: Attempted to call connect() when already connected or logged in."
-                throw new Error(msg.getMsgText("jsdoMSG056", "JSDOSession"));
-            }
-
+            // Note: all validation is done in Session._connect
             try {
+       // TEST: DO WE NEED TO UNSUBSCRIBE LATER, OR RUN THE RISK OF GETTING THE HANDLER INVOKED >1?
                 _pdsession.subscribe('afterConnect', onAfterConnect, this);
                 
-                _pdsession._connect(
-                    {
-                        deferred : deferred,
-                        authProvider : authProvider
-                    }
-                );
+                _pdsession._connect(authProvider, deferred);
             } catch (e) {
-                errorObject = new Error("JSDOSession: Unable to send connect request. " + e.message);
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "connect", e.message));
+            }
+       
+            if (errorObject) {
+                throw errorObject;
+            } else {
+                return deferred.promise();
+            }
+        };
+
+        this.disconnect = function () {
+            var deferred = $.Deferred(),
+                errorObject;
+
+            // Note: all validation is done in Session._connect
+            try {
+       // TEST: DO WE NEED TO UNSUBSCRIBE LATER, OR RUN THE RISK OF GETTING THE HANDLER INVOKED >1?
+                _pdsession.subscribe('afterDisconnect', onAfterDisconnect, this);
+                
+                _pdsession._disconnect(deferred);
+            } catch (e) {
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "disconnect", e.message));
             }
        
             if (errorObject) {

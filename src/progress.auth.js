@@ -137,72 +137,65 @@ limitations under the License.
                 result,
                 ssoTokenJSON;
 
-            if (deferred) {
-                if (xhr.status === 200) {
-                    // get token and store it; if that goes well, resolve the promise, otherwise reject it
-                    try {
-                        ssoTokenInfo = JSON.parse(xhr.responseText);
-                        
-                        if (ssoTokenInfo.access_token) {
-                            storeTokenInfo(ssoTokenInfo);
-                            // got the token info, its access_token has a value, and storeTokenInfo()
-                            //  didn't thrown an error, so call this a success
-                            result = progress.data.Session.SUCCESS;
-                        } else {
-                            result = progress.data.Session.GENERAL_FAILURE;
-                            // {1}: Unexpected error calling login: {error-string}
-                            // ( No token returned from server)
-                            errorObject = new Error(progress.data._getMsgText(
-                                "jsdoMSG049",
-                                "AuthenticationProvider",
-                                "login",
-                                progress.data._getMsgText("jsdoMSG050")
-                            ));
-                        }
-                    } catch (ex) {
+            if (xhr.status === 200) {
+                // get token and store it; if that goes well, resolve the promise, otherwise reject it
+                try {
+                    ssoTokenInfo = JSON.parse(xhr.responseText);
+                    
+                    if (ssoTokenInfo.access_token) {
+                        storeTokenInfo(ssoTokenInfo);
+                        // got the token info, its access_token has a value, and storeTokenInfo()
+                        //  didn't thrown an error, so call this a success
+                        result = progress.data.Session.SUCCESS;
+                    } else {
                         result = progress.data.Session.GENERAL_FAILURE;
                         // {1}: Unexpected error calling login: {error-string}
-                        // (error could be thrown from storeTokenInfo when it calls setItem())
+                        // ( No token returned from server)
                         errorObject = new Error(progress.data._getMsgText(
                             "jsdoMSG049",
                             "AuthenticationProvider",
                             "login",
-                            ex.message
+                            progress.data._getMsgText("jsdoMSG050")
                         ));
                     }
-                            
-                // REVIEW: NEED TO LOG OUT HERE IF THERE WAS AN ERROR PROCESSING THE RESPONSE
-                            
-                            
-                } else if (xhr.status === 401) {
-                    result = progress.data.Session.AUTHENTICATION_FAILURE;
-                } else {
+                } catch (ex) {
                     result = progress.data.Session.GENERAL_FAILURE;
+                    // {1}: Unexpected error calling login: {error-string}
+                    // (error could be thrown from storeTokenInfo when it calls setItem())
+                    errorObject = new Error(progress.data._getMsgText(
+                        "jsdoMSG049",
+                        "AuthenticationProvider",
+                        "login",
+                        ex.message
+                    ));
                 }
-
-                if (result === progress.data.Session.SUCCESS) {
-                    deferred.resolve(
-                        that,
-                        result,
-                        {
-                            "xhr": xhr
-                        }
-                    );
-                } else {
-                    deferred.reject(
-                        that,
-                        result,
-                        {
-                            errorObject : errorObject, // might be undefined, that's OK
-                            xhr: xhr
-                        }
-                    );
-                }
+                        
+            // REVIEW: NEED TO LOG OUT HERE IF THERE WAS AN ERROR PROCESSING THE RESPONSE
+                        
+                        
+            } else if (xhr.status === 401) {
+                result = progress.data.Session.AUTHENTICATION_FAILURE;
             } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when processing login 
-                //  result"
-                throw new Error(msg.getMsgText("jsdoMSG000",
-                    "AuthenticationProvider: deferred object missing when processing login result"));
+                result = progress.data.Session.GENERAL_FAILURE;
+            }
+
+            if (result === progress.data.Session.SUCCESS) {
+                deferred.resolve(
+                    that,
+                    result,
+                    {
+                        "xhr": xhr
+                    }
+                );
+            } else {
+                deferred.reject(
+                    that,
+                    result,
+                    {
+                        errorObject : errorObject, // might be undefined, that's OK
+                        xhr: xhr
+                    }
+                );
             }
         }
 
@@ -218,69 +211,62 @@ limitations under the License.
                 result,
                 ssoTokenJSON;
 
-            if (deferred) {
-                if (xhr.status === 200) {
-                    // get token and store it; if that goes well, resolve the promise, otherwise reject it
-                    try {
-                        ssoTokenInfo = JSON.parse(xhr.responseText);
-                        
-                        if (ssoTokenInfo.access_token) {
-                            storeTokenInfo(ssoTokenInfo);
-                            // got the token info, its access_token has a value, and storeTokenInfo()
-                            //  didn't thrown an error, so call this a success
-                            result = progress.data.Session.SUCCESS;
-                        } else {
-                            result = progress.data.Session.GENERAL_FAILURE;
-                            // {1}: Unexpected error calling refresh: {error-string}
-                            // ( No token returned from server)
-                            errorObject = new Error(progress.data._getMsgText(
-                                "jsdoMSG049",
-                                "AuthenticationProvider",
-                                "refresh",
-                                progress.data._getMsgText("jsdoMSG050")
-                            ));
-                        }
-                    } catch (ex) {
+            if (xhr.status === 200) {
+                // get token and store it; if that goes well, resolve the promise, otherwise reject it
+                try {
+                    ssoTokenInfo = JSON.parse(xhr.responseText);
+                    
+                    if (ssoTokenInfo.access_token) {
+                        storeTokenInfo(ssoTokenInfo);
+                        // got the token info, its access_token has a value, and storeTokenInfo()
+                        //  didn't thrown an error, so call this a success
+                        result = progress.data.Session.SUCCESS;
+                    } else {
                         result = progress.data.Session.GENERAL_FAILURE;
                         // {1}: Unexpected error calling refresh: {error-string}
-                        // (error could be thrown from storeTokenInfo when it calls setItem())
+                        // ( No token returned from server)
                         errorObject = new Error(progress.data._getMsgText(
                             "jsdoMSG049",
                             "AuthenticationProvider",
                             "refresh",
-                            ex.message
+                            progress.data._getMsgText("jsdoMSG050")
                         ));
                     }
-                } else if (xhr.status === 401) {
-                    reinitialize();  // treat authentictaion failure as the equivalent of a logout
-                    result = progress.data.Session.AUTHENTICATION_FAILURE;
-                } else {
+                } catch (ex) {
                     result = progress.data.Session.GENERAL_FAILURE;
+                    // {1}: Unexpected error calling refresh: {error-string}
+                    // (error could be thrown from storeTokenInfo when it calls setItem())
+                    errorObject = new Error(progress.data._getMsgText(
+                        "jsdoMSG049",
+                        "AuthenticationProvider",
+                        "refresh",
+                        ex.message
+                    ));
                 }
-
-                if (result === progress.data.Session.SUCCESS) {
-                    deferred.resolve(
-                        that,
-                        result,
-                        {
-                            "xhr": xhr
-                        }
-                    );
-                } else {
-                    deferred.reject(
-                        that,
-                        result,
-                        {
-                            errorObject : errorObject, // might be undefined, that's OK
-                            xhr: xhr
-                        }
-                    );
-                }
+            } else if (xhr.status === 401) {
+                reinitialize();  // treat authentictaion failure as the equivalent of a logout
+                result = progress.data.Session.AUTHENTICATION_FAILURE;
             } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when
-                //  processing login result"
-                throw new Error(msg.getMsgText("jsdoMSG000",
-                    "AuthenticationProvider: deferred object missing when processing refresh result"));
+                result = progress.data.Session.GENERAL_FAILURE;
+            }
+
+            if (result === progress.data.Session.SUCCESS) {
+                deferred.resolve(
+                    that,
+                    result,
+                    {
+                        "xhr": xhr
+                    }
+                );
+            } else {
+                deferred.reject(
+                    that,
+                    result,
+                    {
+                        errorObject : errorObject, // might be undefined, that's OK
+                        xhr: xhr
+                    }
+                );
             }
         }
 
@@ -294,37 +280,30 @@ limitations under the License.
         function processLogoutResult(xhr, deferred) {
             var result;
 
-            if (deferred) {
-                if (xhr.status === 200) {
-                    result = progress.data.Session.SUCCESS;
-                } else if (xhr.status === 401) {
-                    result = progress.data.Session.AUTHENTICATION_FAILURE;
-                } else {
-                    result = progress.data.Session.GENERAL_FAILURE;
-                }
-
-                if (result === progress.data.Session.SUCCESS) {
-                    deferred.resolve(
-                        that,
-                        result,
-                        {
-                            "xhr": xhr
-                        }
-                    );
-                } else {
-                    deferred.reject(
-                        that,
-                        result,
-                        {
-                            xhr: xhr
-                        }
-                    );
-                }
+            if (xhr.status === 200) {
+                result = progress.data.Session.SUCCESS;
+            } else if (xhr.status === 401) {
+                result = progress.data.Session.AUTHENTICATION_FAILURE;
             } else {
-                // "Internal error: AuthenticationProvider: deferred object missing when 
-                //  processing login result"
-                throw new Error(msg.getMsgText("jsdoMSG000",
-                    "AuthenticationProvider: deferred object missing when processing logout result"));
+                result = progress.data.Session.GENERAL_FAILURE;
+            }
+
+            if (result === progress.data.Session.SUCCESS) {
+                deferred.resolve(
+                    that,
+                    result,
+                    {
+                        "xhr": xhr
+                    }
+                );
+            } else {
+                deferred.reject(
+                    that,
+                    result,
+                    {
+                        xhr: xhr
+                    }
+                );
             }
         }
 
@@ -470,7 +449,7 @@ limitations under the License.
             }
             
             if (this.hasCredential()) {
-                // "login() was not attempted because the AuthenticationProvider is already logged in." 
+                // "The login method was not executed because the AuthenticationProvider is already logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
             }
 
@@ -494,17 +473,17 @@ limitations under the License.
                 xhr;
 
             if (this.authenticationModel !== progress.data.Session.AUTH_TYPE_SSO) {
-                // "{1}: Token refresh() was not attempted because the authentication model is not SSO." 
+                // "{1}: Token refresh() was not executed because the authentication model is not SSO." 
                 throw new Error(progress.data._getMsgText("jsdoMSG055", "AuthenticationProvider"));
             }
             
             if (!this.hasCredential()) {
-                // "refresh() was not attempted because the AuthenticationProvider is not logged in." 
+                // "The refresh method was not executed because the AuthenticationProvider is not logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "refresh"));
             }
             
             if (!this.hasRefreshToken()) {
-                // "Token refresh was not attempted because the AuthenticationProvider does not have a 
+                // "Token refresh was not executed because the AuthenticationProvider does not have a 
                 // refresh token." 
                 throw new Error(progress.data._getMsgText("jsdoMSG054", "AuthenticationProvider"));
             }
@@ -568,6 +547,7 @@ limitations under the License.
     };
 
 
+    // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
     progress.data.AuthenticationConsumer = function (options) {
         var tokenRequestDescriptor;
 
@@ -583,7 +563,25 @@ limitations under the License.
                 "oecp " + token
             );
         };
+    };
 
+    // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
+    progress.data.AuthenticationImplementation = function(authProvider) {
+        this.provider = authProvider;
+        
+        this.consumer = new progress.data.AuthenticationConsumer();
+        
+        this.addTokenToRequest = function (xhr) {
+            if (this.provider.hasCredential()) {
+                this.consumer.addTokenToRequest(
+                    xhr,
+                    this.provider._getToken()
+                );
+            } else {
+                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                throw new Error(progress.data._getMsgText("jsdoMSG125"));
+            }
+        };
     };
     
 }());
