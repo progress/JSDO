@@ -108,6 +108,7 @@ limitations under the License.
     msg.msgs.jsdoMSG054 = "{1}: Token refresh was not executed because the AuthenticationProvider does not have a refresh token.";
     msg.msgs.jsdoMSG055 = "{1}: Token refresh was not executed  because the authentication model is not SSO.";
     msg.msgs.jsdoMSG056 = "{1}: Already connected or logged in.";
+    msg.msgs.jsdoMSG057 = "{1}: Called {2} when authenticationModel is SSO. Use {3} instead.";
 
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";

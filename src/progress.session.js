@@ -1574,10 +1574,6 @@ limitations under the License.
             pwSave = null;   // in case these are left over from a previous login
             unameSave = null;
 
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                throw new Error("Attempted to call login() on a Session object that is already logged in.");
-            }
-
             if (!defPropSupported) {
                 // this is here on the presumably slim chance that we're running with a
                 // version of JavaScript that doesn't support defineProperty (otherwise
@@ -1587,9 +1583,18 @@ limitations under the License.
                 this.authenticationModel = this.authenticationModel.toLowerCase();
             }
 
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                // Session: Called login() when authenticationModel is SSO. Use connect() instead.
+                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'login()', "connect()")); 
+            }
+            
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
+                throw new Error("Attempted to call login() on a Session object that is already logged in.");
+            }
+
             if (arguments.length > 0) {
                 if (arguments[0] && typeof(arguments[0]) === 'object') {
-                    // note that we used to execute the code insode this "if" only if arguments[0].serviceURI
+                    // note that we used to execute the code inside this "if" only if arguments[0].serviceURI
                     // was present. Now we do it unconditionally, because when the JSDOSession uses a Session
                     // internally, it passes serviceURI to the constructor
                     args[0] = arguments[0].serviceURI;
@@ -2027,6 +2032,11 @@ limitations under the License.
                 deferred,
                 params;
 
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                // Session: Called login() when authenticationModel is SSO. Use connect() instead.
+                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'logout()', "disconnect()")); 
+            }
+            
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                 throw new Error("Attempted to call logout when there is no active session.");
             }
@@ -2268,7 +2278,6 @@ limitations under the License.
                         XHR we use so that the promise created by the JSDOSession will work correctly
                     */ 
                     deferred = arguments[0].deferred;
-                    jsdosession = arguments[0].jsdosession;
                     catalogIndex = arguments[0].catalogIndex;
                 }
                 else {
@@ -3745,7 +3754,10 @@ limitations under the License.
                 }
             } 
             catch (e) {
-                errorObject = new Error("JSDOSession: Unable to send login request. " + e.message);
+            // REVIEW: note change to the error message (the commented out msg is the old one)
+                // errorObject = new Error("JSDOSession: Unable to send login request. " + e.message);
+                // JSDOSession: Unexpected error calling login: {e.message}
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "login", e.message));
             }
        
             if ( errorObject ) {
@@ -3762,11 +3774,11 @@ limitations under the License.
 
             // Note: all validation is done in Session._connect
             try {
-       // TEST: DO WE NEED TO UNSUBSCRIBE LATER, OR RUN THE RISK OF GETTING THE HANDLER INVOKED >1?
                 _pdsession.subscribe('afterConnect', onAfterConnect, this);
                 
                 _pdsession._connect(authProvider, deferred);
             } catch (e) {
+                // JSDOSession: Unexpected error calling connect: {e.message}
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "connect", e.message));
             }
        
@@ -3781,13 +3793,13 @@ limitations under the License.
             var deferred = $.Deferred(),
                 errorObject;
 
-            // Note: all validation is done in Session._connect
+            // Note: all validation is done in Session._disconnect
             try {
-       // TEST: DO WE NEED TO UNSUBSCRIBE LATER, OR RUN THE RISK OF GETTING THE HANDLER INVOKED >1?
                 _pdsession.subscribe('afterDisconnect', onAfterDisconnect, this);
                 
                 _pdsession._disconnect(deferred);
             } catch (e) {
+                // JSDOSession: Unexpected error calling disconnect: {e.message}
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "disconnect", e.message));
             }
        
@@ -3918,7 +3930,8 @@ limitations under the License.
         };
         
         this.logout = function(){
-            var deferred = $.Deferred();
+            var deferred = $.Deferred(),
+                errorObject;
 
             try {
                 _pdsession.subscribe('afterLogout', onAfterLogout, this);
@@ -3926,10 +3939,17 @@ limitations under the License.
                                     deferred : deferred} );
             } 
             catch (e) {
-                throw new Error("JSDOSession: Unable to send logout request. " + e.message);
+            // REVIEW: note change to the error message (the commented out msg is the old one)
+                // throw new Error("JSDOSession: Unable to send logout request. " + e.message);
+                // JSDOSession: Unexpected error calling logout: {e.message}
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "logout", e.message));
             }
 
-            return deferred.promise();
+            if (errorObject) {
+                throw errorObject;
+            } else {
+                return deferred.promise();
+            }
         };       
 
         this.ping = function() {

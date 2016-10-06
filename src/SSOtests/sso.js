@@ -39,5 +39,19 @@ sso = {
             
         return deferred.promise();
     },
+    refresh: function (provider) {
+        "use strict";
+        
+        var deferred = $.Deferred();
+        
+        provider.refresh()
+            .then(function (provider, result) {
+                deferred.resolve();
+            }, function (provider, result) {
+                deferred.reject(provider, result);
+            });
+            
+        return deferred.promise();
+    }
     
 };

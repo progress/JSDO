@@ -54,7 +54,8 @@ limitations under the License.
             refreshURI,
             logoutURIsegment = "/static/auth/j_spring_security_logout",
             logoutURI,
-            ssoTokenInfo = null;
+            ssoTokenInfo = null,
+            loggedIn = false;  // (because there may be times when we don't have a credential but we are logged in)
         
         // PRIVATE FUNCTIONS
 
@@ -121,6 +122,7 @@ limitations under the License.
             if (authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 clearTokenInfo();
                 ssoTokenInfo = null;
+                loggedIn = false;
             }
         }
         
@@ -138,6 +140,9 @@ limitations under the License.
                 ssoTokenJSON;
 
             if (xhr.status === 200) {
+                // Need to set loggedIn now so we can call logout if there's an error processing the response.
+                //  (in which case we will also set this back to false in reinitialize )
+                loggedIn = true;
                 // get token and store it; if that goes well, resolve the promise, otherwise reject it
                 try {
                     ssoTokenInfo = JSON.parse(xhr.responseText);
@@ -170,8 +175,22 @@ limitations under the License.
                     ));
                 }
                         
-            // REVIEW: NEED TO LOG OUT HERE IF THERE WAS AN ERROR PROCESSING THE RESPONSE
-                        
+                // log out if there was an error processing the response so the app can try to log in again
+                if (result !== progress.data.Session.SUCCESS) {
+                    that.logout()
+                        .always(function () {
+                            deferred.reject(
+                                that,
+                                result,
+                                {
+                                    errorObject : errorObject,
+                                    xhr: xhr   // should be the xhr used for the refresh(), not the logout()
+                                }
+                            );
+                        });
+                    return;   // so we don't execute the reject below, which could invoke the fail handler 
+                              // before we're done with the logout
+                }
                         
             } else if (xhr.status === 401) {
                 result = progress.data.Session.AUTHENTICATION_FAILURE;
@@ -203,6 +222,7 @@ limitations under the License.
             xhr.open('POST',  refreshURI, true);
             xhr.setRequestHeader("Cache-Control", "max-age=0");
             xhr.withCredentials = true;
+            xhr.setRequestHeader("Content-Type", "application/json");
             xhr.setRequestHeader("Accept", "application/json");
         }
 
@@ -448,7 +468,7 @@ limitations under the License.
                 ));
             }
             
-            if (this.hasCredential()) {
+            if (loggedIn) {
                 // "The login method was not executed because the AuthenticationProvider is already logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
             }
@@ -477,7 +497,7 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG055", "AuthenticationProvider"));
             }
             
-            if (!this.hasCredential()) {
+            if (!loggedIn) {
                 // "The refresh method was not executed because the AuthenticationProvider is not logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "refresh"));
             }
@@ -498,8 +518,8 @@ limitations under the License.
                 }
             };
 
-            xhr.send('{"token_type" : "' + retrieveTokenType() + '", "refresh_token" : "' +
-                      retrieveRefreshToken() + '" }');
+            xhr.send('{"token_type":"' + retrieveTokenType() + '","refresh_token":"' +
+                      retrieveRefreshToken() + '"}');
             return deferred.promise();
         };
         
@@ -507,7 +527,7 @@ limitations under the License.
             var deferred = $.Deferred(),
                 xhr;
 
-            if (!this.hasCredential()) {
+            if (!loggedIn) {
                 // "logout() was not attempted because the AuthenticationProvider is not logged in."
                 throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "logout"));
             }
