@@ -7,6 +7,7 @@
         serviceURI = "http://nbbedwhenshaw3.bedford.progress.com:8810/TokenConsumer",
         catalogURI = serviceURI + "/static/TokenConsumerService.json",
         tokenURI = "http://nbbedwhenshaw3.bedford.progress.com:8810/TS2/",
+        tokenURINoRefresh = "http://nbbedwhenshaw3.bedford.progress.com:8810/TokenServer/",
         authenticationModel = "SSO",
         username = "restuser",
         password = "password";
@@ -20,7 +21,7 @@
         assert.equal(tokenURI, prov.uri, "uri Property");
         // Change this to be authenticationModel when the bug gets fixed
         assert.equal("sso", prov.authenticationModel, "authenticationModel Property");
-        assert.notOk(prov.hasRefreshToken(), "hasRefreshToken Property");
+        assert.notOk(prov.hasRefreshToken(), "hasRefreshToken method (returns false before login)");
     }
     
     function negTestAuthenticationProviderConstructor(assert) {
@@ -73,47 +74,7 @@
                 done();
             });
     }
-
-
-    function testAuthenticationProviderRefresh(assert) {
-        var prov = sso.create(tokenURI, authenticationModel),
-            done = assert.async(1);
-
-        assert.expect(4);
-
-        // Success case with correct credentials.
-        sso.login(prov, username, password)
-            .then(function (provider) {
-                assert.ok(true, "login() succeeded");
-            
-                setTimeout(function () {
-                    provider.refresh()
-                        .then(function (provider) {
-                            assert.ok(true, "refresh() succeeded");
-                            setTimeout(function () {
-                                provider.refresh()
-                                    .then(function (provider) {
-                                        assert.ok(true, "refresh() succeeded");
-                                        return provider.logout();
-                                    })
-                                    .then(function () {
-                                        assert.ok(true, "logout() succeeded");
-                                    },
-                                        function () {
-                                            assert.ok(false, "refresh test failed");
-                                        })
-                                    .always(function () {
-                                        done();
-                                    });
-                            },  // questionable indentation insisted upon by Brackets
-                                1000);
-                        });
-                },  // questionable indentation insisted upon by Brackets
-                    1000);
-                
-            });
-    }
-
+    
     function negTestAuthenticationProviderLogin(assert) {
         var prov = sso.create(tokenURI, authenticationModel),
             done = assert.async(1);
@@ -149,7 +110,7 @@
                 done();
             });
     }
-    
+
     function testAuthenticationProviderLogoutAndHasCredential(assert) {
         var prov = sso.create(tokenURI, authenticationModel),
             done = assert.async(1);
@@ -172,6 +133,117 @@
             });
     }
 
+    function testAuthenticationProviderRefresh(assert) {
+        var prov = sso.create(tokenURI, authenticationModel),
+            done = assert.async(1);
+
+        assert.expect(6);
+        
+        sso.login(prov, username, password)
+            .then(function (provider) {
+                assert.ok(true, "login() succeeded");
+            
+                // delay a second so the server doesn't think that the new token value is the same as the old.
+                setTimeout(function () {
+                    provider.refresh()
+                        .then(function (provider) {
+                            assert.ok(true, "refresh() succeeded");
+                            setTimeout(function () {
+                                provider.refresh()
+                                    .then(function (provider) {
+                                        assert.ok(true, "refresh() succeeded");
+                                        return provider.logout();
+                                    })
+                                    .then(function (provider) {
+                                        assert.notOk(provider.hasCredential(), false,
+                                                     "hasCredential returns false after logout()");
+                                        assert.notOk(provider.hasRefreshToken(), false,
+                                                     "hasRefreshToken returns false after logout()");
+                                        assert.throws(
+                                            function () {
+                                                prov.refresh();
+                                            },
+                                            new Error("AuthenticationProvider: refresh was not executed " +
+                                                      "because the AuthenticationProvider is not " +
+                                                      "logged in."),
+                                            "Error is raised when calling refresh after logging out."
+                                        );
+
+                                    },
+                                        function () {
+                                            assert.ok(false, "refresh test failed");
+                                        })
+                                    .always(function () {
+                                        done();
+                                    });
+                            },  // questionable indentation insisted upon by Brackets
+                                1000);
+                        });
+                },  // questionable indentation insisted upon by Brackets
+                    1000);
+                
+            });
+    }
+
+
+    function negTestAuthenticationProviderRefresh(assert) {
+        var prov = sso.create(tokenURINoRefresh, authenticationModel),
+            done = assert.async(1);
+
+        assert.expect(5);
+        
+        assert.throws(
+            function () {
+                prov.refresh();
+            },
+            new Error("AuthenticationProvider: refresh was not executed because the " +
+                      "AuthenticationProvider is not logged in."),
+            "Error is raised when calling refresh and not logged in."
+        );
+        
+        sso.login(prov, username, password)
+            .then(function (provider) {
+                assert.notOk(provider.hasRefreshToken(), false,
+                             "hasRefreshToken returns false when server does not return a refresh token");
+                assert.throws(
+                    function () {
+                        prov.refresh();
+                    },
+                    new Error("AuthenticationProvider: Token refresh was not executed " +
+                              "because the AuthenticationProvider does not " +
+                              "have a refresh token."),
+                    "Error is raised when calling refresh when the server did not return a refresh token."
+                );
+                // delay a second so the server doesn't think that the new token value is the same as the old.
+                setTimeout(function () {
+                    provider.logout()
+                        .then(function (provider) {
+                            assert.notOk(provider.hasRefreshToken(), false,
+                                         "hasRefreshToken returns false after logout()");
+                            assert.throws(
+                                function () {
+                                    prov.refresh();
+                                },
+                                new Error("AuthenticationProvider: refresh was not executed " +
+                                          "because the AuthenticationProvider is not " +
+                                          "logged in."),
+                                "Error is raised when calling refresh after logging out."
+                            );
+
+                        },
+                            function () {
+                                assert.ok(false, "negative refresh test failed");
+                            })
+                        .always(function () {
+                            done();
+                        });
+                },  // questionable indentation insisted upon by Brackets
+                    1000);
+            });
+    }
+
+    
+    
     function testJSDOSessionConstructor(assert) {
         var prov = sso.create(tokenURI, authenticationModel),
             jsdoSettings = {
@@ -235,9 +307,8 @@
             .always(function () {
                 done();
             });
-                
     }
-
+    
     function negTestJSDOSessionLoginLogout(assert) {
         var prov = sso.create(tokenURI, authenticationModel),
             jsdoSettings = {
@@ -251,7 +322,6 @@
         assert.expect(2);
         sso.login(prov, username, password)
             .then(function (provider) {
-        
                 assert.throws(
                     function () {
                         sess.login(sess, username, password);
@@ -282,6 +352,141 @@
             .always(function () {
                 done();
             });
+    }
+
+    function testJSDOSessionAddCatalog(assert) {
+        var prov = sso.create(tokenURI, authenticationModel),
+            jsdoSettings = {
+                "serviceURI": serviceURI,
+                "authenticationModel": authenticationModel,
+                "authImpl": {"provider": prov}
+            },
+            sess = session.create(jsdoSettings),
+            done = assert.async(1);
+                
+        assert.expect(4);
+        
+        sso.login(prov, username, password)
+            .then(function (provider) {
+                return session.connect(sess, prov);
+            })
+            .then(function (jsdosession) {
+                assert.deepEqual(jsdosession.loginResult, 1, "loginResult should be 1 in connect handler");
+                return session.addCatalog(jsdosession, catalogURI, {authProvider: prov});
+            })
+            .then(function (jsdosession) {
+                assert.equal(jsdosession.catalogURIs[0], catalogURI,
+                             "catalogURI property in handler");
+                return session.disconnect(jsdosession);
+            })
+            .then(function (jsdosession) {
+                assert.deepEqual(jsdosession.loginResult,
+                             null,
+                             "loginResult should be null in disconnect handler");
+                return sso.logout(prov);
+            })
+            .then(function (provider) {
+                assert.notOk(provider.hasCredential(), "hasCredential should be false in logout handler");
+            },
+                function () {
+                    assert.ok(false, "connect test failed, should not have gotten here");
+                })
+            .always(function () {
+                session.clearCatalogData();
+                done();
+            });
+                
+    }
+
+    function testJSDOSessionAddCatalogNoConnect(assert) {
+        var prov = sso.create(tokenURI, authenticationModel),
+            jsdoSettings = {
+                "serviceURI": serviceURI,
+                "authenticationModel": authenticationModel,
+                "authImpl": {"provider": prov}
+            },
+            sess = session.create(jsdoSettings),
+            done = assert.async(1);
+                
+        assert.expect(2);
+        
+        sso.login(prov, username, password)
+            .then(function (prov) {
+                return session.addCatalog(sess, catalogURI, {authProvider: prov});
+            })
+            .then(function (jsdosession) {
+                assert.equal(jsdosession.catalogURIs[0], catalogURI,
+                             "catalogURI property in handler");
+                return sso.logout(prov);
+            })
+            .then(function (jsdosession) {
+                assert.notOk(prov.hasCredential(), "hasCredential should be false in logout handler");
+            },
+                function () {
+                    assert.ok(false, "addCatalog (no connect) test failed, should not have gotten here");
+                })
+            .always(function () {
+                session.clearCatalogData();
+                done();
+            });
+                
+    }
+
+
+    function negTestJSDOSessionAddCatalog(assert) {
+        var prov = sso.create(tokenURI, authenticationModel),
+            jsdoSettings = {
+                "serviceURI": serviceURI,
+                "authenticationModel": authenticationModel,
+                "authImpl": {"provider": prov}
+            },
+            sess = session.create(jsdoSettings),
+            done = assert.async(1),
+            deferred;
+                
+        assert.expect(5);
+        
+        assert.throws(
+            function () {
+                session.addCatalog(sess, 17, {authProvider: prov});
+            },
+            new Error(
+                "JSDOSession: Invalid signature for addCatalog. The catalogURI parameter " +
+                    "must be a string or an array of strings."
+            ),
+            "Error should be raised for passing auth provider without a token to addCatalog()."
+        );
+        assert.equal(sess.catalogURIs[0], undefined,
+                     "catalogURI property should be undefined in handler after error loading 1st catalog");
+   
+        sso.login(prov, username, password)
+            .then(function () {
+                assert.throws(
+                    function () {
+                        session.addCatalogOld(sess, catalogURI, username, password, {authProvider: prov});
+                    },
+                    new Error(
+                        "Session: Cannot pass username and password to addCatalog when " +
+                            "authenticationModel is SSO. Pass an AuthenticationProvider instead."
+                    ),
+                    "Error should be raised for passing username and password to addCatalog() when " +
+                        "authenticationModel is SSO."
+                );
+                assert.equal(sess.catalogURIs[0], undefined,
+                    "catalogURI property should be undefined in handler after error loading 1st catalog");
+                return sso.logout(prov);
+            })
+            .then(function (provider) {
+                assert.notOk(provider.hasCredential(), "hasCredential should be false in logout handler");
+            },
+                function () {
+                    assert.ok(false, "negative addCatalog test failed, should not have gotten here");
+                })
+            .always(function () {
+                session.clearCatalogData();
+                done();
+            });
+                
     }
 
     function testSpecSample(assert) {
@@ -362,30 +567,31 @@
         });
     }
         
-    testFramework.module("Module 1");
+    testFramework.module("Module 1, AuthenticationProvider");
     testFramework.test(
-        "AuthenticationProvider Constructor And Properties Tests",
+        "testAuthenticationProviderConstructorAndProperties: " +
+            "AuthenticationProvider Constructor And Properties Tests",
         testAuthenticationProviderConstructorAndProperties
     );
     
     testFramework.test(
-        "AuthenticationProvider Constructor Negative Tests",
+        "negTestAuthenticationProviderConstructor: AuthenticationProvider Constructor Negative Tests",
         negTestAuthenticationProviderConstructor
     );
 
-    
     testFramework.test(
-        "AuthenticationProvider Login Negative Tests",
-        negTestAuthenticationProviderLogin
-    );
-
-    testFramework.test(
-        "AuthenticationProvider Login Tests",
+        "testAuthenticationProviderLogin: AuthenticationProvider Login Tests",
         testAuthenticationProviderLogin
     );
     
     testFramework.test(
-        "AuthenticationProvider hasCredential and Logout Tests",
+        "negTestAuthenticationProviderLogin: AuthenticationProvider Login Negative Tests",
+        negTestAuthenticationProviderLogin
+    );
+
+    testFramework.test(
+        "testAuthenticationProviderLogoutAndHasCredential: AuthenticationProvider " +
+            "hasCredential and Logout Tests",
         testAuthenticationProviderLogoutAndHasCredential
     );
 
@@ -394,26 +600,48 @@
         testAuthenticationProviderRefresh
     );
 
-    
-    testFramework.module("Module 2");
     testFramework.test(
-        "JSDOSession Constructor Tests",
+        "AuthenticationProvider negative token refresh Tests",
+        negTestAuthenticationProviderRefresh
+    );
+
+    
+    testFramework.module("Module 2, JSDOSession");
+    testFramework.test(
+        "testJSDOSessionConstructor: JSDOSession Constructor Tests",
         testJSDOSessionConstructor
     );
 
     testFramework.test(
-        "JSDOSession connect and disconnect Tests (twice)",
+        "testJSDOSessionConnect: connect and disconnect twice",
         testJSDOSessionConnect
     );
 
     testFramework.test(
-        "JSDOSession login and logout negative tests",
+        "negTestJSDOSessionLoginLogout: JSDOSession login and logout negative tests " +
+            "calling them with SSO auth model)",
         negTestJSDOSessionLoginLogout
     );
 
+    testFramework.test(
+        "testJSDOSessionAddCatalog: addCatalog using Auth provider",
+        testJSDOSessionAddCatalog
+    );
 
     testFramework.test(
-        "sample code from the SSO spec",
+        "testJSDOSessionAddCatalogNoConnect: addCatalog using Auth provider without connecting first",
+        testJSDOSessionAddCatalogNoConnect
+    );
+
+    testFramework.test(
+        "negTestJSDOSessionAddCatalog: error conditions for addCatalog",
+        negTestJSDOSessionAddCatalog
+    );
+
+
+    testFramework.module("Module 3 - sample code");
+    testFramework.test(
+        "testSpecSample: sample code from the SSO spec",
         testSpecSample
     );
 

@@ -714,7 +714,7 @@ limitations under the License.
             partialPingURI = defaultPartialPingURI,
             needsReconnectAfterPageRefresh = false,
             _storageKey,
-            // initializ authImpl to null to indicate that we deliberatey want it not to have a value 
+            // initialize authImpl to null to indicate that we deliberately want it not to have a value 
             // except when connected
             _authImpl = null,
 
@@ -1289,7 +1289,12 @@ limitations under the License.
                 urlPlusCCID = this._addTimeStampToURL(urlPlusCCID);
             }
             
-            this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
+            if (this._authImpl) {
+                this._authImpl.openRequest(xhr, verb, urlPlusCCID);
+            } else {
+                this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
+            }
+            
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                 _addWithCredentialsAndAccept(xhr, "application/json");
             }
@@ -1360,9 +1365,8 @@ limitations under the License.
         // The method does this by doing a GET of a specific resource (<serviceURI>/static/home.html by
         // default, using the AuthenticationProvider passed in )
         // Parameters:
-        //      authProvider   (broken out separately from the others to reflect the JSDOSession.connect API)
-        //      args
-        //          .deferred  Deferred object created by caller, just attached to the xhr here
+        //      authProvider  AuthenticationProvider; will be kept by the Session if _connect suceeds 
+        //      deferred      Deferred object created by caller, just attached to the xhr here
         this._connect = function (authProvider, deferred) {
             var uriForRequest,   // "decorated" version of serviceURI, used to actually send the request
                 xhr,
@@ -1374,32 +1378,19 @@ limitations under the License.
                     "progress.data.Session: invalid argument(s) passed to _connect"));
             }
 
-            if (typeof authProvider === 'object') {
-                // Check if the provider exposes the required API.
-                // Our usage of hasCredential requires that if the developer implements their own provider, 
-                // it needs to have an hasCredential property.
-                if (typeof authProvider === 'object') {
-                    // Check if the provider exposes the required API.
-                    if (typeof authProvider.hasCredential === 'function') {
-                        if (!authProvider.hasCredential()) {
-                            // progress.data.Session: The AuthenticationProvider is not managing 
-                            //   valid credentials.
-                            throw new Error(progress.data._getMsgText("jsdoMSG125", "progress.data.Session"));
-                        }
-                    } else {
-                        // JSDOSession: AuthenticationProvider objects must contain a hasCredential method.
-                        throw new Error(progress.data._getMsgText("jsdoMSG506",
-                                                                  "progress.data.Session",
-                                                                  "AuthenticationProvider",
-                                                                  "hasCredential"));
-                    }
-                } else {
-                    // progress.data.Session: authenticationProvider must be of type object.
-                    throw new Error(progress.data._getMsgText("jsdoMSG121",
-                                                   "progress.data.Session",
-                                                   "authenticationProvider",
-                                                   "object"));
+            // Check if the provider exposes the required API.
+            if (typeof authProvider.hasCredential === 'function') {
+                if (!authProvider.hasCredential()) {
+                    // progress.data.Session: The AuthenticationProvider is not managing 
+                    //   valid credentials.
+                    throw new Error(progress.data._getMsgText("jsdoMSG125", "progress.data.Session"));
                 }
+            } else {
+                // JSDOSession: AuthenticationProvider objects must have a hasCredential method.
+                throw new Error(progress.data._getMsgText("jsdoMSG506",
+                                                          "progress.data.Session",
+                                                          "AuthenticationProvider",
+                                                          "hasCredential"));
             }
             
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
@@ -1419,16 +1410,13 @@ limitations under the License.
                 if (progress.data.Session._useTimeStamp) {
                     uriForRequest = this._addTimeStampToURL(uriForRequest);
                 }
-                this._setXHRCredentials(xhr, 'GET', uriForRequest, null, null, true);
+                
+                this._authImpl.openRequest(xhr, 'GET', uriForRequest);
 
                 xhr.setRequestHeader("Cache-Control", "no-cache");
                 xhr.setRequestHeader("Pragma", "no-cache");
                 // set X-CLIENT-PROPS header
                 setRequestHeaderFromContextProps(this, xhr);
-                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                    _addWithCredentialsAndAccept(xhr,
-                        "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-                }
 
                 xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                 xhr.onResponseFn = this._processConnectResult;
@@ -1456,6 +1444,7 @@ limitations under the License.
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
+                setAuthImpl(null);  // connect failed, so clear the authImpl
                 throw e;
             }
 
@@ -1494,12 +1483,11 @@ limitations under the License.
                 } else {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
                 }
+                setAuthImpl(null);  // connect failed, so clear the authImpl
             }
             setLastSessionXHR(xhr, pdsession);
             updateContextPropsFromResponse(pdsession, xhr);
 
-            // return loginResult even if it's an async operation -- the async handler
-            // (e.g., onReadyStateChangeGeneric) will just ignore
             return pdsession.loginResult;
         };
 
@@ -1509,43 +1497,34 @@ limitations under the License.
         };
         
         // Intended only for internal use by the JSDO library
-        // This method terminates the JSDOSession's ability to send requests to its serviceURI. 
-        // Remove the reference to the AuthenticationProvider that was passed to connect(). 
-        // Will be a no-op if connect() has not yet been called successfully.
-        // This method reinitializes the Session object back to the state it was in just after being created. 
-        // Retains the serviceURI, authenticationModel, and name values. 
-        // Delete any of the object's data that had been persisted (for example, to sessionStorage to support 
-        // page refresh). 
-        // Data for any catalogs loaded by the JSDOSession will NOT be deleted.
         // NOTE: disconnect does not currently send a request to the Web application for the Anonymous or 
-        // OE SSO models. 
-    // NEED TO DECIDE WHETHER DISCONNECT LOGS OUT OF FORM BASED WEB APPLICATIONS
+        // OE SSO models. It's conceivable, though unlikely, that it might. For that reason, the design is
+        // similar to the functions that DO make a server request. There is a "setup" function (this one)
+        // and a separate function to process the "result" (_processDisconnectResult, below). Currently the
+        // setup function is minimal and just calls _processDisconnectResult directly. If we ever do need to
+        // send a server request, _processDisconnectResult will be specified as the callback to be invoked
+        // from onReadyStateChangeGeneric. The possibility of this potential enhancement is the reason for
+        // the odd signature of _processDisconnectResult, which has a currently unused first parameter for 
+        // the potential XHR. 
         this._disconnect = function (deferred) {
-            var deferred;
 
             // Note: we use the "no harm, no foul" approach for disconnect. If you aren't connected, it's
             // regarded as a success rather than cause for throwing an error.
             this._processDisconnectResult(null, deferred);
-            
         };
         
 
-        // This is separate from _disconnect for cases in wghich _disconnect makes a server request. 
+        // This is separate from _disconnect for cases in which _disconnect makes a server request. 
         // If there has been a server request, xhr should be valid and deferred will be undefined
-        // If there was no server request, xhr will be undefined  and deferred will be valid
-        // Probably the only time thsi will be caleld as the result of a server request is with
+        // If there was no server request, xhr will be undefined  and deferred will be valid.
+        // If this needs to be enhanced to support server requests, see _procesLoginResponse as
+        // a general model
+        // Probably the only time this function will be called as the result of a server request is with
         // Form authentication, and even then it's questionable
         this._processDisconnectResult = function (xhr, deferred) {
-            var pdsession;
             
-            
-            if (xhr) {
-                // like processLogoutResult, e.g., pdsession = xhr._pdsession;
-            } else {
-                this._reinitializeAfterLogout(this, progress.data.Session.SUCCESS);
-                this._disconnectComplete(this, progress.data.Session.SUCCESS, null, null, deferred);
-            }
-            
+            this._reinitializeAfterLogout(this, progress.data.Session.SUCCESS);
+            this._disconnectComplete(this, progress.data.Session.SUCCESS, null, null, deferred);
         };
 
 
@@ -1594,9 +1573,9 @@ limitations under the License.
 
             if (arguments.length > 0) {
                 if (arguments[0] && typeof(arguments[0]) === 'object') {
-                    // note that we used to execute the code inside this "if" only if arguments[0].serviceURI
-                    // was present. Now we do it unconditionally, because when the JSDOSession uses a Session
-                    // internally, it passes serviceURI to the constructor
+                    // Note that arguments[0].serviceURI may be undefined because when the JSDOSession
+                    // uses a Session internally, it passes serviceURI to the constructor. The other
+                    // properties may be present, though
                     args[0] = arguments[0].serviceURI;
                     args[1] = arguments[0].userName;
                     args[2] = arguments[0].password;
@@ -2033,7 +2012,7 @@ limitations under the License.
                 params;
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // Session: Called login() when authenticationModel is SSO. Use connect() instead.
+                // Session: Called logout() when authenticationModel is SSO. Use disconnect() instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'logout()', "disconnect()")); 
             }
             
@@ -2065,7 +2044,6 @@ limitations under the License.
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-                    this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO ||
                     this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
@@ -2074,16 +2052,8 @@ limitations under the License.
                     }
                     
                     
-                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                        // Even though we don't call _setXHRCredentials on logout for the other 
-                        // auth models, it does exactly what we need for SSO, so call it for that case
-                        this._setXHRCredentials(xhr, 'GET', 
-                                                this.serviceURI + "/static/auth/j_spring_security_logout", 
-                                                null, null, isAsync);
-                    } else {
-                        xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
-                    }
-                    
+                    xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
+
                     /* instead of calling _addWithCredentialsAndAccept, we code the withCredentials
                      * and setRequestHeader inline so we can do it slightly differently. That
                      * function deliberately sets the request header inside the try so we don't
@@ -2094,8 +2064,8 @@ limitations under the License.
                      */
                     try {
                         xhr.withCredentials = true;
-                    } catch (e) {
-                        
+                    }
+                    catch (e) {
                     }
 
                     xhr.setRequestHeader("Accept", "application/json");
@@ -2119,10 +2089,12 @@ limitations under the License.
 
                     setLastSessionXHR(xhr, this);
                     xhr.send();
-                } else {
+                }
+                else {
                     xhr._anonymousLogoutOK = true;
                 }
-            } catch (e) {
+            }
+            catch (e) {
                 this._reinitializeAfterLogout(this, false);
                 throw e;
             }
@@ -2229,7 +2201,8 @@ limitations under the License.
                 xhr,
                 deferred,
                 iOSBasicAuthTimeout,
-                catalogIndex;
+                catalogIndex,
+                authImpl;
 
             // check whether the args were passed in a single object. If so, copy them
             // to the named arguments and a variable
@@ -2272,6 +2245,7 @@ limitations under the License.
                         throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
                             'The iOSBasicAuthTimeout argument was invalid.'));
                     }
+                    authImpl = arguments[0].authImpl;
                     
                     /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
                         deferred, jsdosession, and catalogIndex and we need to eventually attach them to the 
@@ -2299,6 +2273,15 @@ limitations under the License.
                 throw new Error("Session.addCatalog is missing its first argument, the URL of the catalog.");
             }
 
+            if (!authImpl) {
+                authImpl = this._authImpl;
+            }
+            
+        // TODO: we expect that there will always be an authImpl if a login has been done. Therefore,
+        // we don't need to set catalogUsername and catalogPassword if they aren't passed in. What we should
+        // do here, when we extend the AuthenticationPrivider API for the older auth models, is take
+        // any uname and pw passed in and create an auth provider, log in to the catalogURI with it, 
+        // create an authImpl, and then fetch the catalog.
             if (!catalogUserName) {
                 catalogUserName = this.userName;
             }
@@ -2333,10 +2316,14 @@ limitations under the License.
                 return progress.data.Session.CATALOG_ALREADY_LOADED;
             }
 
-            this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
-            // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
-            // be stored with the REST app and even if it is, the AppServer ID shouldn't be relevant
-
+            if (authImpl) {
+                authImpl.openRequest(xhr, 'GET', catalogURI);
+            } else {
+                this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
+                // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
+                // be stored with the REST app and even if it is, the AppServer ID shouldn't be relevant
+            }
+            
             /* This is here as much for CORS situations as the possibility that there might be an out of date
              * cached version of the catalog. The CORS problem happens if you have accessed the catalog
              * locally and then run an app on a different server that requests the catalog. 
@@ -2874,7 +2861,11 @@ limitations under the License.
         this._sendPing = function (args) {
             var xhr = new XMLHttpRequest();
             try {
-                this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+                if (this._authImpl) {
+                    this._authImpl.openRequest(xhr, 'GET', args.pingURI);
+                } else {
+                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+                }
                 if (args.async) {
                     xhr.onreadystatechange = args.onReadyStateFn;
                     xhr.onCompleteFn = args.onCompleteFn;
@@ -2916,27 +2907,16 @@ limitations under the License.
         };
 
 
+    // TODO for API revamp: get rid of this method and replace it with implementations
+    //    of AUthenticationImplementation.openRequest that are specific to the 
+    //    auth models (assuming we can use some sort of subclassing or interface design)
+    //   (and when we remove this, remove the calls to it in this file)
         /*   _setXHRCredentials  (intended for progress.data library use only)
          *  set credentials as needed, both via the xhr's open method and setting the
          *  Authorization header directly
          */
         this._setXHRCredentials = function (xhr, verb, uri, userName, password, async) {
 
-            // if using SSO, just add the token and ignore the rest of this method
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                xhr.open(verb, uri, async);
-                this._authImpl.addTokenToRequest(xhr);
-
-                // We specify application/json for the response so that, if a bad token is sent, an 
-                // OE Web application that's based on Form auth will directly send back a 401.
-                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
-                // user agent handles by getting login.jsp and returning it to our code with a status
-                // of 200. We could infer that authentication failed from that, but it's much cleaner this 
-                // way.
-                xhr.setRequestHeader("Accept", "application/json");
-
-                return;
-            }            
             // note that we do not set credentials if userName is null. 
             // Null userName indicates that the developer is depending on the browser to
             // get and manage the credentials, and we need to make sure we don't interfere with that
@@ -3340,14 +3320,6 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_SSO', {
             value: "sso", enumerable: true
         });
- 
-        Object.defineProperty(progress.data.Session, 'HTTP_HEADER', {
-            value: "header", enumerable: true
-        }); 
-        
-        Object.defineProperty(progress.data.Session, 'DEFAULT_TOKEN_HEADER_NAME', {
-            value: "Authorization", enumerable: true
-        }); 
         
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
@@ -3789,6 +3761,15 @@ limitations under the License.
             }
         };
 
+        // This method terminates the JSDOSession's ability to send requests to its serviceURI. 
+        // Remove the reference to the AuthenticationProvider that was passed to connect(). 
+        // Will be a no-op if connect() has not yet been called successfully.
+        // This method reinitializes the Session object back to the state it was in just after being created. 
+        // Retains the serviceURI, authenticationModel, and name values. 
+        // Delete any of the object's data that had been persisted (for example, to sessionStorage to support 
+        // page refresh). 
+        // Data for any catalogs loaded by the JSDOSession will NOT be deleted.
+        // See additional commecnts at the Session._disconnect method.
         this.disconnect = function () {
             var deferred = $.Deferred(),
                 errorObject;
@@ -3810,32 +3791,59 @@ limitations under the License.
             }
         };
 
-        this.addCatalog = function( catalogURI, username, password, options ){
+        this.addCatalog = function (catalogURI, unameOrOpts, password, opts) {
             var deferred = $.Deferred(),
                 catalogURIs,
                 numCatalogs,
                 catalogIndex,
                 addResult,
                 errorObject,
-                iOSBasicAuthTimeout;
+                iOSBasicAuthTimeout,
+                username,
+                options,
+                authImpl;
 
             // check whether 1st param is a string or an array
-            if ( typeof catalogURI == "string" ) {
-                catalogURIs = [ catalogURI ];
-            }
-            else if ( catalogURI instanceof Array ) {
+            if (typeof catalogURI === "string") {
+                catalogURIs = [catalogURI];
+            } else if (catalogURI instanceof Array) {
                 catalogURIs = catalogURI;
-            }
-            else {
-                throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "addCatalog", 
-                       "The catalogURI parameter must be a string or an array of strings.") );
+            } else {
+                throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "addCatalog",
+                       "The catalogURI parameter must be a string or an array of strings."));
             }
 
-            /* see whether the caller wants to override the workaround for the Cordova iOS async 
-             * Basic auth bug
-             */
-            if ( typeof(options) === 'object' ) {
+            // type check the 2nd param if it exists
+            if (unameOrOpts) {
+                if (typeof unameOrOpts === "string") {
+                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                        // Session: Cannot pass username and password to addCatalog when 
+                        // authenticationModel is SSO. Pass an AuthenticationProvider instead.
+                        throw new Error(progress.data._getMsgText("jsdoMSG058", 'Session'));
+                    }
+                    username = unameOrOpts;
+                    // explictly ignore any authProvider if using the (catURI, uname, pw, options) signature
+                    if (opts) {
+                        options = opts;
+                        options.authProvider = undefined;
+                    }
+                } else if (typeof unameOrOpts === "object") {
+                    options = unameOrOpts;
+                } else {
+                    // JSDOSession: Argument 2 must be of type object in addCatalog call.
+                    throw new Error(progress.data._getMsgText("jsdoMSG121", "JSDOSession", "2",
+                                                   "object", "addCatalog"));
+                }
+            }
+
+            if (typeof options === 'object') {
+                // possible override for the workaround for the Cordova iOS async Basic auth bug
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
+                if (options.authProvider) {
+                    authImpl = new progress.data.AuthenticationImplementation(options.authProvider);
+                } else if (this.authImpl) {
+                    authImpl = this.authImpl;
+                }
             }
             
             /* When we're done processing all catalogs, we pass an array of results to resolve() or
@@ -3881,9 +3889,10 @@ limitations under the License.
                                          userName : username,
                                          password : password,
                                          deferred : deferred,
-                                         catalogIndex: catalogIndex,
-                                         iOSBasicAuthTimeout: iOSBasicAuthTimeout,
-                                         offlineAddCatalog: true } );  // OK to get catalog if offline
+                                         catalogIndex : catalogIndex,
+                                         iOSBasicAuthTimeout : iOSBasicAuthTimeout,
+                                         authImpl : authImpl,
+                                         offlineAddCatalog : true } );  // OK to get catalog if offline
                 }
                 catch (e) {
                     errorObject = new Error("JSDOSession: Unable to send addCatalog request. " + e.message);

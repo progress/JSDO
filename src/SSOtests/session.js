@@ -8,6 +8,14 @@ session = {
                 
         return new progress.data.JSDOSession(settings);
     },
+    clearCatalogData: function () {
+        "use strict";
+                
+        progress.data.ServicesManager._services = [];
+        progress.data.ServicesManager._resources = [];
+        progress.data.ServicesManager._data = [];
+        progress.data.ServicesManager._sessions = [];
+    },
     connect: function (jsdosession, provider) {
         "use strict";
         
@@ -16,8 +24,8 @@ session = {
         jsdosession.connect(provider)
             .then(function (jsdosession) {
                 deferred.resolve(jsdosession);
-            }, function () {
-                deferred.reject();
+            }, function (jsdosession, result, info) {
+                deferred.reject(jsdosession, result, info);
             });
             
         return deferred.promise();
@@ -46,6 +54,34 @@ session = {
                 deferred.resolve(jsdosession);
             }, function () {
                 deferred.reject();
+            });
+            
+        return deferred.promise();
+    },
+    addCatalog: function (jsdosession, catalogURI, options) {
+        "use strict";
+        
+        var deferred = $.Deferred();
+
+        jsdosession.addCatalog(catalogURI, options)
+            .then(function (session, result, details) {
+                deferred.resolve(session, result, details);
+            }, function (session, result, details) {
+                deferred.reject(session, result, details);
+            });
+            
+        return deferred.promise();
+    },
+    addCatalogOld: function (jsdosession, catalogURI, username, password, options) {
+        "use strict";
+        
+        var deferred = $.Deferred();
+        
+        jsdosession.addCatalog(catalogURI, username, password, options)
+            .then(function (session, result, details) {
+                deferred.resolve(session, result, details);
+            }, function (session, result, details) {
+                deferred.reject(session, result, details);
             });
             
         return deferred.promise();

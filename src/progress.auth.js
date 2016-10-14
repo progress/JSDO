@@ -564,6 +564,18 @@ limitations under the License.
         this._getToken = function () {
             return retrieveToken();
         };
+
+        this.addCredentialToRequest = function (xhr, consumer) {
+            if (this.hasCredential()) {
+                consumer.addCredentialToRequest(
+                    xhr,
+                    {token: this._getToken()}
+                );
+            } else {
+                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                throw new Error(progress.data._getMsgText("jsdoMSG125"));
+            }
+        };
     };
 
 
@@ -577,26 +589,32 @@ limitations under the License.
         };
     
         // Create a function where we add the token to the header
-        this.addTokenToRequest = function (xhr, token) {
+        this.addCredentialToRequest = function (xhr, options) {
             xhr.setRequestHeader(
                 tokenRequestDescriptor.headerName,
-                "oecp " + token
+                "oecp " + options.token
             );
         };
     };
 
     // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
-    progress.data.AuthenticationImplementation = function(authProvider) {
+    progress.data.AuthenticationImplementation = function (authProvider) {
         this.provider = authProvider;
         
         this.consumer = new progress.data.AuthenticationConsumer();
         
-        this.addTokenToRequest = function (xhr) {
+        this.openRequest = function (xhr, verb, uri, options) {
             if (this.provider.hasCredential()) {
-                this.consumer.addTokenToRequest(
-                    xhr,
-                    this.provider._getToken()
-                );
+                xhr.open(verb, uri, true);  // always use async for SSO
+                this.provider.addCredentialToRequest(xhr, this.consumer);
+
+                // We specify application/json for the response so that, if a bad token is sent, an 
+                // OE Web application that's based on Form auth will directly send back a 401.
+                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
+                // user agent handles by getting login.jsp and returning it to our code with a status
+                // of 200. We could infer that authentication failed from that, but it's much cleaner this 
+                // way.
+                xhr.setRequestHeader("Accept", "application/json");
             } else {
                 // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
                 throw new Error(progress.data._getMsgText("jsdoMSG125"));
