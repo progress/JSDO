@@ -41,24 +41,28 @@ limitations under the License.
             that = this,
             storage,  // ref to what we use to store session state and token data (currently sessionStorage)
             storageKey,
-            tokenDataKeys = {
+            tempURI,
+            loginURIsegment = "/static/auth/j_spring_security_check?OECP=yes",
+            loginURI,
+            logoutURIsegment = "/static/auth/j_spring_security_logout",
+            logoutURI,
+            loggedIn = false,  // (use this flag because we can't assume that hasCredential() tells us
+                               // whether we're logged in ---  for SSO, it's possible that the token server
+                               // authentication succeeded but we didn't get back a token)
+            // SSO specific
+            ssoTokenInfo = null,
+            tokenDataKeys = {    // SSO specific 
                 token: ".access_token",
                 refreshToken: ".refresh_token",
                 tokenType: ".token_type",
                 expiration: ".expires_in"
             },
-            tempURI,
-            loginURIsegment = "/static/auth/j_spring_security_check?OECP=yes",
-            loginURI,
-            refreshURIsegment = "/static/auth/token?op=refresh",
-            refreshURI,
-            logoutURIsegment = "/static/auth/j_spring_security_logout",
-            logoutURI,
-            ssoTokenInfo = null,
-            loggedIn = false;  // (because there may be times when we don't have a credential but we are logged in)
+            refreshURIsegment = "/static/auth/token?op=refresh",   // SSO specific
+            refreshURI;              // SSO specific
         
         // PRIVATE FUNCTIONS
 
+        // SSO specific, though possibly other models would need something for storing credentials
         // Store the given token with the uri as the key. setItem() throws
         // a "QuotaExceededError" error if there is insufficient storage space or 
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
@@ -70,13 +74,14 @@ limitations under the License.
                 storage.setItem(tokenDataKeys.refreshToken,  JSON.stringify(info.refresh_token));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
-                // we got a new token via refresh, but now we're not being given another refersh token
+                // we got a new token via refresh, but now we're not being given any more refersh tokens
                 storage.removeItem(tokenDataKeys.refreshToken);
             }
             storage.setItem(tokenDataKeys.tokenType,  JSON.stringify(info.token_type));
             storage.setItem(tokenDataKeys.expiration,  JSON.stringify(info.expires_in));
         }
 
+        // probably SSO specific
         // get one of the pieces of data related to tokens from storage (could be the token itself, or
         // the refresh token, expiration info, etc.). Returns null if the item isn't in storage
         function retrieveTokenProperty(propName) {
@@ -93,23 +98,29 @@ limitations under the License.
             return value;
         }
 
+        // probably SSO specific
         function retrieveToken() {
             return retrieveTokenProperty(tokenDataKeys.token);
         }
 
+        // SSO specific
         function retrieveRefreshToken() {
             return retrieveTokenProperty(tokenDataKeys.refreshToken);
         }
         
 
+        // probably SSO specific
         function retrieveTokenType() {
             return retrieveTokenProperty(tokenDataKeys.tokenType);
         }
 
+        // probably SSO specific
         function retrieveExpiration() {
             return retrieveTokenProperty(tokenDataKeys.expiration);
         }
 
+        // probably SSO specific, but maybe could be named something like "clearCredentialStore"
+        // and used for all models (no op for some)
         function clearTokenInfo(info) {
             storage.removeItem(tokenDataKeys.token);
             storage.removeItem(tokenDataKeys.refreshToken);
@@ -117,7 +128,8 @@ limitations under the License.
             storage.removeItem(tokenDataKeys.expiration);
         }
 
-        // put the internal state back to where it is when the coinstructor finishes running
+        // implementation is SSO specific
+        // put the internal state back to where it is when the constructor finishes running
         function reinitialize() {
             if (authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 clearTokenInfo();
@@ -126,22 +138,25 @@ limitations under the License.
             }
         }
         
+        // implementation may be SSO specific, depends on the headers they need
         function openLoginRequest(xhr) {
-            xhr.open('POST',  loginURI, true);
+            xhr.open('POST', loginURI, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.setRequestHeader("Cache-Control", "max-age=0");
             xhr.withCredentials = true;
             xhr.setRequestHeader("Accept", "application/json");
         }
 
+        // implementation is SSO specific
         function processLoginResult(xhr, deferred) {
             var errorObject,
                 result,
                 ssoTokenJSON;
 
             if (xhr.status === 200) {
-                // Need to set loggedIn now so we can call logout if there's an error processing the response.
-                //  (in which case we will also set this back to false in reinitialize )
+                // Need to set loggedIn now so we can call logout from here if there's an
+                // error processing the response (e.g., authentication succeeded but we didn't get a
+                // token for some reason)
                 loggedIn = true;
                 // get token and store it; if that goes well, resolve the promise, otherwise reject it
                 try {
@@ -150,7 +165,7 @@ limitations under the License.
                     if (ssoTokenInfo.access_token) {
                         storeTokenInfo(ssoTokenInfo);
                         // got the token info, its access_token has a value, and storeTokenInfo()
-                        //  didn't thrown an error, so call this a success
+                        //  didn't throw an error, so call this a success
                         result = progress.data.Session.SUCCESS;
                     } else {
                         result = progress.data.Session.GENERAL_FAILURE;
@@ -177,6 +192,7 @@ limitations under the License.
                         
                 // log out if there was an error processing the response so the app can try to log in again
                 if (result !== progress.data.Session.SUCCESS) {
+                    // call logout, but ignore its outcome -- just tell caller that login failed
                     that.logout()
                         .always(function () {
                             deferred.reject(
@@ -184,7 +200,7 @@ limitations under the License.
                                 result,
                                 {
                                     errorObject : errorObject,
-                                    xhr: xhr   // should be the xhr used for the refresh(), not the logout()
+                                    xhr: xhr   // should be the xhr used for the login(), not the logout()
                                 }
                             );
                         });
@@ -218,6 +234,7 @@ limitations under the License.
             }
         }
 
+        // function is SSO specific
         function openRefreshRequest(xhr) {
             xhr.open('POST',  refreshURI, true);
             xhr.setRequestHeader("Cache-Control", "max-age=0");
@@ -226,6 +243,7 @@ limitations under the License.
             xhr.setRequestHeader("Accept", "application/json");
         }
 
+        // function is SSO specific
         function processRefreshResult(xhr, deferred) {
             var errorObject,
                 result,
@@ -264,7 +282,7 @@ limitations under the License.
                     ));
                 }
             } else if (xhr.status === 401) {
-                reinitialize();  // treat authentictaion failure as the equivalent of a logout
+                reinitialize();  // treat authentication failure as the equivalent of a logout
                 result = progress.data.Session.AUTHENTICATION_FAILURE;
             } else {
                 result = progress.data.Session.GENERAL_FAILURE;
@@ -290,6 +308,7 @@ limitations under the License.
             }
         }
 
+        // implementation may be SSO specific, but would at least apply to Form as well
         function openLogoutRequest(xhr) {
             xhr.open('GET',  logoutURI, true);
             xhr.setRequestHeader("Cache-Control", "max-age=0");
@@ -297,13 +316,18 @@ limitations under the License.
             xhr.setRequestHeader("Accept", "application/json");
         }
 
+        
+        // implementation probably SSO specific (tho maybe not), but would at least apply to Form as well
         function processLogoutResult(xhr, deferred) {
             var result;
 
             if (xhr.status === 200) {
                 result = progress.data.Session.SUCCESS;
             } else if (xhr.status === 401) {
-                result = progress.data.Session.AUTHENTICATION_FAILURE;
+                // treat this as a success because the most likely cause is that the session expired
+                // (Note that an 11.7 OE PAS Web application will return a 200 if we log out with
+                // an expired JSESSIONID, so this code may not be executed anyway)
+                result = progress.data.Session.SUCCESS;
             } else {
                 result = progress.data.Session.GENERAL_FAILURE;
             }
@@ -348,12 +372,11 @@ limitations under the License.
             
         // process the constructor arguments
         if (typeof uriParam !== "string") {
-            // {1}: Argument {2} must be of type {3} in {4} call.
+            // AuthenticationProvider: Argument 1 must be of type string in constructor call.
             throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
                                            "string", "constructor"));
         } else if (uriParam.length === 0) {
-            // "AuthenticationProvider: '' is an invalid value for the uri 
-            //     parameter in constructor call."
+            // AuthenticationProvider: '' is an invalid value for the uri parameter in constructor call.
             throw new Error(progress.data._getMsgText(
                 "jsdoMSG504",
                 "AuthenticationProvider",
@@ -376,11 +399,7 @@ limitations under the License.
             logoutURI = tempURI + logoutURIsegment;
         }
         
-        if (typeof authModelParam !== "string") {
-            // {1}: Argument {2} must be of type {3} in {4} call.
-            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "2",
-                                           "string", "constructor"));
-        } else {
+        if (typeof authModelParam === "string") {
             authModelParam = authModelParam.toLowerCase();
             switch (authModelParam) {
             // case progress.data.Session.AUTH_TYPE_FORM :
@@ -388,7 +407,7 @@ limitations under the License.
             // case progress.data.Session.AUTH_TYPE_ANON :
             case progress.data.Session.AUTH_TYPE_SSO:
                 authenticationModel = authModelParam;
-                // for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
+                // future: for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
 
                 break;
             default:
@@ -402,9 +421,15 @@ limitations under the License.
                     "constructor"
                 ));
             }
+        } else {
+            // AuthenticationProvider: Argument 2 must be of type string in constructor call.
+            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "2",
+                                           "string", "constructor"));
         }
-        
-    // SSO specific    
+
+        // this section is SSO specific, tho we should do something like this for page refresh (if we think
+        // it's possible for sessionStorage to be missing in an environemnt in which 
+        // anyone would use page refresh)
         if (typeof sessionStorage === "undefined") {
             // "AuthenticationProvider: No support for sessionStorage."
             throw new Error(progress.data._getMsgText("jsdoMSG126",
@@ -428,12 +453,13 @@ limitations under the License.
 
         // METHODS
         
+        // Probably the only SSO specific thing is the parameter passed to the send() call 
         this.login = function (userName, password) {
             var deferred = $.Deferred(),
                 xhr;
 
             if (userName && typeof userName !== "string") {
-                // {1}: Argument {2} must be of type {3} in {4} call.
+                // AuthenticationProvider: Argument 1 must be of type string in login call.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG121",
                     "AuthenticationProvider",
@@ -442,7 +468,7 @@ limitations under the License.
                     "login"
                 ));
             } else if (userName.length === 0) {
-                //    {1}: '{2}' cannot be an empty string.
+                //  AuthenticationProvider: userName cannot be an empty string.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG501",
                     "AuthenticationProvider",
@@ -451,7 +477,7 @@ limitations under the License.
             }
             
             if (password && typeof password !== "string") {
-                // {1}: Argument {2} must be of type {3} in {4} call.
+                // AuthenticationProvider: Argument 2 must be of type string in login call.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG121",
                     "AuthenticationProvider",
@@ -460,7 +486,7 @@ limitations under the License.
                     "login"
                 ));
             } else if (password.length === 0) {
-               // {1}: '{2}' cannot be an empty string.
+               // AuthenticationProvider: 'password' cannot be an empty string.
                 throw new Error(progress.data._getMsgText(
                     "jsdoMSG501",
                     "AuthenticationProvider",
@@ -469,7 +495,8 @@ limitations under the License.
             }
             
             if (loggedIn) {
-                // "The login method was not executed because the AuthenticationProvider is already logged in." 
+                // "The login method was not executed because the AuthenticationProvider is 
+                // already logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
             }
 
@@ -488,26 +515,28 @@ limitations under the License.
             return deferred.promise();
         };
         
+        // SSO specific
         this.refresh = function () {
             var deferred = $.Deferred(),
                 xhr;
 
             if (this.authenticationModel !== progress.data.Session.AUTH_TYPE_SSO) {
-                // "{1}: Token refresh() was not executed because the authentication model is not SSO." 
+                // AuthenticationProvider: Token refresh() was not executed because the authentication 
+                // model is not SSO.
                 throw new Error(progress.data._getMsgText("jsdoMSG055", "AuthenticationProvider"));
             }
-            
+
             if (!loggedIn) {
                 // "The refresh method was not executed because the AuthenticationProvider is not logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "refresh"));
             }
-            
+
             if (!this.hasRefreshToken()) {
                 // "Token refresh was not executed because the AuthenticationProvider does not have a 
                 // refresh token." 
                 throw new Error(progress.data._getMsgText("jsdoMSG054", "AuthenticationProvider"));
             }
-            
+
             xhr = new XMLHttpRequest();
             openRefreshRequest(xhr);
 
@@ -522,7 +551,8 @@ limitations under the License.
                       retrieveRefreshToken() + '"}');
             return deferred.promise();
         };
-        
+
+        // may be SSO specific only because of the xhr.send (tho we would need that for Form and maybe Basic)
         this.logout = function () {
             var deferred = $.Deferred(),
                 xhr;
@@ -532,7 +562,8 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "logout"));
             }
             
-            // Unconditionally reinitialize. If the server request fails, that doesn't matter
+            // Unconditionally reinitialize --- even if the actual server request fails, we still want
+            // to reset this AuthenticationProvider so it can try a login if desired
             // (In the future we can add a parameter that controls whether the reinit is unconditional)
             reinitialize();
             
@@ -550,14 +581,17 @@ limitations under the License.
             return deferred.promise();
         };
         
+        // implementation is SSO specific
         this.hasCredential = function () {
             return (retrieveToken() === null ? false : true);
         };
 
+        // sso specific
         this.hasRefreshToken = function () {
             return (retrieveRefreshToken() === null ? false : true);
         };
 
+        // SSO specific
         // This is going to be hardcoded for now. This can very 
         // possibly change in the future if we decide to expose 
         // the token to the user.
@@ -565,6 +599,7 @@ limitations under the License.
             return retrieveToken();
         };
 
+        // implementation is SSO specific
         this.addCredentialToRequest = function (xhr, consumer) {
             if (this.hasCredential()) {
                 consumer.addCredentialToRequest(
@@ -580,6 +615,7 @@ limitations under the License.
 
 
     // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
+    // implementation is SSO specific
     progress.data.AuthenticationConsumer = function (options) {
         var tokenRequestDescriptor;
 
@@ -598,6 +634,7 @@ limitations under the License.
     };
 
     // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
+    // the application/json request header may be SSO specific
     progress.data.AuthenticationImplementation = function (authProvider) {
         this.provider = authProvider;
         
@@ -616,6 +653,7 @@ limitations under the License.
                 // way.
                 xhr.setRequestHeader("Accept", "application/json");
             } else {
+                // This message is SSO specific, unless we can come up with a more general message 
                 // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
                 throw new Error(progress.data._getMsgText("jsdoMSG125"));
             }

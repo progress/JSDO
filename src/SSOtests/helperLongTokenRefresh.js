@@ -13,54 +13,8 @@
                     catalogURIs: "http://nbbedwhenshaw3:8810/TokenConsumer/static/TokenConsumerService.json"
             };
 
-
-
-    // Note: this test takes 80 seconds to run
-    // test what happens when the http session that binds the Auth Provider to the token server
-    // expires (NOT the token itself -- this is about the JSESSIONID returned from Auth prov's login)
-    function testAuthenticationProviderExpiredServerSession(assert) {
-        var prov = sso.create(tokenURIShort, authenticationModel),
-            done = assert.async(1);
-
-        assert.expect(5);
-        
-        sso.login(prov, username, password)
-            .then(function (provider) {
-                assert.ok(provider.hasCredential(), "login() succeeded, provider has token");
-            
-                // delay longer than the timeout period for the Token server session
-                setTimeout(function () {
-                    sso.refresh(provider)
-                        .then(function (provider) {
-                            assert.ok(false, "refresh() should have failed due to session timeout");
-                        },
-                            function () {
-                                assert.ok(true, "refresh failed after session timeout");
-                                assert.notOk(provider.hasCredential(),
-                                             "provider has no credential after refresh failed due to " +
-                                             "session having timed out.");
-                                return sso.login(provider, username, password);
-                            })
-                        .then(function (provider) {
-                            assert.ok(provider.hasCredential(),
-                                      "login() succeeded after refresh failed due to timeout");
-                            return sso.logout(provider);
-                        })
-                        .then(function (provider) {
-                            assert.notOk(provider.hasCredential(),
-                                      "logout() succeeded, no credential now");
-                        })
-                        .always(function () {
-                            done();
-                        });
-                },
-                    80000);
-                
-            });
-    }
-
     
-    // This tests token refresh by calling refersh() in response to an error happening on a JSDO request.
+    // This tests token refresh by calling refresh() in response to an error happening on a JSDO request.
     // There is a simpler refresh test in the general set of SSO unit tests, but this is a little bit 
     // closer to the expected use case for token refresh.
     function refreshTokenTest(assert) {
@@ -190,6 +144,99 @@
         }
     }
     
+
+    // Note: this test takes 80 seconds to run
+    // test what happens when the http session that binds the Auth Provider to the token server
+    // expires (NOT the token itself -- this is about the JSESSIONID returned from Auth prov's login)
+    function testAuthenticationProviderExpiredServerSession(assert) {
+        var prov = sso.create(tokenURIShort, authenticationModel),
+            done = assert.async(1);
+
+        assert.expect(5);
+        
+        sso.login(prov, username, password)
+            .then(function (provider) {
+                assert.ok(provider.hasCredential(), "login() succeeded, provider has token");
+            
+                // delay longer than the timeout period for the Token server session
+                setTimeout(function () {
+                    sso.refresh(provider)
+                        .then(function (provider) {
+                            assert.ok(false, "refresh() should have failed due to session timeout");
+                        },
+                            function () {
+                                assert.ok(true, "refresh failed after session timeout");
+                                assert.notOk(provider.hasCredential(),
+                                             "provider has no credential after refresh failed due to " +
+                                             "session having timed out.");
+                                return sso.login(provider, username, password);
+                            })
+                        .then(function (provider) {
+                            assert.ok(provider.hasCredential(),
+                                      "login() succeeded after refresh failed due to timeout");
+                            return sso.logout(provider);
+                        })
+                        .then(function (provider) {
+                            assert.notOk(provider.hasCredential(),
+                                      "logout() succeeded, no credential now");
+                        })
+                        .always(function () {
+                            done();
+                        });
+                },
+                    80000);
+                
+            });
+    }
+
+    // Note: this test takes 80 seconds to run
+    // test what happens when AuthenticationProvider.logout is called after the http session that binds
+    // the Auth Provider to the token server expires
+    function testExpiredServerSessionOnLogout(assert) {
+        var prov = sso.create(tokenURIShort, authenticationModel),
+            done = assert.async(1);
+
+        assert.expect(5);
+        
+        sso.login(prov, username, password)
+            .then(function (provider) {
+                assert.ok(provider.hasCredential(), "login() succeeded, provider has token");
+            
+                // delay longer than the timeout period for the Token server session
+                setTimeout(function () {
+                    sso.logout(provider)
+                        .then(function (provider) {
+                            assert.ok(true, "logout() succeeded despite session timeout");
+                            assert.notOk(provider.hasCredential(),
+                                         "provider has no credential after logout failed due to " +
+                                         "session having timed out.");
+                            return sso.login(provider, username, password);
+                        },
+                            function () {
+                                assert.ok(false, "logout failed after session timeout");
+                                assert.notOk(provider.hasCredential(),
+                                             "provider has no credential after logout failed due to " +
+                                             "session having timed out.");
+                                return sso.login(provider, username, password);
+                            })
+                        .then(function (provider) {
+                            assert.ok(provider.hasCredential(),
+                                      "login() succeeded after logout failed due to timeout");
+                            return sso.logout(provider);
+                        })
+                        .then(function (provider) {
+                            assert.notOk(provider.hasCredential(),
+                                      "logout() succeeded, no credential now");
+                        })
+                        .always(function () {
+                            done();
+                        });
+                },
+                    80000);
+                
+            });
+    }
+
     
     testFramework.module("Module 3 -- Token Refresh Extras");
     testFramework.test(
@@ -203,4 +250,10 @@
         testAuthenticationProviderExpiredServerSession
     );
     
+    // Note: this test takes 80 seconds to run
+    testFramework.test(
+        "AuthenticationProvider test of logout with expired token server session",
+        testExpiredServerSessionOnLogout
+    );
+
 }());
