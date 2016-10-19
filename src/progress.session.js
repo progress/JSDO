@@ -7,9 +7,9 @@ Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
- 
+
     http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -911,23 +911,20 @@ limitations under the License.
                         return _pingInterval;
                     },
                     set: function (newval) {
-                        if ( (typeof newval === "number") && (newval >= 0) ) {
+                        if (newval >= 0) {
                             _pingInterval = newval;
                             storeSessionInfo("pingInterval", newval);
                             if (newval > 0) {
-                                // if we're logged in, start autopinging
-                                if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                                    _timeoutID = setTimeout(this._autoping, newval);
-                                }
+                                _timeoutID = setTimeout(this._autoping, newval);
                             }
                             else if (newval === 0) {
                                 clearTimeout(_timeoutID);
                                 _pingInterval = 0;
                             }
-                        }
-                        else {
-                            throw new Error("Error setting Session.pingInterval. '" + 
-                                newval + "' is an invalid value.");
+                            else {
+                                throw new Error("Error setting Session.pingInterval. '" + 
+                                    newval + "' is an invalid value.");
+                            }
                         }
                     },
                     enumerable: true
@@ -1487,7 +1484,6 @@ limitations under the License.
                          && iOSBasicAuthTimeout > 0 ) { 
                         xhr._requestTimeout = setTimeout(  function (){
                                                         clearTimeout(xhr._requestTimeout);
-                                                        xhr._iosTimeOutExpired = true;
                                                         xhr.abort();
                                                     }, 
                                                     iOSBasicAuthTimeout);
@@ -1775,9 +1771,6 @@ limitations under the License.
             // null the temporary credentials variables
             unameSave = null;
             pwSave = null;
-            if (xhr._iosTimeOutExpired) {
-                throw new Error( progress.data._getMsgText("jsdoMSG047", "login") );
-            }
 
             // return loginResult even if it's an async operation -- the async handler
             // (e.g., onReadyStateChangeGeneric) will just ignore
@@ -1793,32 +1786,32 @@ limitations under the License.
         /* logout
          *
          */
-        this.logout = function (args) {
+        this.logout = function () {
             var isAsync = false,
                 errorObject = null,
                 xhr,
                 deferred,
-                jsdosession,
-                params;
-
+                jsdosession;
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                 throw new Error("Attempted to call logout when there is no active session.");
             }
 
-            if (typeof(args) === 'object') {
-                isAsync = args.async;
-                if (isAsync && (typeof isAsync !== 'boolean')) {
-                    throw new Error( progress.data._getMsgText("jsdoMSG033", 
-                                                               "Session", 
-                                                               'logout', 
-                                                               'The async argument was invalid.'));
+            if (arguments.length > 0) {
+                if (typeof(arguments[0]) === 'object') {
+                    isAsync = arguments[0].async;
+                    if (isAsync && (typeof isAsync != 'boolean')) {
+                        throw new Error( progress.data._getMsgText("jsdoMSG033", 
+                                                                   "Session", 
+                                                                   'logout', 
+                                                                   'The async argument was invalid.'));
+                    }
+                    /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
+                        deferred and jsdosession and we need to eventually attach them to the XHR we use 
+                        so that the promise created by the JSDOSession will work correctly
+                    */ 
+                    deferred = arguments[0].deferred;
+                    jsdosession = arguments[0].jsdosession;                    
                 }
-                /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
-                    deferred and jsdosession and we need to eventually attach them to the XHR we use 
-                    so that the promise created by the JSDOSession will work correctly
-                */ 
-                deferred = args.deferred;
-                jsdosession = args.jsdosession;                    
             }
 
             xhr = new XMLHttpRequest();
@@ -1861,7 +1854,7 @@ limitations under the License.
 
                     if (typeof this.onOpenRequest === 'function') {
                         setLastSessionXHR(xhr, this);
-                        params = {
+                        var params = {
                             "xhr": xhr,
                             "verb": "GET",
                             "uri": this.serviceURI + "/static/auth/j_spring_security_logout",
@@ -1969,7 +1962,6 @@ limitations under the License.
                 setOepingAvailable(false);
                 setPartialPingURI(defaultPartialPingURI);
                 setLastSessionXHR(null, pdsession);
-                clearTimeout(_timeoutID);   //  stop autopinging 
             }
         };
 
@@ -2120,7 +2112,6 @@ limitations under the License.
                      && iOSBasicAuthTimeout ) { 
                     xhr._requestTimeout = setTimeout(  function (){
                                                     clearTimeout(xhr._requestTimeout);
-                                                    xhr._iosTimeOutExpired = true;
                                                     xhr.abort();
                                                 }, 
                                                 iOSBasicAuthTimeout);
@@ -2211,9 +2202,6 @@ limitations under the License.
             else if (_catalogHttpStatus == 401) {
                 return progress.data.Session.AUTHENTICATION_FAILURE;
             }
-            else if (xhr._iosTimeOutExpired) { 
-                throw new Error( progress.data._getMsgText("jsdoMSG047", "addCatalog") );
-            }
             else {
                 throw new Error("Error retrieving catalog '" + catalogURI + 
                     "'. Http status: " + _catalogHttpStatus + ".");
@@ -2263,10 +2251,6 @@ limitations under the License.
                 offlineReason: null
             };
 
-            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS) {
-                throw new Error("Attempted to call ping when not logged in.");
-            }
-            
             if (args) {
                 if (args.async !== undefined) {
                     // when we do background pinging (because pingInterval is set),
@@ -2309,12 +2293,6 @@ limitations under the License.
                 }
                 else {
                     pingResult = false; // no xhr returned from _sendPing, something must have gone wrong
-                }
-                if ( args.xhr !== undefined ) {
-                    // if it's a sync ping, return the xhr if caller indicates they want it
-                    // (there's almost guaranteed to be one, even if the ping was never sent
-                    // if for some reason there isn't, we give them the null or undefined we ended up with)
-                    args.xhr = pingArgs.xhr;  
                 }
             }
             // else it's async, deliberately returning false 
@@ -2547,20 +2525,6 @@ limitations under the License.
                 }
             }
 
-            /* We call any async ping callback handler and then, after that returns, fire an
-               offline or online event if necessary. 
-               When deciding whether to fire an event, the responsibility of this _processPingResult()
-               function is to decide about the event on the basis of the data returned from the ping
-               that it is currently processing. Therefore, since the ping callback that is just about
-               to be called could change the outcome of the event decision (for example, if the handler
-               calls logout(), thus setting Session.connected to false)), we save the current value of
-               Session.connected and use that saved value to decide about the event after the ping 
-               handler returns.
-               (If the application programmer wants to get an event fired as a result of something
-               that happens in the ping handler, they should call a ping() *after* that. 
-             */
-            connectedBeforeCallback = this.connected;
-
             if ((typeof xhr.onCompleteFn) == 'function') {
                 xhr.onCompleteFn({
                     pingResult: this.connected,
@@ -2571,10 +2535,10 @@ limitations under the License.
 
             // decide whether to fire an event, and if so do it
             if (args.fireEventIfOfflineChange) {
-                if (wasOnline && !connectedBeforeCallback) { 
+                if (wasOnline && !this.connected) {
                     myself.trigger("offline", myself, args.offlineReason, null);
                 }
-                else if (!wasOnline && connectedBeforeCallback) {
+                else if (!wasOnline && this.connected) {
                     myself.trigger("online", myself, null);
                 }
             }
@@ -2652,7 +2616,7 @@ limitations under the License.
             catch (e) {
                 args.error = e;
             }
-            
+            // ASYNC??
             args.xhr = xhr;
         };
 
@@ -3181,7 +3145,7 @@ limitations under the License.
                     return _pdsession ? _pdsession.authenticationModel : undefined;
                 },
                 enumerable: true
-            });        
+            });
 
         Object.defineProperty(this, 'catalogURIs',
             {
@@ -3697,6 +3661,7 @@ limitations under the License.
             _myself.trigger( "offline", _myself, offlineReason, request );            
         };    
         
+        
         // PROCESS CONSTRUCTOR ARGUMENTS 
         // validate constructor input arguments
         if ( (arguments.length > 0) && (typeof(arguments[0]) === 'object') ) {
@@ -3715,7 +3680,7 @@ limitations under the License.
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
-                
+
                 options.authenticationModel = options.authenticationModel.toLowerCase();
             }
         }
@@ -3739,7 +3704,7 @@ limitations under the License.
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
             }
-            
+
             if (options.context) {
                 this.setContext(options.context);                
             }
