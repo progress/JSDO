@@ -427,8 +427,10 @@ limitations under the License.
                                            "string", "constructor"));
         }
 
-        // this section is SSO specific, tho we should do something like this for page refresh (if we think
-        // it's possible for sessionStorage to be missing in an environemnt in which 
+        
+        // This section is SSO specific, through the comment "end of constructor processing...",
+        // However, page refresh support will require something like this for the other authentication 
+        // models (if we think it's possible for sessionStorage to be missing in an environemnt in which 
         // anyone would use page refresh)
         if (typeof sessionStorage === "undefined") {
             // "AuthenticationProvider: No support for sessionStorage."
@@ -447,6 +449,9 @@ limitations under the License.
         tokenDataKeys.tokenType = storageKey + tokenDataKeys.tokenType;
         tokenDataKeys.expiration = storageKey + tokenDataKeys.expiration;
 
+        if (retrieveToken()) {
+            loggedIn = true;
+        }
       // end of constructor processing except for definition of functions and methods
         
         
@@ -608,7 +613,7 @@ limitations under the License.
                 );
             } else {
                 // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                throw new Error(progress.data._getMsgText("jsdoMSG125"));
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
             }
         };
     };
@@ -655,7 +660,7 @@ limitations under the License.
             } else {
                 // This message is SSO specific, unless we can come up with a more general message 
                 // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                throw new Error(progress.data._getMsgText("jsdoMSG125"));
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
             }
         };
     };

@@ -1372,27 +1372,6 @@ limitations under the License.
                 xhr,
                 params;
 
-            if ((typeof authProvider !== 'object') || (typeof deferred !== 'object')) {
-                // Internal error: progress.data.Session: invalid argument passed to _connect
-                throw new Error(progress.data._getMsgText("jsdoMSG000",
-                    "progress.data.Session: invalid argument(s) passed to _connect"));
-            }
-
-            // Check if the provider exposes the required API.
-            if (typeof authProvider.hasCredential === 'function') {
-                if (!authProvider.hasCredential()) {
-                    // progress.data.Session: The AuthenticationProvider is not managing 
-                    //   valid credentials.
-                    throw new Error(progress.data._getMsgText("jsdoMSG125", "progress.data.Session"));
-                }
-            } else {
-                // JSDOSession: AuthenticationProvider objects must have a hasCredential method.
-                throw new Error(progress.data._getMsgText("jsdoMSG506",
-                                                          "progress.data.Session",
-                                                          "AuthenticationProvider",
-                                                          "hasCredential"));
-            }
-            
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
                     !needsReconnectAfterPageRefresh) {
                 // Session: Already connected or logged in.
@@ -3556,40 +3535,21 @@ limitations under the License.
             });        
         
         // PRIVATE FUNCTIONS
-        function onAfterLogin ( pdsession, result, errorObject, xhr ) {
-            if (xhr && xhr._deferred) {
-                if (result === progress.data.Session.SUCCESS) {
-                    xhr._deferred.resolve(   xhr._jsdosession, 
-                                             result, 
-                                             { errorObject: errorObject,
-                                               xhr: xhr } );
-                }
-                else {
-                    xhr._deferred.reject(   xhr._jsdosession, 
-                                            result, 
-                                            { errorObject: errorObject,
-                                              xhr: xhr });
-                }
-            }     
-        }
 
-        function onAfterConnect(pdsession, result, errorObject, xhr) {
-            if (xhr && xhr._deferred) {
-                if (result === progress.data.Session.SUCCESS) {
-                    xhr._deferred.resolve(xhr._jsdosession,
-                                          result,
-                                          { errorObject: errorObject,
-                                            xhr: xhr });
-                } else {
-                    xhr._deferred.reject(xhr._jsdosession,
-                                         result,
-                                         { errorObject: errorObject,
-                                           xhr: xhr });
-                }
+        
+        // Wrapper to make it easier to change the promise implementation we use.
+        // Note that in the JSDO library's first implementation of promise support,
+        // the "promise" parameter for thsi function is actually a jQuery Deferred object
+        function settlePromise(promise, fulfill, result, info) {
+            if (fulfill) {
+                promise.resolve(_myself, result, info);
+            } else {
+                promise.reject(_myself, result, info);                
             }
         }
 
-        function onAfterDisconnect(pdsession, result, errorObject, xhr, deferred) {
+        // use this for the events fired by progress.data.Session that can be handled with common code
+        function genericSessionEventHandler(pdsession, result, errorObject, xhr, deferred) {
             var myDeferred;
             
             if (xhr) {
@@ -3598,21 +3558,17 @@ limitations under the License.
                 myDeferred = deferred;
             }
 
-            if (result === progress.data.Session.SUCCESS) {
-                myDeferred.resolve(_myself,
-                                   result,
-                                   { errorObject: errorObject,
-                                     xhr: xhr });
-            } else {
-                myDeferred.reject(_myself,
-                                  result,
-                                  { errorObject: errorObject,
-                                       xhr: xhr });
-            }
+            settlePromise(myDeferred,
+                          result === progress.data.Session.SUCCESS ? true : false,
+                          result,
+                          { errorObject: errorObject,
+                            xhr: xhr });
         }
 
         function onAfterAddCatalog( pdsession, result, errorObject, xhr ) {
-            var deferred;
+            var deferred,
+                fulfill = false,
+                settleResult = progress.data.Session.GENERAL_FAILURE;
             
             if (xhr && xhr._deferred) {           
                 deferred  = xhr._deferred;
@@ -3641,57 +3597,47 @@ limitations under the License.
                 deferred._numCatalogsProcessed += 1;
                 if ( deferred._numCatalogsProcessed  === deferred._numCatalogs ) {
                     deferred._processedPromise = true;
+                    
                     if ( !deferred._overallCatalogResult ) {
-                        xhr._deferred.resolve( xhr._jsdosession, 
-                                               progress.data.Session.SUCCESS,
-                                               xhr._deferred._results );
+                        fulfill = true;
+                        settleResult = progress.data.Session.SUCCESS;
                     }
-                    else {
-                        xhr._deferred.reject(  xhr._jsdosession, 
-                                               progress.data.Session.GENERAL_FAILURE, 
-                                               xhr._deferred._results ); 
-                    }
+                    settlePromise(xhr._deferred,
+                                  fulfill,
+                                  result,
+                                  xhr._deferred._results);
                 }
             }
         }
-        
-        function onAfterLogout ( pdsession, errorObject, xhr ) {
+
+        function onAfterLogout(pdsession, errorObject, xhr) {
+            var result = progress.data.Session.GENERAL_FAILURE,
+                fulfill = false;
             if (xhr && xhr._deferred) {
                 /* Note: loginResult gets cleared on successful logout, so testing it for false
                          to confirm that logout succeeded
                  */
-                 if ( !errorObject && !pdsession.loginResult ) {
-                    xhr._deferred.resolve( xhr._jsdosession, 
-                                           progress.data.Session.SUCCESS,
-                                           { errorObject: errorObject, 
-                                             xhr: xhr } );
+                if (!errorObject && !pdsession.loginResult) {
+                    result = progress.data.Session.SUCCESS;
+                    fulfill = true;
                 }
-                else {
-                    xhr._deferred.reject( xhr._jsdosession, 
-                                          progress.data.Session.SUCCESS,
-                                          { errorObject: errorObject, 
-                                            xhr: xhr } );
-                }
-            }     
+                settlePromise(xhr._deferred,
+                              fulfill,
+                              result,
+                              { errorObject: errorObject,
+                                xhr: xhr });
+            }
         }
 
-        function onPingComplete( args ) {
-            var xhr;
-            if (args.xhr && args.xhr._deferred) {
-                xhr = args.xhr;
-                if ( args.pingResult ) {
-                    xhr._deferred.resolve( xhr._jsdosession, 
-                                           args.pingResult,
-                                           { offlineReason: args.offlineReason, 
-                                             xhr: xhr } );
-                }
-                else {
-                    xhr._deferred.reject(  xhr._jsdosession, 
-                                           args.pingResult,
-                                           { offlineReason: args.offlineReason, 
-                                             xhr: xhr } );
-                }
-            }     
+        function onPingComplete(args) {
+            var xhr = args.xhr;
+            if (xhr && xhr._deferred) {
+                settlePromise(xhr._deferred,
+                          args.pingResult,  // this tells settlePromise whether to resolve or reject
+                          args.pingResult,  // this is the result value passed to the promise handler
+                          { offlineReason: args.offlineReason,
+                            xhr: xhr });
+            }
         }
         
         // METHODS
@@ -3711,7 +3657,7 @@ limitations under the License.
             }
 
             try {
-                _pdsession.subscribe('afterLogin', onAfterLogin, this);
+                _pdsession.subscribe('afterLogin', genericSessionEventHandler, this);
                 
                 loginResult = _pdsession.login(
                     { 
@@ -3744,9 +3690,27 @@ limitations under the License.
             var deferred = $.Deferred(),
                 errorObject;
 
-            // Note: all validation is done in Session._connect
+            if (typeof authProvider !== 'object') {
+                // JSDOSession: Invalid parameters in call to connect function.
+                throw new Error(progress.data._getMsgText("jsdoMSG025", "JSDOSession", "connect"));
+            }
+
+            // Check if the provider exposes the required API.
+            if (typeof authProvider.hasCredential === 'function') {
+                if (!authProvider.hasCredential()) {
+                    // JSDOSession: The AuthenticationProvider is not managing valid credentials.
+                    throw new Error(progress.data._getMsgText("jsdoMSG125", "JSDOSession"));
+                }
+            } else {
+                // JSDOSession: AuthenticationProvider objects must have a hasCredential method.
+                throw new Error(progress.data._getMsgText("jsdoMSG506",
+                                                          "JSDOSession",
+                                                          "AuthenticationProvider",
+                                                          "hasCredential"));
+            }
+            
             try {
-                _pdsession.subscribe('afterConnect', onAfterConnect, this);
+                _pdsession.subscribe('afterConnect', genericSessionEventHandler, this);
                 
                 _pdsession._connect(authProvider, deferred);
             } catch (e) {
@@ -3774,9 +3738,8 @@ limitations under the License.
             var deferred = $.Deferred(),
                 errorObject;
 
-            // Note: all validation is done in Session._disconnect
             try {
-                _pdsession.subscribe('afterDisconnect', onAfterDisconnect, this);
+                _pdsession.subscribe('afterDisconnect', genericSessionEventHandler, this);
                 
                 _pdsession._disconnect(deferred);
             } catch (e) {

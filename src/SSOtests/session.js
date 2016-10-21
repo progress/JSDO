@@ -3,6 +3,7 @@
 var session;
 
 session = {
+    
     create: function (settings) {
         "use strict";
                 
@@ -20,14 +21,14 @@ session = {
         "use strict";
         
         var deferred = $.Deferred();
-        
+
         jsdosession.connect(provider)
             .then(function (jsdosession) {
                 deferred.resolve(jsdosession);
             }, function (jsdosession, result, info) {
                 deferred.reject(jsdosession, result, info);
             });
-            
+
         return deferred.promise();
     },
     disconnect: function (jsdosession) {

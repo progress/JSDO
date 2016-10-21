@@ -6,8 +6,8 @@
     var testFramework = QUnit,
         serviceURI = "http://nbbedwhenshaw3.bedford.progress.com:8810/TokenConsumer",
         catalogURI = serviceURI + "/static/TokenConsumerService.json",
-        tokenURI = "http://nbbedwhenshaw3.bedford.progress.com:8810/TS2/",
-        tokenURINoRefresh = "http://nbbedwhenshaw3.bedford.progress.com:8810/TokenServer/",
+        tokenURI = "http://nbbedwhenshaw3.bedford.progress.com:8810/TokenServer/",
+        tokenURINoRefresh = "http://nbbedwhenshaw3.bedford.progress.com:8810/TSNoRefresh/",
         authenticationModel = "SSO",
         username = "restuser",
         password = "password";

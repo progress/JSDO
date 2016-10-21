@@ -1,5 +1,5 @@
 /* 
-progress.util.js    Version: 4.4.0-1
+progress.util.js    Version: 4.4.0-2
 
 Copyright (c) 2014-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -392,6 +392,7 @@ limitations under the License.
                     // We'll first add positional info for the value
                     if (type === STRING_OBJECT_TYPE) {
                         format = "'{1}'";
+                        value = value.replace(/'/g, "~'");
                     } 
                     else if (type === DATE_OBJECT_TYPE) {
                         ablType = tableRef._getABLType(field);
