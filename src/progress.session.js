@@ -1,15 +1,15 @@
 
 /* 
-progress.session.js    Version: 4.2.0-2
+progress.session.js    Version: 4.3.0-23
 
-Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
- 
+
     http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -277,6 +277,7 @@ limitations under the License.
                                         case 'update':
                                         case 'invoke':
                                         case 'submit':
+                                        case 'count':
                                             resource.operations[idx].verb = "PUT";
                                             break;
                                         case 'delete':
@@ -454,6 +455,7 @@ limitations under the License.
                                     case 'update':
                                     case 'delete':
                                     case 'submit':
+                                    case 'count':                                                                                
                                         if (typeof(resource.generic[opname]) == "function") {
                                             throw new Error("Catalog error: Multiple '" + 
                                                 resource.operations[idx].type + 
@@ -471,7 +473,7 @@ limitations under the License.
 
                                 // Set fnName
                                 var name = resource.operations[idx].name;
-                                if (opname == "invoke") {
+                                if (opname === "invoke" || opname === "count") {
                                     resource.fn[name] = {};
                                     resource.fn[name]["function"] = func;
                                 }
@@ -688,7 +690,7 @@ limitations under the License.
      *       than one session
      *
      */
-    progress.data.Session = function Session() {
+    progress.data.Session = function Session(options) {
 
         var defPropSupported = false;
         if ((typeof Object.defineProperty) == 'function') {
@@ -698,6 +700,9 @@ limitations under the License.
         var myself = this,
             isUserAgentiOS = false,  // checked just below this var statement
             isFirefox = false,  // checked just below this var statement
+            isEdge = false,  // checked just below this var statement
+            isIE = false,  // checked just below this var statement
+            canPassCredentialsToOpenWithCORS = false,  // False will always work if creds are correct
             defaultiOSBasicAuthTimeout = 4000,
             deviceIsOnline = true,  // online until proven offline
             restApplicationIsOnline = false,  // was the Mobile Web Application that this Session object
@@ -705,22 +710,45 @@ limitations under the License.
                                               // (value is always false if session is not logged in)
             oepingAvailable = false,
             defaultPartialPingURI = "/rest/_oeping",
-            partialPingURI = defaultPartialPingURI;
+            partialPingURI = defaultPartialPingURI,
+            _storageKey;
 
         if (typeof navigator  !== "undefined") {
             if (typeof navigator.userAgent !== "undefined") {
                 isUserAgentiOS = navigator.userAgent.match(/(iPad)|(iPhone)|(iPod)/i);
                 isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+                // detect that we're running in MS Edge browser
+                isEdge = navigator.userAgent.indexOf('Edge/') > -1;
+                // detect that we're running in IE 11 (or IE 11 in pre-11 mode) or IE 10 browser
+                isIE = ( (navigator.userAgent.indexOf('Trident/')) > -1 || (navigator.userAgent.indexOf('MSIE 10') > -1));
             }
         }
         
+        // Firefox, Edge, and IE will throw an error on the send() if CORS is being used for the request
+        // and we have included credentials in the URI (which is what passing them to open() does),
+        canPassCredentialsToOpenWithCORS = !(isFirefox || isEdge || isIE);
+        
+        // When using basic authentication, we can pass the user name and password to the XMLHttpRequest.open()
+        // method. However, in some browsers, passing credentials to open() will result in the xhr's .send() 
+        // method throwing an error. The goal of this function is to figure out whether it's safe to include
+        // the credentials. It returns false if there could be a problem, true otherwise.
+        // Note: currently it does this solely on the basis of what browser we are running in, regardless
+        // of whether the request will actually use the CORS protocol. Ideally, we should take into account whether 
+        // the request will actually require CORS. The question is whether we can reliably do that.
+        // The reason for taking the specific request into account is that there are drawbacks to not passing the
+        // credentials when we are NOT using CORS, namely that if the credentials are invalid, some browsers will 
+        // put up their own prompt for credentials in non-CORS situations (those browsers are IE, Edge, and Chrome)
+        function canPassCredentialsToOpen() {
+            return canPassCredentialsToOpenWithCORS;
+        }
+        
         this._onlineHandler = function () {
-            deviceIsOnline = true;
+            setDeviceIsOnline(true);
             myself.trigger("online", myself, null);
         };
 
         this._offlineHandler = function () {
-            deviceIsOnline = false;
+            setDeviceIsOnline(false);
             myself.trigger("offline", myself, progress.data.Session.DEVICE_OFFLINE, null);
         };
 
@@ -728,7 +756,6 @@ limitations under the License.
             window.addEventListener("online", this._onlineHandler, false);
             window.addEventListener("offline", this._offlineHandler, false);
         }
-
 
         /* constants and properties - define them as properties via the defineProperty()
          * function, which has "writable" and "configurable" parameters that both
@@ -838,6 +865,8 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_ANON :
                             case null :
                                 _authenticationModel = newval;
+                                storeSessionInfo("authenticationModel", newval);
+
                                 break;
                             default:
                                 throw new Error("Error setting Session.authenticationModel. '" + 
@@ -884,6 +913,7 @@ limitations under the License.
                     set: function (newval) {
                         if (newval >= 0) {
                             _pingInterval = newval;
+                            storeSessionInfo("pingInterval", newval);
                             if (newval > 0) {
                                 _timeoutID = setTimeout(this._autoping, newval);
                             }
@@ -924,6 +954,110 @@ limitations under the License.
             this.lastSessionXHR = null;
         }
 
+        // stores data value using the JSDOSession's storage key plus the infoName
+        // argument as a key. If there is no infoName, just uses the storage key
+        // by itself (the latter case is inetnded to serev as a flag that we have
+        // stored this JSDOSession's data before)
+        // 
+        function storeSessionInfo(infoName, value) {
+            var key;
+            if (myself.loginResult === progress.data.Session.LOGIN_SUCCESS &&
+                typeof (sessionStorage) === 'object' && _storageKey) {
+                    
+                key = _storageKey;
+                if (infoName) {
+                    key = key + "." + infoName;
+                }
+                if (typeof (value) !== 'undefined') {
+                    sessionStorage.setItem(key, JSON.stringify(value));
+                }
+            }
+        }
+        
+        function retrieveSessionInfo(infoName) {
+            var key,
+                jsonStr,
+                value = null;
+            if (typeof (sessionStorage) === 'object' && _storageKey) {
+                key = _storageKey;
+                if (infoName) {
+                    key = key + "." + infoName;
+                }
+                jsonStr = sessionStorage.getItem(key);
+                if (jsonStr !== null) {
+                    try {
+                        value = JSON.parse(jsonStr);
+                    } catch (e) {
+                        value = null;
+                    }
+                }
+                return value;
+            }
+        }
+        
+        function clearSessionInfo(infoName) {
+            var key;
+            if (typeof (sessionStorage) === 'object' && _storageKey) {
+                key = _storageKey;
+                if (infoName) {
+                    key = key + "." + infoName;
+                    sessionStorage.removeItem(key);
+                }
+            }
+        }
+
+        function storeAllSessionInfo() {
+            if (_storageKey) {
+                storeSessionInfo("loginResult", myself.loginResult);
+                storeSessionInfo("userName", myself.userName);
+                storeSessionInfo("serviceURI", myself.serviceURI);
+                storeSessionInfo("loginHttpStatus", myself.loginHttpStatus);
+                storeSessionInfo("authenticationModel", myself.authenticationModel);
+                storeSessionInfo("pingInterval", myself.pingInterval);
+                storeSessionInfo("oepingAvailable", oepingAvailable);
+                storeSessionInfo("partialPingURI", partialPingURI);
+                storeSessionInfo("clientContextId", myself.clientContextId);
+                storeSessionInfo("deviceIsOnline", deviceIsOnline);
+                storeSessionInfo("restApplicationIsOnline", restApplicationIsOnline);
+                storeSessionInfo(_storageKey, true);
+            }
+        }
+        
+        function clearAllSessionInfo() {
+            if (_storageKey) {
+                if (retrieveSessionInfo(_storageKey)) {
+                    clearSessionInfo("loginResult");
+                    clearSessionInfo("userName");
+                    clearSessionInfo("serviceURI");
+                    clearSessionInfo("loginHttpStatus");
+                    clearSessionInfo("clientContextId");
+                    clearSessionInfo("deviceIsOnline");
+                    clearSessionInfo("restApplicationIsOnline");
+                    clearSessionInfo("authenticationModel");
+                    clearSessionInfo("pingInterval");
+                    clearSessionInfo("oepingAvailable");
+                    clearSessionInfo("partialPingURI");
+                    clearSessionInfo(_storageKey);
+                }
+            }
+        }
+        
+        function setSessionInfoFromStorage(key) {
+            if (retrieveSessionInfo(key)) {
+                setLoginResult(retrieveSessionInfo("loginResult"), this);
+                setUserName(retrieveSessionInfo("userName"), this);
+                setServiceURI(retrieveSessionInfo("serviceURI"), this);
+                setLoginHttpStatus(retrieveSessionInfo("loginHttpStatus"), this);
+                setClientContextID(retrieveSessionInfo("clientContextId"), this);
+                setDeviceIsOnline(retrieveSessionInfo("deviceIsOnline"));
+                setRestApplicationIsOnline(retrieveSessionInfo("restApplicationIsOnline"));
+                myself.authenticationModel = retrieveSessionInfo("authenticationModel");
+                myself.pingInterval = retrieveSessionInfo("pingInterval");
+                setOepingAvailable(retrieveSessionInfo("oepingAvailable"));
+                setPartialPingURI(retrieveSessionInfo("partialPingURI"));
+            }
+        }
+
         function setUserName(newname, sessionObject) {
             if (defPropSupported) {
                 _userName = newname;
@@ -931,6 +1065,8 @@ limitations under the License.
             else {
                 sessionObject.userName = newname;
             }
+
+            storeSessionInfo("userName", newname);
         }
 
         function setLoginTarget(target, sessionObject) {
@@ -949,6 +1085,8 @@ limitations under the License.
             else {
                 sessionObject.serviceURI = url;
             }
+            
+            storeSessionInfo("serviceURI", url);
         }
 
         function pushCatalogURIs(url, sessionObject) {
@@ -982,9 +1120,16 @@ limitations under the License.
         function setLoginResult(result, sessionObject) {
             if (defPropSupported) {
                 _loginResult = result;
-            }
-            else {
+            } else {
                 sessionObject.loginResult = result;
+            }
+
+            
+            if (result === progress.data.Session.LOGIN_SUCCESS) {
+                storeSessionInfo("loginResult", result);
+            } else {
+                // Let's clear sessionStorage since we logged out or something went bad!
+                clearAllSessionInfo();
             }
         }
 
@@ -995,6 +1140,8 @@ limitations under the License.
             else {
                 sessionObject.loginHttpStatus = status;
             }
+
+            storeSessionInfo("loginHttpStatus", status);
         }
 
         function setClientContextIDfromXHR(xhr, sessionObject) {
@@ -1010,6 +1157,8 @@ limitations under the License.
             else {
                 sessionObject.clientContextId = ccid;
             }
+                
+            storeSessionInfo("clientContextId", ccid);
         }
 
         function setLastSessionXHR(xhr, sessionObject) {
@@ -1021,6 +1170,30 @@ limitations under the License.
             }
         }
 
+        function setDeviceIsOnline(value) {
+            deviceIsOnline = value;
+
+            storeSessionInfo("deviceIsOnline", value);
+        }
+
+        function setRestApplicationIsOnline(value) {
+            restApplicationIsOnline = value;
+
+            storeSessionInfo("restApplicationIsOnline", value);
+        }
+
+        function setOepingAvailable(value) {
+            oepingAvailable = value;
+
+            storeSessionInfo("oepingAvailable", value);
+        }
+
+        function setPartialPingURI(value) {
+            partialPingURI = value;
+
+            storeSessionInfo("partialPingURI", value);
+        }
+        
         /*
             When using CORS, if the client asks for a response header that is not among 
             the headers exposed by the Web application, the user agent may write an error
@@ -1116,12 +1289,9 @@ limitations under the License.
 
         // callback used in login to determine whether ping is available on server
         this.pingTestCallback = function (cbArgs) {
-            if (cbArgs.pingResult) {
-                oepingAvailable = true;
-            }
-            else {
-                oepingAvailable = false;
-            }
+            var foundOeping = cbArgs.pingResult ? true : false;
+
+            setOepingAvailable(foundOeping);
         };
 
         // generic async callback, currently used by login(), addCatalog(), and logout()
@@ -1574,11 +1744,12 @@ limitations under the License.
 
             if (pdsession.loginHttpStatus === 200) {
                 setLoginResult(progress.data.Session.LOGIN_SUCCESS, pdsession);
-                restApplicationIsOnline = true;
+                setRestApplicationIsOnline(true);
                 setUserName(unameSave, pdsession);
                 _password = pwSave;
                 pdsession._saveClientContextId(xhr);
-
+                storeAllSessionInfo();  // save info to persistent storage 
+                
                 var pingTestArgs = {
                     pingURI: null, async: true, onCompleteFn: null,
                     fireEventIfOfflineChange: true, onReadyStateFn: pdsession._pingtestOnReadyStateChange
@@ -1658,10 +1829,12 @@ limitations under the License.
                         xhr.onResponseFn = this._processLogoutResult;
                         xhr.onResponseProcessedFn = this._logoutComplete;
                     }
+                    
+                    
                     xhr.open('GET', this.serviceURI + "/static/auth/j_spring_security_logout", isAsync);
 
                     /* instead of calling _addWithCredentialsAndAccept, we code the withCredentials
-                     * and setRequiestHeader inline so we can do it slightly differently. That
+                     * and setRequestHeader inline so we can do it slightly differently. That
                      * function deliberately sets the request header inside the try so we don't
                      * run into a FireFox oddity that would give us a successful login and then
                      * a failure on getCatalog (see the comment on that function). On logout,
@@ -1675,6 +1848,7 @@ limitations under the License.
                     }
 
                     xhr.setRequestHeader("Accept", "application/json");
+                    
                     // set X-CLIENT-PROPS header
                     setRequestHeaderFromContextProps(this, xhr);
 
@@ -1760,6 +1934,11 @@ limitations under the License.
                 else {
                     // for Form auth, any error on logout is an error
                     logoutSucceeded = false;
+
+            // page refresh - we should call _reinitializeAfterLogout, or do something, so that 
+            // caller can try logging in again (this is not a problem specific to page refresh,
+            // but the case of a page refresh after a server has gone down emphasizes it)
+
                     throw new Error("Error logging out, HTTP status = " + xhr.status);                    
                 }
             }
@@ -1779,9 +1958,9 @@ limitations under the License.
             _password = null;
 
             if (success) {
-                restApplicationIsOnline = false;
-                oepingAvailable = false;
-                partialPingURI = defaultPartialPingURI;
+                setRestApplicationIsOnline(false);
+                setOepingAvailable(false);
+                setPartialPingURI(defaultPartialPingURI);
                 setLastSessionXHR(null, pdsession);
             }
         };
@@ -2193,8 +2372,8 @@ limitations under the License.
             // if the call to the server was a success, we will assume we are online,
             // both server and device
             if (success) {
-                restApplicationIsOnline = true;
-                deviceIsOnline = true;  // presumably this is true (probably was already true)
+                setRestApplicationIsOnline(true);
+                setDeviceIsOnline(true);  // presumably this is true (probably was already true)
             }
             else {
                 /* Request failed, determine whether it's because server is offline
@@ -2216,12 +2395,12 @@ limitations under the License.
                     };
                     if (!(myself.ping(localPingArgs) )) {
                         offlineReason = localPingArgs.offlineReason;
-                        restApplicationIsOnline = false;
+                        setRestApplicationIsOnline(false);
                     }
                     else {
                         // ping returned true, so even though the original request failed,
                         // we are online and the failure must have been due to something else
-                        restApplicationIsOnline = true;
+                        setRestApplicationIsOnline(true);
                     }
                 }
                 // else deviceIsOnline was already false, so the offline event should already have
@@ -2236,7 +2415,7 @@ limitations under the License.
             }
         };
 
-        /* Decide whether, on the basis of information returned by a ping request, the
+        /* Decide whether, on the basis of information returned by a server request, the
          * Mobile Web Application managed by this Session object is online, where online
          * means that the ping response was a 200 and, IF the body of the response contains
          * JSON with an AppServerStatus property, that AppServerStatus Status property has
@@ -2244,20 +2423,47 @@ limitations under the License.
          *     i.e., the body has an AppServerStatus.PingStatus set to true
          * (if the body doesn't contain JSON with an AppServerStatus, we use just the HTTP
          * response status code to decide)
-         * Return true if the response meets these conditions, false if it doesn't
+         * 
+         * Returns:  true if the response meets the above conditions, false if it doesn't
+         *   
+         * Parameters:
+         *   args, with properties:
+         *      xhr - the XMLHttpRequest used to make the request
+         *      offlineReason - if the function determines that the app is offline,
+         *                      it sets offlineReason to the reason for that decision,
+         *                      for the use of the caller
+         *      fireEventIfOfflineChange - if true, the function fires an offline or online
+         *                      event if there has been a change (i.e., the online state determined 
+         *                      by the function is different from what it had been when the function
+         *                      began executing)
+         *      usingOepingFormat - OPTIONAL. The function's default assumption is that the value
+         *                      of the session's internal oepingAvailable variable indicates whether the
+         *                      the response body will be in the format used by the OpenEdge oeping service.
+         *                      A caller can override this assumption by using this property to true or false.
+         *                     (the isAuthorized code sets this to false because it doesn't use oeping 
+         *                     but does call this function)
          */
         this._processPingResult = function (args) {
-            var xhr = args.xhr;
-            var pingResponseJSON;
-            var appServerStatus = null;
-            var wasOnline = this.connected;
+            var xhr = args.xhr,
+                pingResponseJSON,
+                appServerStatus = null,
+                wasOnline = this.connected,
+                connectedBeforeCallback,
+                assumeOepingFormat;
+                
+            if (args.hasOwnProperty('usingOepingFormat')) {
+                assumeOepingFormat = args.usingOepingFormat;
+            } else {
+                assumeOepingFormat = oepingAvailable;
+            }
+
 
             /* first determine whether the Web server and the Mobile Web Application (MWA)
              * are available
              */
             if (xhr.status >= 200 && xhr.status < 300) {
                 updateContextPropsFromResponse(this, xhr);
-                if (oepingAvailable) {
+                if (assumeOepingFormat) {
                     try {
                         pingResponseJSON = JSON.parse(xhr.responseText);
                         appServerStatus = pingResponseJSON.AppServerStatus;
@@ -2272,13 +2478,13 @@ limitations under the License.
                         console.error("Unable to parse ping response.");
                     }
                 }
-                restApplicationIsOnline = true;
+                setRestApplicationIsOnline(true);
             }
             else {
                 if (deviceIsOnline) {
                     if (xhr.status === 0) {
                         args.offlineReason = progress.data.Session.SERVER_OFFLINE;
-                        restApplicationIsOnline = false;
+                        setRestApplicationIsOnline(false);
                     }
                     else if ((xhr.status === 404) || (xhr.status === 410)) {
                         /* if we get a 404, it means the Web server is up, but it
@@ -2287,7 +2493,7 @@ limitations under the License.
                          * must be unavailable (410 is Gone)
                          */
                         args.offlineReason = progress.data.Session.WEB_APPLICATION_OFFLINE;
-                        restApplicationIsOnline = false;
+                        setRestApplicationIsOnline(false);
                     }
                     else {
                         /* There's some error, but we can't say for sure that it's because
@@ -2298,7 +2504,7 @@ limitations under the License.
                          * may have come back online but now the session id
                          * is no longer valid.
                          */
-                        restApplicationIsOnline = true;
+                        setRestApplicationIsOnline(true);
                     }
                 }
                 else {
@@ -2312,10 +2518,10 @@ limitations under the License.
             if (appServerStatus) {
                 if (appServerStatus.PingStatus === "false") {
                     args.offlineReason = progress.data.Session.APPSERVER_OFFLINE;
-                    restApplicationIsOnline = false;
+                    setRestApplicationIsOnline(false);
                 }
                 else {
-                    restApplicationIsOnline = true;
+                    setRestApplicationIsOnline(true);
                 }
             }
 
@@ -2362,13 +2568,20 @@ limitations under the License.
             var xhr = this;
 
             if (xhr.readyState == 4) {
+                var foundOeping = false;
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    oepingAvailable = true;
+                    foundOeping = true;
                 }
                 else {
-                    oepingAvailable = false;  // should be false anyway, just being sure
-                    partialPingURI = myself.loginTarget;
+                    setPartialPingURI(myself.loginTarget);
                     console.warn("Default ping target not available, will use loginTarget instead.");
+                }
+                setOepingAvailable(foundOeping);
+                
+                // If we're here, we've just logged in. If pingInterval has been set, we need
+                // to start autopinging
+                if (_pingInterval > 0) {
+                    _timeoutID = setTimeout(myself._autoping, _pingInterval);
                 }
             }
         };
@@ -2437,13 +2650,14 @@ limitations under the License.
             if (userName
                 && this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
 
-                if ( isFirefox ) {
-                    // Firefox will throw an error on the send() if CORS is being used for the request
-                    // and we have included credentials in the URI (which is what passing them to open() does)
-                    xhr.open(verb, uri, async);
+                // See the comment at the definition of the canPassCredentialsToOpen() function
+                // for why we pass credentials to open() in some cases but not others. (If we're not using
+                // Basic auth, we never pass credentials)
+                if (canPassCredentialsToOpen()) {
+                    xhr.open(verb, uri, async, userName, password);
                 }
                 else {
-                    xhr.open(verb, uri, async, userName, password);
+                    xhr.open(verb, uri, async);
                 }
                 
                 // set Authorization header
@@ -2460,18 +2674,26 @@ limitations under the License.
          *  previously stored one from a response from the server
          */
         this._addCCIDtoURL = function (url) {
+            var urlPart1,
+                urlPart2,
+                jsessionidStr,
+                index;
+                
             if (this.clientContextId && (this.clientContextId !== "0")) {
                 // Should we test protocol, 
                 // host and port in addition to path to ensure that jsessionid is only sent
                 // when request applies to the REST app (it might not be if the catalog is somewhere else)
                 if (url.substring(0, this.serviceURI.length) == this.serviceURI) {
-                    var jsessionidStr = "JSESSIONID=" + this.clientContextId + ";";
-                    var index = url.indexOf('?');
+                    jsessionidStr = ";" + "JSESSIONID=" + this.clientContextId;
+                    index = url.indexOf('?');
                     if (index == -1) {
-                        url += "?" + jsessionidStr;
+                        url += jsessionidStr;  // just append the jsessionid path parameter to the path
                     }
                     else {
-                        url = url.substring(0, index + 1) + jsessionidStr + url.substring(index + 1);
+                        // insert jsessionid path parameter before the first query parameter
+                        urlPart1 = url.substring(0, index);
+                        urlPart2 = url.substring(index);
+                        url = urlPart1 + jsessionidStr + urlPart2;
                     }
                 }
             }
@@ -2723,11 +2945,56 @@ limitations under the License.
             }
         }        
 
+        
+        // process constructor options and do other initialization
+        
+        // If a storage key (name property of a JSDOSession) was passed to the constructor, 
+        // use it to try to retrieve state data from a previous JSDOSession instance that 
+        // had the same name. This code was introduced to handle page refreshes, but could
+        // be used for other purposes.
+        if (typeof (options) === 'object') {
+            var authModel,
+                storedURI,
+                newURI;
+            
+            _storageKey = options._storageKey;
+            if (_storageKey) {
+                if (retrieveSessionInfo(_storageKey)) {
+                    authModel = retrieveSessionInfo("authenticationModel");
+                    uri = retrieveSessionInfo("serviceURI");
+                    newURI = options.serviceURI;
+                    
+                    if (newURI[newURI.length - 1] === "/") {
+                        newURI = newURI.substring(0, newURI.length - 1);
+                    }
+                
+                    if ((authModel !== options.authenticationModel) ||
+                        (uri !== newURI)) {
+                            clearAllSessionInfo();
+                    } else {
+                            setSessionInfoFromStorage(_storageKey);
+                    }
+                }
+                // _storageKey is in essence the flag for page refresh; we are not supporting page refresh for Basic
+                // auth, so clear it even if it was passed in. 
+                // (But had to set and keep _storageKey until this point so that the above validation of
+                // serviceURI and auth model will be done even in the case where there's a mismatch and
+                // the new auth model is Basic. This statement will go away when we support page refresh with
+                // Basic)
+                if (options.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                    _storageKey = undefined;
+                }
+            }
+        }
+        
     }; // End of Session
     progress.data.Session._useTimeStamp = true;
 
 // Constants for progress.data.Session
     if ((typeof Object.defineProperty) == 'function') {
+        Object.defineProperty(progress.data.Session, 'LOGIN_AUTHENTICATION_REQUIRED', {
+            value: 0, enumerable: true
+        });
         Object.defineProperty(progress.data.Session, 'LOGIN_SUCCESS', {
             value: 1, enumerable: true
         });
@@ -2864,7 +3131,8 @@ limitations under the License.
     progress.data.JSDOSession = function JSDOSession( options ){
         var _pdsession,
             _serviceURI,
-            _myself = this;
+            _myself = this,
+            _name;
 
         // PROPERTIES
         // Approach: Use the properties of the underlying progress.data.Session object whenever
@@ -2877,8 +3145,8 @@ limitations under the License.
                     return _pdsession ? _pdsession.authenticationModel : undefined;
                 },
                 enumerable: true
-            });        
-        
+            });
+
         Object.defineProperty(this, 'catalogURIs',
             {
                 get: function () {
@@ -2978,6 +3246,14 @@ limitations under the License.
             {
                 get: function () {
                     return _pdsession ? _pdsession.userName: undefined;
+                },
+                enumerable: true
+            });        
+        
+        Object.defineProperty(this, 'name',
+            {
+                get: function () {
+                    return _name;
                 },
                 enumerable: true
             });        
@@ -3279,6 +3555,65 @@ limitations under the License.
             return deferred.promise(); 
         };
     
+        // Determine whether the JSDOSession can currently access its web application.
+         // The use expected for this method is to determine a JSDOSession that has
+         // previously authenticated to its web application still has authorization.
+         // For example, if the JSDOSession is using Form authentication, is the server
+         // session still valid or did it expire? 
+        this.isAuthorized = function () {
+            var deferred = $.Deferred(),
+                that = this,
+                xhr = new XMLHttpRequest(),
+                result;
+
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
+                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true);
+                xhr.onreadystatechange = function () {
+                    var xhr = this,  // do we need this var? The one declared in isAuthorized seems to be in scope
+                        cbresult,
+                        fakePingArgs,
+                        info;
+
+                    if (xhr.readyState === 4) {
+                        info = {xhr: xhr,
+                                offlineReason: undefined,
+                                fireEventIfOfflineChange: true,
+                                usingOepingFormat: false
+                               };
+
+                        // call _processPingResult because it has logic for 
+                        // detecting change in online/offline state
+                        _pdsession._processPingResult(info);
+
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            deferred.resolve(that,
+                                             progress.data.Session.SUCCESS,
+                                             info);
+                        } else {
+                            if (xhr.status === 401) {
+                                cbresult = progress.data.Session.AUTHENTICATION_FAILURE;
+                            } else {
+                                cbresult = progress.data.Session.GENERAL_FAILURE;
+                            }
+                            deferred.reject(that, cbresult, info);
+                        }
+                    }
+                };
+
+                try {
+                    xhr.send();
+                } catch (e) {
+                    throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
+                }
+            } else {
+                // Never logged in (or logged in and logged out). Regardless of what the reason
+                // was that there wasn't a login, the bottom line is that authentication is required
+                result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
+                deferred.reject(that, result, {xhr: xhr});
+            }
+
+            return deferred.promise();
+        };
         
         /* 
            set the properties that are passed between client and Web application in the 
@@ -3317,6 +3652,7 @@ limitations under the License.
             return _pdsession._contextProperties.getContextProperty( propertyName );
         };
 
+        
         this._onlineHandler = function( session, request ) {
             _myself.trigger( "online", _myself, request );            
         };    
@@ -3338,12 +3674,14 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                        "The options parameter must include a 'serviceURI' property that is a string.") );
             }
-
+            
             if (options.authenticationModel) {
                 if (typeof(options.authenticationModel) !== "string" ) {
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
+
+                options.authenticationModel = options.authenticationModel.toLowerCase();
             }
         }
         else {
@@ -3351,12 +3689,22 @@ limitations under the License.
                 "The options argument was missing or invalid.") );            
         }    
         
-        _pdsession = new progress.data.Session();
+
+        if (!options.authenticationModel) {
+            options.authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
+        }
+        _name = options.name;
+        
+        // Note: passing auth model and serviceURI just for validation in the case of page refresh
+        _pdsession = new progress.data.Session({_storageKey: _name,
+                                                authenticationModel: options.authenticationModel,
+                                                serviceURI: options.serviceURI});
 
         try {
             if (options.authenticationModel) {
                 _pdsession.authenticationModel = options.authenticationModel;
             }
+
             if (options.context) {
                 this.setContext(options.context);                
             }
@@ -3420,7 +3768,122 @@ limitations under the License.
         return "progress.data.JSDOSession";
     };
     
-    
+    progress.data.getSession = function(options) {
+
+        var deferred = $.Deferred();
+        
+        // This is the reject handler for session-related operations
+        // login, addCatalog, and logout
+        function sessionRejectHandler(jsdosession, result, info) {
+            deferred.reject(result, info);
+        };
+        
+        // This is the reject handler for the login callback
+        function callbackRejectHandler(reason) {
+            deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
+        }
+        
+        function loginHandler(jsdosession, result, info) {
+            jsdosession.addCatalog(options.catalogURI)
+            .then(function(jsdosession, result, info) {
+                deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+            }, sessionRejectHandler);
+        };
+        
+        // This function calls login using credentials from the appropriate source
+        // Note that as currently implemented, this should NOT be called when
+        // ANONYMOUS auth is being used, because it unconditionally returns 
+        // AUTHENTICATION_FAILURE if there are no credentials and no loginCallback
+        function callLogin(jsdosession, result, info) {
+            var errorObject;
+            
+            // Use the login callback if we are passed one 
+            if (typeof options.loginCallback !== 'undefined') {
+                options.loginCallback()
+                .then(function (result) {
+                    jsdosession.login(result.username, result.password)
+                    .then(loginHandler, sessionRejectHandler);
+                }, callbackRejectHandler);
+            } else if (options.username && options.password) {
+                jsdosession.login(options.username, options.password)
+                .then(loginHandler, sessionRejectHandler);
+            } else {
+                errorObject = new Error(progress.data._getMsgText(
+                    "jsdoMSG052",
+                    "getSession()"
+                ));
+                sessionRejectHandler(
+                    jsdosession,
+                    progress.data.Session.AUTHENTICATION_FAILURE,
+                    {
+                        // including an Error object to make clear why there is no xhr (normally there would
+                        // be one for an authentication failure)
+                        errorObject: errorObject
+                    }
+                );
+            }
+        }
+        
+        if (typeof options !== 'object') {
+            // getSession(): 'options' must be of type 'object'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503", 
+                "getSession()",
+                "options",
+                "object"
+            ));
+        }
+        
+        if (typeof options.loginCallback !== 'undefined' && 
+            typeof options.loginCallback !== 'function') {
+            // getSession(): 'options.loginCallback' must be of type 'function'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503", 
+                "getSession()",
+                "options.loginCallback",
+                "function"
+            ));
+        }
+        
+        // Create the JSDOSession and let it handle the argument parsing
+        try {
+            jsdosession = new progress.data.JSDOSession(options);
+            
+            jsdosession.isAuthorized()
+            .then(function(jsdosession, result, info) {
+                // If we are logged in, then we just re-add the catalog.
+                loginHandler(jsdosession, result, info);
+            }, function(jsdosession, result, info) {
+                // If model is anon, just log in.
+                if (jsdosession.authenticationModel === progress.data.Session.AUTH_TYPE_ANON &&
+                    result !== progress.data.Session.GENERAL_FAILURE) {
+                    
+                    jsdosession.login(options.username, options.password)
+                    .then(loginHandler, sessionRejectHandler);
+                } 
+                // We need to log-in with credentials.
+                else if (result === progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED || 
+                    result === progress.data.Session.AUTHENTICATION_FAILURE) {
+                    
+                    // If we were logged in, we need to logout
+                    if (result === progress.data.Session.AUTHENTICATION_FAILURE) {
+                        jsdosession.logout()
+                        .then(callLogin, sessionRejectHandler);
+                    } else {
+                        callLogin(jsdosession);
+                    }
+                }
+                // If we get here, it's probably because the server is down.
+                else {
+                    sessionRejectHandler(jsdosession, result, info);
+                }
+            });
+        } catch (error) {
+            throw error;
+        }
+        
+        return deferred.promise();
+    };
 })();
 
 if (typeof exports !== "undefined") {
