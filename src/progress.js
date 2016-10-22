@@ -5524,7 +5524,6 @@ limitations under the License.
                 j,
                 i;
 
-<<<<<<< HEAD
             if (request && !request.success) {
                if (request.xhr.status >= 400 && request.xhr.status < 600) {
                     try {
