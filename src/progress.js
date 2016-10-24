@@ -1,15 +1,15 @@
 
 /* 
-progress.js    Version: 4.1.0-7
+progress.js    Version: 4.3.0-24
 
-Copyright (c) 2012-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
  
     http://www.apache.org/licenses/LICENSE-2.0
- 
+  
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,10 +20,12 @@ limitations under the License.
 
 (function () {
 
+    // "use strict";
+    
     var PROGRESS_JSDO_PCT_MAX_EMPTY_BLOCKS = 20,
         PROGRESS_JSDO_OP_STRING = ["none", "create", "read", "update", "delete", "submit"],
         PROGRESS_JSDO_ROW_STATE_STRING = ["", "created", "", "modified", "deleted"];
-
+    
     /* define these if not defined yet - they may already be defined if
      progress.session.js was included first */
     if (typeof progress === 'undefined') {
@@ -36,7 +38,7 @@ limitations under the License.
     progress.data._nextid = 0;
     progress.data._uidprefix = "" + ( Date.now ? Date.now() : (new Date().getTime()));
 
-    /* 15 - 9 */   
+    /* 15 - 9 */
     var UID_MAX_VALUE = 999999999999999;
 
     progress.data._getNextId = function () {
@@ -52,6 +54,10 @@ limitations under the License.
 
     var msg = {};
     msg.msgs = {};
+//        msg numbers   0 -  99 are related to use of the API (methods and properties we expose to developers)
+//                    100 - 109 relate to network errors
+//                    110 - 998 are for miscellaneous errors
+                    
     msg.msgs.jsdoMSG000 = "JSDO, Internal Error: {1}";
     msg.msgs.jsdoMSG001 = "JSDO: JSDO has multiple tables. Please use {1} at the table reference level.";
     msg.msgs.jsdoMSG002 = "JSDO: Working record for '{1}' is undefined.";
@@ -87,14 +93,23 @@ limitations under the License.
     msg.msgs.jsdoMSG040 = "The event listener is not a function.";
     msg.msgs.jsdoMSG041 = "The event listener scope is not an object.";
     msg.msgs.jsdoMSG042 = "'{1}' is not a defined event for this object.";
-    msg.msgs.jsdoMSG043 = "{1}: A session object was requested to check the status of a Mobile " + 
+    msg.msgs.jsdoMSG043 = "{1}: A session object was requested to check the status of a Mobile " +
         "Service named '{2}', but it has not loaded the definition of that service.";
     msg.msgs.jsdoMSG044 = "JSDO: In '{1}' function, {2} is missing {3} property.";
     msg.msgs.jsdoMSG045 = "JSDO: {1} function: {2} is missing {3} property.";    
-
+    msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
+    msg.msgs.jsdoMSG047 = "{1} timeout expired.";
+    msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG050 = "No token returned from server";
+    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
+    msg.msgs.jsdoMSG052 = "{1}: Login was not attempted because no credentials were supplied.";
+    
+    //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
     msg.msgs.jsdoMSG101 = "Network error while executing HTTP request.";
 
+    //                    110 - 499 are for miscellaneous errors
     msg.msgs.jsdoMSG110 = "Catalog error: idProperty not specified for resource '{1}'. " +
         "idProperty is required {2}.";
     msg.msgs.jsdoMSG111 = "Catalog error: Schema '{1}' was not found in catalog.";
@@ -112,7 +127,16 @@ limitations under the License.
     msg.msgs.jsdoMSG121 = "{1}: Argument {2} must be of type {3} in {4} call.";
     msg.msgs.jsdoMSG122 = "{1}: Incorrect number of arguments in {2} call. There should be {3}.";
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
-	
+    msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
+                            "with a temp-table. Use jsdo.autoApplyChanges = false.";
+    msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider needs to be managing a valid token.";
+    
+    //                    500 - 998 are for generic errors
+    msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
+    msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
+    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
+    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
+
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
     msg.getMsgText = function (n, args) {
@@ -172,6 +196,8 @@ limitations under the License.
         this._added = [];
         this._changed = {};
         this._deleted = [];
+        this._lastErrors = [];
+        this._convertForServer;
 
         this._createIndex = function () {
             var i, block, id, idProperty;
@@ -620,17 +646,55 @@ limitations under the License.
             if (typeof(setWorkingRecord) == 'undefined') {
                 setWorkingRecord = true;
             }
-            var record = {};
+            var record = {},
+                i,
+                j,
+                value,
+                prefixElement,
+                name;
 
+            if (typeof values === "undefined") {
+                values = {};
+            }
+            
             // Assign values from the schema
             var schema = this.getSchema();
-            for (var i = 0; i < schema.length; i++) {
+            for (i = 0; i < schema.length; i++) {
                 var fieldName = schema[i].name;
                 if (schema[i].type == "array") {
                     record[fieldName] = [];
                     if (schema[i].maxItems) {
                         for (var j = 0; j < schema[i].maxItems; j++) {
-                            record[fieldName][j] = schema[i]["default"];
+                            record[fieldName][j] = this._jsdo._getDefaultValue(schema[i]);
+                        }
+                    }
+                    
+                    // Assign array values from object parameter
+                    value = values[fieldName];
+                    if (typeof value != "undefined") {
+                        record[fieldName] = value;
+                        delete values[fieldName];
+                    }                    
+                    // Assign values from individual fields from flattened arrays
+                    prefixElement = this._jsdo._getArrayField(fieldName);
+                    if (!record[fieldName]) {
+                        record[fieldName] = [];
+                    }
+                    for (j = 0; j < schema[i].maxItems; j += 1) {
+                        name = prefixElement.name + (j+1);
+                        value = values[name];
+                        if (typeof value != "undefined") {
+                            if (!this._fields[name.toLowerCase()]) {
+                                // Skip element if a field with the same name exists                                
+                                // Remove property from object for element since it is not part of the actual schema
+                                delete values[prefixElement.name + (j+1)];                            
+                                if (typeof value == 'string' && schema[i].items.type != 'string') {
+                                    value = this._jsdo._convertType(value,
+                                                                              schema[i].items.type,
+                                                                              null);
+                                }                                
+                                record[fieldName][j] = value;                                
+                            }
                         }
                     }
                 }
@@ -910,6 +974,11 @@ limitations under the License.
             else
                 return 0;
         };
+
+		// getErrors() - JSTableRef
+		this.getErrors = function () {
+			return this._lastErrors;
+		};
 
         this.getErrorString = function () {
             if (this.record) {
@@ -1617,11 +1686,16 @@ limitations under the License.
 
             this._saveBeforeImageUpdate();
 
-            var fieldName;
-            var value;
-            var schema = this._tableRef.getSchema();
+            var fieldName,
+                i,
+                j,
+                value,
+                schema = this._tableRef.getSchema(),
+                prefixElement,
+                name;
+            
             if (record) {
-                for (var i = 0; i < schema.length; i++) {
+                for (i = 0; i < schema.length; i += 1) {
                     fieldName = schema[i].name;
                     value = record[fieldName];
                     if (typeof value != "undefined") {
@@ -1632,6 +1706,28 @@ limitations under the License.
                         }
                         this.data[fieldName] = value;
                     }
+                    if (schema[i].type === "array") {
+                        // Assign values from individual fields from flattened arrays                      
+                        prefixElement = this._tableRef._jsdo._getArrayField(fieldName);
+                        if (!this.data[fieldName]) {
+                            this.data[fieldName] = [];
+                        }
+                        for (j = 0; j < schema[i].maxItems; j += 1) {
+                            name = prefixElement.name + (j+1);
+                            value = record[name];
+                            if (typeof value != "undefined") {
+                                // Skip element if a field with the same name exists
+                                if (!this._tableRef._fields[name.toLowerCase()]) {                                
+                                    if (typeof value == 'string' && schema[i].items.type != 'string') {
+                                        value = this._tableRef._jsdo._convertType(value,
+                                                                                  schema[i].items.type,
+                                                                                  null);
+                                    }                                
+                                    this.data[fieldName][j] = value;
+                                }
+                            }
+                        }
+                    }                    
                 }
 
                 this._sortRecord();
@@ -1803,16 +1899,53 @@ limitations under the License.
                 fieldName,
                 {
                     get: function fnGet() {
-                        if (this.record)
-                            return this.record.data[fieldName];
+                        var name,
+                            index,
+                            element,
+                            fieldInfo;
+                        if (this.record) {
+                            index = fieldName.indexOf(progress.data.JSDO.ARRAY_INDEX_SEPARATOR);
+                            if (index > 0 && !this._fields[fieldName.toLowerCase()]) {
+                                // Skip element if a field with the same name exists                                
+                                // Check if field is a flattened array field by quickly checking for the separator
+                                // Extract name and index element
+                                name = fieldName.substring(0, index);
+                                element = fieldName.substring(index + progress.data.JSDO.ARRAY_INDEX_SEPARATOR.length);
+                                fieldInfo = this._fields[name.toLowerCase()];
+                                if (!isNaN(element) && fieldInfo && (fieldInfo.type === "array")) {
+                                    return this.record.data[name][element - 1];
+                                }
+                            }
+                            return this.record.data[fieldName];                            
+                        }
                         else
                             return null;
                     },
                     set: function (value) {
+                        var name = fieldName,
+                            index,
+                            element,
+                            fieldInfo;
                         if (this.record) {
                             this.record._saveBeforeImageUpdate();
-                            this.record.data[fieldName] = value;
-                            this.record._sortRecord(fieldName);
+
+                            try {
+                                index = fieldName.indexOf(progress.data.JSDO.ARRAY_INDEX_SEPARATOR);
+                                if (index > 0 && !this._fields[fieldName.toLowerCase()]) {
+                                    // Skip element if a field with the same name exists                                    
+                                    name = fieldName.substring(0, index);
+                                    element = fieldName.substring(index + progress.data.JSDO.ARRAY_INDEX_SEPARATOR.length);
+                                    fieldInfo = this._fields[name.toLowerCase()];
+                                    if (!isNaN(element) && fieldInfo && (fieldInfo.type === "array")) {
+                                        this.record.data[name][element - 1] = value;
+                                        return;
+                                    }
+                                }                            
+                                this.record.data[fieldName] = value;
+                            }
+                            finally {
+                                this.record._sortRecord(name);
+                            }
                         }
                     },
                     enumerable: true,
@@ -1841,6 +1974,7 @@ limitations under the License.
         this.autoApplyChanges = true; // default should be true to support 11.2 behavior
         this._lastErrors = [];
         this._localStorage = null;
+        this._convertForServer;
         var autoFill = false;
 
         // Initialize JSDO using init values
@@ -2037,6 +2171,21 @@ limitations under the License.
                     writeable: true
                 });
         }
+        
+        // Define _properties property at the JSDO level
+        this._properties = {};
+        if ((typeof Object.defineProperty) == 'function') {
+            Object.defineProperty( this, 
+                                   "this._properties",
+                                   {  
+                                       get: function () {
+                                            return this._properties;
+                                       },
+                                       enumerable: false
+                                   }
+                                 );
+            
+        }
 
 
         // Set schema for TableRef
@@ -2045,23 +2194,33 @@ limitations under the License.
                 this._buffers[buf]._schema = this._resource.fields[buf];
                 this._buffers[buf]._primaryKeys = this._resource.primaryKeys[buf];
 
-                if (this._buffers[buf]._schema && (typeof Object.defineProperty) == 'function') {
-                    // Add fields as properties of the TableRef object
-                    for (var i = 0; i < this._buffers[buf]._schema.length; i++) {
-                        var fieldName = this._buffers[buf]._schema[i].name;
-                        if (typeof(this._buffers[buf][fieldName]) == 'undefined') {
-                            this._defineProperty(buf, fieldName);
-                        }
-                    }
-                }
-
-                // Create _fields object used to validate fields as case-insentive.
+                // Create _fields object used to validate fields as case-insensitive.
                 this._buffers[buf]._fields = {};
                 var fields = this._buffers[buf]._schema;
                 for (var i = 0; i < fields.length; i++) {
                     this._buffers[buf]._fields[fields[i].name.toLowerCase()] = fields[i];
                 }
-
+                
+                if (this._buffers[buf]._schema && (typeof Object.defineProperty) == 'function') {
+                    // Add fields as properties of the TableRef object
+                    for (var i = 0; i < this._buffers[buf]._schema.length; i++) {
+                        var fieldName = this._buffers[buf]._schema[i].name,
+                            fieldInfo = this._buffers[buf]._schema[i];                        
+                        if (typeof(this._buffers[buf][fieldName]) == 'undefined') {
+                            this._defineProperty(buf, fieldName);
+                        }
+						if (fieldInfo.type === "array") {
+							for (var j = 0; j < fieldInfo.maxItems; j += 1) {
+                                var name = fieldName + progress.data.JSDO.ARRAY_INDEX_SEPARATOR + (j + 1);
+                                // Skip element if a field with the same name exists                                
+                                // Only create property if the name is not being used
+                                if (!this._buffers[buf]._fields[name.toLowerCase()]) {
+                                    this._defineProperty(buf, name);
+                                }
+							}
+						}                        
+                    }
+                }
             }
             // Set schema for when dataProperty is used but not specified via the catalog
             if (this._defaultTableRef
@@ -2135,16 +2294,28 @@ limitations under the License.
                     this._buffers[relationship.parentName]._children.push(relationship.childName);
                 }
             }
-        }
-
+        }      
+        
         this._getDefaultValue = function (field) {
             var defaultValue,
-                t, m, d;
+                t, m, d,
+                isDate = false;
 
             if ((field.type === "string")
                 && field.format
                 && (field.format.indexOf("date") !== -1)
                 && (field["default"])) {
+                isDate = true;
+            } else if ((field.type === "array")
+                       && field.ablType
+                       && (field.ablType.indexOf("DATE") != -1)
+                       && (field["default"])) {
+                isDate = true;
+            } else {
+                defaultValue = field["default"];
+            }
+            
+            if (isDate) {
                 switch (field["default"].toUpperCase()) {
                     case "NOW":
                         defaultValue = new Date().toISOString();
@@ -2165,11 +2336,21 @@ limitations under the License.
                         defaultValue = field["default"];
                 }
             }
-            else {
-                defaultValue = field["default"];
-            }
-
+            
             return defaultValue;
+        };
+        
+        // Method to calculate the element information of an array given the name, index, and value
+        // Parameters:
+        // arrayFieldName The name o the field
+        // index Optional parameter - if index is null/undefined the name of the element is the prefix
+        // value Optional parameter
+        this._getArrayField = function (arrayFieldName, index, value) {
+            var element = {};
+            // ABL arrays are 1-based
+            element.name = arrayFieldName + progress.data.JSDO.ARRAY_INDEX_SEPARATOR + ((index >= 0) ? (index + 1) : "");
+            element.value = value ? value[index] : undefined;
+            return element;
         };
 
         this.isDataSet = function () {
@@ -2517,6 +2698,13 @@ limitations under the License.
             throw new Error(msg.getMsgText("jsdoMSG001", "getId()"));
         };
 
+		// getErrors() - JSDO
+		this.getErrors = function () {
+            if (this._defaultTableRef)
+                return this._defaultTableRef.getErrors();
+            throw new Error(msg.getMsgText("jsdoMSG001", "getErrors()"));
+		};
+
         this.getErrorString = function () {
             if (this._defaultTableRef)
                 return this._defaultTableRef.getErrorString();
@@ -2556,6 +2744,13 @@ limitations under the License.
             throw new Error(msg.getMsgText("jsdoMSG001", "sort()"));
         };
 
+		this._clearErrors = function () {
+			this._lastErrors = [];
+            for (var buf in this._buffers) {
+				this._buffers[buf]._lastErrors = [];
+			}
+		};
+
         /*
          * Loads data from the HTTP resource.
          */
@@ -2565,7 +2760,7 @@ limitations under the License.
 				properties,
 				mapping;
                 
-            this._lastErrors = [];
+			this._clearErrors();
 
             // Process parameters
             if (arguments.length !== 0) {
@@ -2692,6 +2887,8 @@ limitations under the License.
             xhr.onErrorFn = onErrorFn;
             xhr.onreadystatechange = this.onReadyStateChangeGeneric;
             xhr.request = request;
+            
+            this._convertRequestData(objParam);
 
             var operationStr;
             switch (operation) {
@@ -2712,10 +2909,172 @@ limitations under the License.
                     this._resource.generic[operationStr](xhr, this._async);
                 }
                 else {
-                    throw new Error("JSDO: " + operationStr.toUpperCase() + " operation is not defined.");
+                    // "JSDO: {1} operation is not defined."
+                    throw new Error(msg.getMsgText("jsdoMSG046", operationStr.toUpperCase() ));
                 }
             }
         };
+        
+        // Determines if any fields need a conversion when data sent to backend
+        this._initConvertForServer = function () {
+            var i, buf, schema;
+            
+            // If set, we're good. Field lists for conversion have already been created
+            if (this._convertForServer !== undefined) {
+                return;
+            }
+            
+            this._convertForServer = false;      
+            for (buf in this._buffers) {    
+                schema = this._buffers[buf].getSchema();
+                this._buffers[buf]._convertFieldsForServer = [];
+                this._buffers[buf]._convertForServer = false;
+                
+                // Check if any fields need conversion
+                for (i = 0; i < schema.length; i++) {
+                    if (schema[i].ablType && this._ablTypeNeedsConversion(schema[i].ablType)) {
+                        this._buffers[buf]._convertFieldsForServer.push({name: schema[i].name, 
+                                                                         ablType: schema[i].ablType});
+                    }
+                }
+                if (this._buffers[buf]._convertFieldsForServer.length > 0) {
+                    this._convertForServer = true;
+                    this._buffers[buf]._convertForServer = true;
+                }
+            } 
+        };
+        
+        this._convertRequestData = function (objParam) {
+            var buf,
+                beforeData; 
+                
+            if (this._convertForServer === false) {
+                return;
+            }
+            
+            // We know at least one table has a field to convert 
+            for (buf in this._buffers) { 
+                if (this._buffers[buf]._convertForServer) {
+                    if (objParam[this._dataSetName]) {
+                        // First convert after-table
+                        if (objParam[this._dataSetName][buf]) {
+                            this._convertTableData(this._buffers[buf], objParam[this._dataSetName][buf]);
+                        }
+                        
+                        // Now let's convert before-image data 
+                        beforeData = objParam[this._dataSetName]["prods:before"];
+                        if (beforeData && beforeData[buf]) {
+                            this._convertTableData(this._buffers[buf], beforeData[buf]); 
+                        }   
+                    }
+                    // This is for case where saveChanges(false) is called with no before-image data
+                    else if (objParam[buf]) { 
+                        this._convertTableData(this._buffers[buf], objParam[buf]);
+                    }
+                }
+            }                                                                        
+        };
+        
+        this._convertTableData = function (tableRef, tableData) {
+            var i;
+            
+            for (i = 0; i < tableData.length; i++) {
+                this._convertRowData(tableRef, tableData[i]);
+            }
+        };
+         
+        this._convertRowData = function (tableRef, record) {    
+            var i,
+                field;
+            
+            for (i = 0; i < tableRef._convertFieldsForServer.length; i += 1) {
+                field = tableRef._convertFieldsForServer[i];
+                record[field.name] = this._convertField(record[field.name], field.ablType);
+            }
+        };
+        
+        this._convertField = function (value, ablType) {
+            var result;
+            
+            if (value === undefined || value === null) {
+                return value;
+            }
+            
+            if (value instanceof Array) {
+                var resultArray = [];
+                for (var i = 0; i < value.length; i++) {
+                    resultArray[i] = this._convertField(value[i], ablType);     
+                }
+                return resultArray;
+            }
+            
+            try {
+                switch (ablType.toUpperCase()) {
+                    case "DATE":
+                    case "DATETIME":
+                        if (typeof value === 'string') {
+                            result = value;
+                        }
+                        else if (value instanceof Date) {
+                            result = this._convertDate(value, ablType.toUpperCase());
+                        }
+                        else {
+                            throw new Error("Unexpected value for  " + ablType.toUpperCase() + ".");
+                        }
+                        break;
+                    default:
+                        result = value;
+                        break;
+                }
+            }
+            catch (e) {
+                throw new Error(msg.getMsgText("jsdoMSG000", 
+                    "Error in _convertField for value: " + value + ". " + e.message));
+            }
+            
+            return result;
+        };
+        
+        // Convert Date object to string for DATE and DATETIME ablTypes
+        // Not necessary to do for DATETIME-TZ since JSON.stringify() will do correct conversion 
+        this._convertDate = function (value, ablType) {
+            var result = value;
+            
+            // DATE format should be in ISO 8601 format yyyy-mm-dd
+            // DATETIME format should be in ISO 8601 format yyyy-mm-ddThh:mm:ss.sss
+            if (ablType === "DATE" || ablType === "DATETIME") { 
+                result =  progress.util._pad(value.getFullYear(), 4) + '-' + 
+                          progress.util._pad(value.getMonth() + 1) + '-' + 
+                          progress.util._pad(value.getDate());
+                    
+                if (ablType === "DATETIME") {
+                    result =  result + "T" + 
+                         progress.util._pad(value.getHours()) + ":" + 
+                         progress.util._pad(value.getMinutes()) + ":" + 
+                         progress.util._pad(value.getSeconds()) + "." + 
+                         progress.util._pad(value.getMilliseconds(), 3);
+                }              
+            }
+            
+             return result;
+        };
+        
+        
+        this._ablTypeNeedsConversion = function (ablType) {
+            
+            var needsConversion = false;
+            
+            switch (ablType.toUpperCase()) {
+                case "DATE":
+                case "DATETIME":
+                    needsConversion =  true;
+                    break;
+            }
+            
+            return needsConversion;     
+        };
+
+           
 
         this._undefWorkingRecord = function () {
             // Set record property
@@ -2728,8 +3087,8 @@ limitations under the License.
          * Saves changes in the JSDO. Save any outstanding changes for CREATES, UPDATE, and DELETEs
          */
         this.saveChanges = function (useSubmit) {
-            var promise;
-            this._lastErrors = [];
+            var promise,
+                request;
 
             if (useSubmit === undefined) {
                 useSubmit = false;
@@ -2737,14 +3096,29 @@ limitations under the License.
             else if (typeof(useSubmit) != 'boolean') {
                 throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "saveChanges()"));
             }
+            
             // _fireCUDTriggersForSubmit() needs to know how saveChanges() was called
             this._useSubmit = useSubmit; 
 
-            if (!this._hasCUDOperations && !this._hasSubmitOperation) {
-                throw new Error(msg.getMsgText("jsdoMSG026"));
+            // confirm the availability of the operations required for executing this saveChanges call
+            // (_checkThatJSDOHasRequiredOperations() throws an error if there's a missing operation,
+            // which this method deliberately allows to bubble up to the caller)
+            this._checkThatJSDOHasRequiredOperations(); 
+            
+            // Don't allow Submit with just a temp-table if autoApplyChanges is true
+            if ( !this._dataSetName && this._useSubmit && this.autoApplyChanges) {
+                  /* error message: "autoApplyChanges is not supported for submit with a temp-table */
+                  /* Use jsdo.autoApplyChanges = false." */
+                  throw new Error(msg.getMsgText("jsdoMSG124")); 
             }
+            
+            // Check if any data being sent to server needs to first be converted
+            this._initConvertForServer();
+            
+            // Clear errors before sending request
+			this._clearErrors();
 
-            var request = {
+            request = {
                 jsdo: this
             };
 
@@ -2756,13 +3130,90 @@ limitations under the License.
                  * are in sync in JSDO Submit Service. */
                 promise = this._syncDataSetForSubmit(request);
             }
-            else if (this._dataSetName)
+            else if (this._dataSetName) {
                 promise = this._syncDataSetForCUD();
+            }
             else {
                 promise = this._syncSingleTable();
             }
             
             return promise;
+        };
+
+        /* 
+         * _checkThatJSDOHasRequiredOperations
+            
+           This method is intended to be used by the saveChanges() method to determine whether 
+           the JSDO's resource definition includes the operations necessary for executing the
+           types of changes that are pending in the JSDO. It checks for Submit if saveChanges
+           was called with useSubmit set to true, otherwise it checks whatever CUD operations are
+           pending. 
+           The JSDO's internal _useSubmit property must be set correctly before this method 
+           is called
+         */
+        this._checkThatJSDOHasRequiredOperations = function( ) {
+            var checkedDelete = false,
+                checkedCreate = false,
+                checkedUpdate = false,
+                buf,
+                tableRef;
+
+            if (!this._hasCUDOperations && !this._hasSubmitOperation) {
+                throw new Error(msg.getMsgText("jsdoMSG026"));
+            }
+
+            // Validate the use of Submit
+            if (this._useSubmit) {
+                if (!this._hasSubmitOperation) {
+                    // "JSDO: {1} operation is not defined.";  
+                    throw new Error(msg.getMsgText("jsdoMSG046", "SUBMIT"));
+                }
+                else {
+                    return;
+                }
+            }
+            
+            if (!this._resource) {
+                // Need the _resource property to do the validation. If not present, just return 
+                // and let execution run as normal (presumably there will be an error)
+                return;
+            }
+           
+            // Find the pending operations and make sure they are defined
+            for (buf in this._buffers) {
+
+                tableRef = this._buffers[buf];
+
+                if (!checkedDelete && tableRef._deleted.length > 0) {
+                    this._confirmOperationExists( progress.data.JSDO._OP_DELETE );
+                    checkedDelete = true;
+                }
+                
+                if (!checkedCreate && tableRef._added.length > 0) {
+                    this._confirmOperationExists( progress.data.JSDO._OP_CREATE );
+                    checkedCreate = true;
+                }
+
+                if (!checkedUpdate && Object.keys(tableRef._changed).length > 0) {
+                    this._confirmOperationExists( progress.data.JSDO._OP_UPDATE );  
+                    checkedUpdate = true;
+                }
+                
+                if ( checkedDelete && checkedCreate && checkedUpdate ) {
+                    break;
+                }
+            }
+            
+        };
+
+        // Determines whether a given operation is defined by the JSDO's resource
+        // throws an error if it's not defined
+        this._confirmOperationExists = function(operation) {
+            var operationStr = PROGRESS_JSDO_OP_STRING[operation];
+            if (typeof(this._resource.generic[operationStr]) !== "function") {
+                // "JSDO: {1} operation is not defined."
+                throw new Error(msg.getMsgText("jsdoMSG046", operationStr.toUpperCase() ));
+            }
         };
         
         this.invoke = function (name, object) {
@@ -2783,6 +3234,10 @@ limitations under the License.
          *                      If not specified a new one will be created.  Used for saving datasets.
          */
         this._syncTableRef = function (operation, tableRef, batch) {
+            var rowData,
+                requestData,
+                jsonObject;
+            
             if (tableRef._visited) return;
             tableRef._visited = true;
 
@@ -2806,36 +3261,40 @@ limitations under the License.
                         if (!jsrecord) continue;
                         if (tableRef._processed[id]) continue;
                         tableRef._processed[id] = jsrecord.data;
+                        
+                        rowData = {};
+                        jsonObject = {};
+                        
+                        // Make copy of row data, in case we need to convert data for backend..
+                        tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
 
-                        var jsonObject;
                         if (this.isDataSet()) {
-                            jsonObject = {};
-
                             if (this._useBeforeImage("create")) {
                                 jsonObject[this._dataSetName] = {};
                                 var dataSetObject = jsonObject[this._dataSetName];
                                 dataSetObject["prods:hasChanges"] = true;
 
                                 dataSetObject[tableRef._name] = [];
-                                var rowData = {};
+                                
                                 // Dont need to send prods:id for create, 
                                 // no before table or error table to match
                                 // Dont need to send prods:clientId - since only sending one record
                                 rowData["prods:rowState"] = "created";
                                 rowData["prods:clientId"] = jsrecord.data._id;
 
-                                tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
                                 delete rowData["_id"];
 
                                 dataSetObject[tableRef._name].push(rowData);
                             }
                             else {
                                 jsonObject[tableRef._name] = [];
-                                jsonObject[tableRef._name].push(jsrecord.data);
+                                jsonObject[tableRef._name].push(rowData);
                             }
                         }
-                        else
-                            jsonObject = jsrecord.data;
+                        else {
+                            jsonObject = rowData;
+                        }
+                            
 
                         var request = {
                             operation: operation,
@@ -2860,9 +3319,14 @@ limitations under the License.
                         if (!jsrecord) continue;
                         if (tableRef._processed[id]) continue;
                         tableRef._processed[id] = jsrecord.data;
-
-                        var jsonObject = {};
-                        var requestData = {};
+                        
+                        rowData = {};
+                        jsonObject = {};
+                        requestData = {};
+                        
+                        // Make copy of row data, in case we need to convert data for backend..
+                        tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                        
                         var useBeforeImageFormat = false;
                         if (this.isDataSet()) {
                             if (this._useBeforeImage("update")) {
@@ -2872,13 +3336,10 @@ limitations under the License.
                                 dataSetObject["prods:hasChanges"] = true;
                                 dataSetObject[tableRef._name] = [];
 
-                                var rowData = {};
                                 // Dont need to send prods:clientId - since only sending one record
                                 rowData["prods:id"] = jsrecord.data._id;
                                 rowData["prods:rowState"] = "modified";
                                 rowData["prods:clientId"] = jsrecord.data._id;
-
-                                tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
                                 delete rowData["_id"];
 
                                 dataSetObject[tableRef._name].push(rowData);
@@ -2917,15 +3378,14 @@ limitations under the License.
                                 }
                             }
                             else
-                                requestData = jsrecord.data;
+                                requestData = rowData;
 
                             if (this.isDataSet()) {
                                 jsonObject[tableRef._name] = [];
                                 jsonObject[tableRef._name].push(requestData);
                             }
                             else {
-                                requestData = jsrecord.data;
-                                jsonObject = requestData;
+                                jsonObject = rowData;
                             }
                         }
 
@@ -2964,9 +3424,14 @@ limitations under the License.
 
                     if (!jsrecord) continue;
                     tableRef._processed[id] = jsrecord.data;
-
-                    var jsonObject = {};
-                    var requestData = {};
+                    
+                    rowData = {};
+                    jsonObject = {};
+                    requestData = {};
+                        
+                    // Make copy of row data, in case we need to convert data for backend..
+                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                        
                     var useBeforeImageFormat = false;
                     if (this.isDataSet()) {
                         if (this._useBeforeImage("delete")) {
@@ -2979,8 +3444,7 @@ limitations under the License.
                             dataSetObject["prods:before"] = {};
                             var beforeObject = dataSetObject["prods:before"];
                             beforeObject[tableRef._name] = [];
-                            var rowData = jsrecord.data;
-
+                            
                             var beforeRowData = {};
 
                             // Dont need to send prods:id for delete, no after table or error table to match
@@ -2991,7 +3455,6 @@ limitations under the License.
                             tableRef._jsdo._copyRecord(tableRef, 
                                 tableRef._beforeImage[rowData._id], beforeRowData);
                             beforeObject[tableRef._name].push(beforeRowData);
-
                         }
                     }
 
@@ -3008,16 +3471,16 @@ limitations under the License.
                                     " for sendOnlyChanges property"));
                             }
                         }
-                        else
-                            requestData = jsrecord.data;
+                        else {
+                            requestData = rowData;
+                        }
 
                         if (this.isDataSet()) {
                             jsonObject[tableRef._name] = [];
                             jsonObject[tableRef._name].push(requestData);
                         }
                         else {
-                            requestData = jsrecord.data;
-                            jsonObject = requestData;
+                            jsonObject = rowData;
                         }
                     }
 
@@ -3125,6 +3588,13 @@ limitations under the License.
                         success: success
                     };
                     this._undefWorkingRecord();
+                    
+                    // Save error messages
+                    this._lastErrors = [];
+                    if (!success && batch.operations) {
+                        this._updateLastErrors(this, batch, null);
+                    }
+                        
                     this._fireAfterSaveChanges(success, request);
                 }
             }
@@ -3238,8 +3708,14 @@ limitations under the License.
                             " for sendOnlyChanges property"));
                     }
                 }
-                else
-                    requestData = jsrecord.data;
+                else {
+                    // We must copy record in case _convertRowData() needs to make conversion
+                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData);
+                }
+                
+                if (tableRef._convertForServer) {
+                    this._convertRowData(tableRef, requestData);
+                } 
 
                 if (this._resource) {
                     if (typeof(this._resource.generic["delete"]) == "function") {
@@ -3268,6 +3744,7 @@ limitations under the License.
             for (var i = 0; i < tableRef._added.length; i++) {
                 var id = tableRef._added[i];
                 var jsrecord = tableRef._findById(id, false);
+                var requestData = {};
 
                 if (!jsrecord) continue;
                 if (tableRef._processed[id]) continue;
@@ -3295,26 +3772,35 @@ limitations under the License.
 
                 if (this._resource) {
                     if (typeof(this._resource.generic.create) == "function") {
-                        var copy = {};
+                        this._copyRecord(tableRef, jsrecord.data, requestData);
                         if (this._resource.idProperty !== undefined && jsrecord.data._id !== undefined) {
-                            // Make a copy so we can remove _id when idProperty is set
-                            this._copyRecord(jsrecord._tableRef, jsrecord.data, copy);
-                            delete copy._id;
-                            xhr.objParam = copy;
+                            // Remove _id when idProperty is set
+                            delete requestData._id;
                         }
-                        else {
-                            xhr.objParam = jsrecord.data;
-                        }
+                        
+                        if (tableRef._convertForServer) {
+                            this._convertRowData(tableRef, requestData);
+                        }  
+                        
+                        xhr.objParam = requestData;
+                        
                         this._resource.generic.create(xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: CREATE operation is not defined.");
                     }
+                    
                 }
                 else {
                     this._session._openRequest(xhr, 'POST', this.url, true);
                     xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-                    var input = JSON.stringify(jsrecord.data);
+                    this._copyRecord(tableRef, jsrecord.data, requestData);
+                    
+                    if (tableRef._convertForServer) {
+                        this._convertRowData(tableRef, requestData);
+                    } 
+                    var input = JSON.stringify(requestData);
+                    
                     try {
                         xhr.send(input);
                     } catch (e) {
@@ -3371,8 +3857,14 @@ limitations under the License.
                             " for sendOnlyChanges property"));
                     }
                 }
-                else
-                    requestData = jsrecord.data;
+                else {
+                    // We must copy record in case _convertRowData() needs to make conversion
+                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData);
+                }
+                
+                if (tableRef._convertForServer) {
+                    this._convertRowData(tableRef, requestData);
+                }
 
                 if (this._resource) {
                     if (typeof(this._resource.generic.update) == "function") {
@@ -3386,7 +3878,9 @@ limitations under the License.
                 else {
                     this._session._openRequest(xhr, 'PUT', this.url + '/' + id, this._async);
                     xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-                    var input = JSON.stringify(jsrecord.data);
+                    
+                    var input = JSON.stringify(requestData);
+                    
                     try {
                         xhr.send(input);
                     } catch (e) {
@@ -3417,6 +3911,13 @@ limitations under the License.
                     batch: batch,
                     success: true
                 };
+                
+                // Save error messages
+                jsdo._lastErrors = [];
+                if (batch.operations) {
+                    jsdo._updateLastErrors(jsdo, batch, null);
+                }
+                    
                 jsdo._undefWorkingRecord();
                 jsdo._fireAfterSaveChanges(request.success, request);
             }
@@ -3424,15 +3925,19 @@ limitations under the License.
             return promise;
         };
 
-
         /************************************************************************
          *
-         * Synchronizes changes for a DataSet, sending over the entire change-set to saveChanges() on server
-         * Sends over before-image and after-image data.
+         * Synchronizes changes for a DataSet or a temp-table, sending over the entire change-set
+         * to saveChanges() on server
+         * If sync'ing a DataSet, sends over before-image and after-image data.
          */
         this._syncDataSetForSubmit = function (request) {
             var deferred,
-                promise;
+                promise,
+                jsonObject,
+                completeFn = this._saveChangesComplete,
+                successFn = this._saveChangesSuccess,
+                errorFn =  this._saveChangesError;                
             
             if (typeof($) == 'function' && typeof($.Deferred) == 'function') {
                 deferred = $.Deferred();
@@ -3444,10 +3949,18 @@ limitations under the License.
 
             // First thing to do is to create jsonObject with before and after image data for all 
             // records in change-set (creates, updates and deletes)
-            var jsonObject = this._createChangeSet(this._dataSetName, false, request);
-
+            if ( this._dataSetName ) {
+                jsonObject = this._createChangeSet(this._dataSetName, false, request);
+            }
+            else {
+                // just a temp-table. Need to create it somewhat differently from DS 
+                // (no before and after image data)
+                jsonObject = this._createTTChangeSet(this._defaultTableRef, request);                
+                successFn = this._saveChangesSuccessTT;  // will process success response differently from DS
+            }
+            
             this._execGenericOperation(progress.data.JSDO._OP_SUBMIT, jsonObject, request, 
-                this._saveChangesComplete, this._saveChangesSuccess, this._saveChangesError);
+                completeFn, successFn, errorFn);
                 
             return promise;
         };
@@ -3516,6 +4029,84 @@ limitations under the License.
             return changeSetJsonObject;
         };
 
+        /************************************************************************
+         *
+         * Private method that creates a jsonObject for the created and changed records
+         * in a temp-table. There is no before-image information. This is used in the
+         * case of a Submit operation when the JSDO is just for a temp-table 
+         *
+         * Params: dataSetName is required.
+         *         alwaysCreateTable is required. If true, always create table array (even if no data/changes)
+         *         request is optional
+         */
+        this._createTTChangeSet = function (tableRef, request) {
+            var changeSetJsonObject = {},
+                hasChanges,
+                tempTableJsonObject,
+                i,
+                id,
+                jsrecord;
+
+            changeSetJsonObject[tableRef._name] = [];
+            tempTableJsonObject = changeSetJsonObject[tableRef._name];
+
+            hasChanges = this._hasChanges();
+            if (hasChanges) {
+                
+                // (note that we do not send deleted rows on submit for a temp-table)
+                
+                //  Adds
+                for (i = 0; i < tableRef._added.length; i++) {
+                    id = tableRef._added[i];
+                    jsrecord = tableRef._findById(id, false);
+                    if (jsrecord) {
+                        if ( !tableRef._processed[jsrecord.data._id] ) {
+                            this._addRowToTTChangeSet(tableRef, jsrecord, tempTableJsonObject,
+                                                       request, "beforeCreate");
+                        }
+                    }
+                }              
+
+                // changed rows
+                for (id in tableRef._changed) {
+                    if (tableRef._changed.hasOwnProperty(id)) {
+                        jsrecord = tableRef._findById(id, false);
+                        if (jsrecord) {
+                            if ( !tableRef._processed[jsrecord.data._id] ) {
+                                this._addRowToTTChangeSet(tableRef, jsrecord, tempTableJsonObject, 
+                                                          request, "beforeUpdate");
+                            }
+                        }
+                    }
+                }              
+                
+                // Clear _processed map
+                tableRef._processed = {};
+            }
+
+            return changeSetJsonObject;
+        };
+
+        this._addRowToTTChangeSet = function (tableRef, jsrecord, tempTableJsonObject, request, event) {
+            var rowData = {};
+            
+            tableRef._processed[jsrecord.data._id] = jsrecord.data;
+            
+            // Store jsrecord in request object so we can access it when saveChanges completes, 
+            // in order to run afterCreate events
+            if (typeof(request) != 'undefined') {
+                request.jsrecords.push(jsrecord);
+
+                // Need to call beforeCreate trigger when saveChanges(true) is called
+                jsrecord._tableRef.trigger(event, this, jsrecord, request);
+                this.trigger(event, this, jsrecord, request);
+            }
+            
+            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+            delete rowData["_id"];
+
+            tempTableJsonObject.push(rowData);
+        };
 
         /************************************************************************
          *
@@ -3640,7 +4231,7 @@ limitations under the License.
                     break;
                 }
             }
-
+            
             return hasChanges;
         };
 
@@ -4314,7 +4905,12 @@ limitations under the License.
         this._mergeUpdateRecord = function (tableRef, recordId, record) {
             var index = tableRef._index[recordId].index;
             record._id = recordId;
-            tableRef._data[index] = record;
+            
+            if (!tableRef._data[index]) {
+                tableRef._data[index] = {};
+            }
+            this._copyRecord(this._tableRef, record, tableRef._data[index]);
+            record = tableRef._data[index];
 
             if (tableRef._jsdo._resource.idProperty !== undefined) {
                 var id = tableRef._data[index][tableRef._jsdo._resource.idProperty];
@@ -4336,7 +4932,10 @@ limitations under the License.
         this._setErrorString = function (tableRef, recordId, errorString, setInBeforeTable) {
 
             if (setInBeforeTable) {
-                tableRef._beforeImage[recordId]._errorString = errorString;
+                // Ensure that object exists, it's null for deleted rows
+                if (tableRef._beforeImage[recordId]) {
+                    tableRef._beforeImage[recordId]._errorString = errorString;
+                }
             }
             else {
                 var index = tableRef._index[recordId].index;
@@ -4387,7 +4986,6 @@ limitations under the License.
             // Update dataset with changes from server
             if (this._dataSetName) {
                 var dataSetJsonObject = jsonObject[this._dataSetName];
-                var beforeJsonObject = dataSetJsonObject["prods:before"];
 
                 // only updates the specified record
                 var tableRef = xhr.request.jsrecord._tableRef;
@@ -4650,9 +5248,26 @@ limitations under the License.
         };
 
         this._fillSuccess = function (jsdo, success, request) {
-            var xhr = request.xhr;
+            var xhr = request.xhr,
+                properties;     
+            
+            // Need to check if responseMapping was specified; developer can specify
+            // plug-in to manipulate response 
+            properties = jsdo.getMethodProperties("read");
+            
+            if (properties && properties.mappingType) {
+                mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
+                if (!mapping) {
+                    throw new Error(progress.data._getMsgText("jsdoMSG118", properties.mappingType));
+                }
+                                
+                if (typeof (mapping.responseMapping) === "function") {
+                    request.response = mapping.responseMapping(jsdo, request.response, { operation: "read" });
+                }                
+            } 
+
             jsdo._clearData();
-            jsdo._mergeRead(request.response, xhr);
+            jsdo._mergeRead(request.response, xhr);   
 
             // Set working record
             for (var buf in jsdo._buffers) {
@@ -4675,7 +5290,8 @@ limitations under the License.
         };
 
         this._fillError = function (jsdo, success, request) {
-            jsdo._clearData();
+            jsdo._clearData();            
+            jsdo._updateLastErrors(jsdo, null, null, request);
         };
 
         this._undoCreate = function (tableRef, id) {
@@ -4893,7 +5509,6 @@ limitations under the License.
         };
 
         this._updateError = function (jsdo, success, request) {
-            var makeSuccessFalse = true;
 
             if (jsdo.autoApplyChanges) {
                 request.success = false;
@@ -4906,8 +5521,8 @@ limitations under the License.
             var records = request.response;
             jsdo._mergeUpdateForSubmit(records, request.xhr);
 
-            // Save _errorString 
-            jsdo._lastErrors = [];
+            // Ensure that that the _lastErrors variable has been cleared 
+			jsdo._clearErrors();
             var changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
 
@@ -4921,6 +5536,25 @@ limitations under the License.
             if (jsdo.autoApplyChanges) {
                 jsdo.rejectChanges();
             }
+            jsdo._updateLastErrors(jsdo, null, null, request);
+        };
+
+        /*  _saveChangesSuccessTT
+            internal function called after a Submit of a temp-table (not DataSet) returns success
+            This method does not attempt to do any merging of records into the JSDO memory. The
+            absence of _id for the records means that the only way we could possibly do a "merge"
+            would be to delete the changed rceords in the JSDO memory and then add the records
+            that were returned form the data service, but that would invalidate the _id's that
+            the Kendo datasource depends on. The application programmmer must do the merging in
+            the afterSaveChanges handler
+         */         
+        this._saveChangesSuccessTT = function (jsdo, success, request) {
+            var changes;
+
+            // Ensure that that the _lastErrors variable has been cleared 
+            jsdo._clearErrors();
+            changes = jsdo.getChanges();
+            jsdo._updateLastErrors(jsdo, null, changes);
         };
 
         this._saveChangesComplete = function (jsdo, success, request) {
@@ -4985,47 +5619,167 @@ limitations under the License.
             }
         };
 
+        /*
+         * Returns errors in response associated with the HTTP request.records related to the specified jsrecord.
+         */        
+        this._getErrorsFromRequest = function(request) {
+            var errors = [], // Array of objects with properties: type, id, error, errorNum, responseText
+                errorArray = [],
+                errorObject,
+                retValString,
+                j,
+                i;
 
-        this._updateLastErrors = function (jsdo, batch, changes) {
-            if (batch) {
-                if (batch.operations === undefined) return;
-                for (var i = 0; i < batch.operations.length; i++) {
-                    var request = batch.operations[i];
-                    if (!request.success
-                        && request.xhr
-                        && request.xhr.status == 500) {
-                        var errors = "";
-                        try {
-                            var responseObject = JSON.parse(request.xhr.responseText);
-
-                            if (responseObject._errors instanceof Array) {
-                                for (var j = 0; j < responseObject._errors.length; j++) {
-                                    errors += responseObject._errors[j]._errorMsg + '\n';
+            if (request && !request.success) {
+               if (request.xhr.status >= 400 && request.xhr.status < 600) {
+                    try {
+                        responseObject = JSON.parse(request.xhr.responseText);
+                        
+                        // responseText could be an array, an object or just text.
+                        // If it is an array, each object would have properties _errors and optional _retVal.
+                        // If it is not an array, the object would have properties _errors and optional _retVal.
+                        // If it is text, the content could also be an HTML page, this error is handle using "HTTP Status".
+                        if (responseObject instanceof Array) {
+                            errorArray = responseObject;
+                        } else if (responseObject instanceof Object) {
+                            errorArray.push(responseObject);
+                        }
+                        for (i = 0; i < errorArray.length; i += 1) {
+                            errorObject = errorArray[i];
+                            if (errorObject._retVal) {
+                                errors.push({
+                                    type: progress.data.JSDO.RETVAL,
+                                    error: errorObject._retVal
+                                });
+                                retValString =  errorObject._retVal;
+                            } else {
+                                retValString = null;
+                            }
+                            if (errorObject._errors instanceof Array) {
+                                for (j = 0; j < errorObject._errors.length; j += 1) {                                    
+                                    if ((errorObject._errors[j]._errorNum === 0) 
+                                        && (errorObject._errors[j]._errorMsg === retValString)) {
+                                        // Suppress additional error msg if it is same as return value
+                                        continue;
+                                    }
+                                    errors.push({
+                                        type: progress.data.JSDO.APP_ERROR,
+                                        error: errorObject._errors[j]._errorMsg,
+                                        errorNum: errorObject._errors[j]._errorNum
+                                    });
                                 }
                             }
-                            if (responseObject._retVal) {
-                                errors += responseObject._retVal;
+                        }
+                    }
+                    catch (e) {
+                        // Ignore exceptions
+                    }
+                }
+                if (request.exception) {
+                    errors.push({
+                        type: progress.data.JSDO.ERROR,
+                        error: request.exception
+                    });
+                }
+                if (errors.length === 0 
+                    && request.xhr 
+                    && (request.xhr.status >= 400 && request.xhr.status < 600)) {
+                    errors.push({
+                        type: progress.data.JSDO.ERROR,
+                        error: "Error: HTTP Status " + request.xhr.status + " " + request.xhr.statusText,
+                        responseText: request.xhr.responseText
+                    });
+                }                
+            }
+            return errors;
+        };
+        
+        this._updateLastErrors = function (jsdo, batch, changes, request) {
+            var errors,
+                errorText,
+                responseObject,
+                i,
+                j,
+                buf;
+            
+            if (batch) {
+                if (batch.operations === undefined) return;
+                for (i = 0; i < batch.operations.length; i++) {
+                    request = batch.operations[i];
+                    if (!request.success && request.xhr) {
+                        if (request.xhr.status  >= 200 && request.xhr.status < 300) {
+                            // Add error string to jsdo._lastErrors
+                            jsdo._lastErrors.push({errorString: request.jsrecord.data._errorString});
+                            // Add error object to jsdo.<table-ref>._lastErrors
+                            jsdo._buffers[request.jsrecord._tableRef._name]._lastErrors.push({
+                                    type: progress.data.JSDO.DATA_ERROR,
+                                    id: request.jsrecord.data._id,
+                                    error: request.jsrecord.data._errorString});
+                        }                        
+                        else {
+                            errors = this._getErrorsFromRequest(request);
+                            errorText = "";
+                            for (j = 0; j < errors.length; j += 1) {
+                                if (errors.length > 1 && errors[j].error.indexOf("(7243)") != -1) {
+                                    // If there are more error messages
+                                    //      supress error "The Server application has returned an error. (7243)"
+                                    continue;
+                                }
+                                // Add error to table reference
+                                if (request.jsrecord 
+                                    && (errors[j].type === progress.data.JSDO.APP_ERROR
+                                       || errors[j].type === progress.data.JSDO.RETVAL)) {
+                                    errors[j].id = request.jsrecord.data._id;
+                                    request.jsrecord._tableRef._lastErrors.push(errors[j]);
+                                }
+                                if (errorText.length === 0) {
+                                    errorText = errors[j].error;
+                                }
+                                else {
+                                    errorText += "\n" + errors[j].error;
+                                }
                             }
+                            // Add error string to jsdo._lastErrors                            
+                            jsdo._lastErrors.push({errorString: errorText});                            
                         }
-                        catch (e) {
-                            // Ignore exceptions
-                        }
-                        if (request.exception) {
-                            if (errors.length === 0)
-                                errors = request.exception;
-                            else
-                                errors += "\n" + request.exception;
-                        }
-                        jsdo._lastErrors.push({errorString: errors});
                     }
                 }
             }
             else if (changes instanceof Array) {
-                for (var i = 0; i < changes.length; i++) {
+                for (i = 0; i < changes.length; i++) {
                     if (changes[i].record && changes[i].record.data._errorString !== undefined) {
                         jsdo._lastErrors.push({errorString: changes[i].record.data._errorString});
+                        jsdo._buffers[changes[i].record._tableRef._name]._lastErrors.push({
+                                type: progress.data.JSDO.DATA_ERROR,                            
+                                id: changes[i].record.data._id,
+                                error: changes[i].record.data._errorString});
                     }
                 }
+            }
+            else if (request 
+                     && !request.success 
+                     && request.xhr 
+                     && (request.xhr.status >= 400 && request.xhr.status < 600)) {
+                errors = this._getErrorsFromRequest(request);
+                errorText = "";
+                for (j = 0; j < errors.length; j += 1) {
+                    if (errors.length > 1 && errors[j].error.indexOf("(7243)") != -1) {
+                        // If there are more error messages
+                        //      supress error "The Server application has returned an error. (7243)"     
+                        continue;
+                    }
+                    // Add error to all table references
+                    for (buf in this._buffers) {
+                        this._buffers[buf]._lastErrors.push(errors[j]);
+                    }
+                    if (errorText.length === 0) {
+                        errorText = errors[j].error;
+                    }
+                    else {
+                        errorText += "\n" + errors[j].error;
+                    }
+                }
+                jsdo._lastErrors.push({errorString: errorText});
             }
         };
 
@@ -5296,7 +6050,103 @@ limitations under the License.
                 return this._defaultTableRef.rejectRowChanges();
             throw new Error(msg.getMsgText("jsdoMSG001", "rejectRowChanges()"));
         };
+        
+        /*
+         * Sets complete set of properties for the jsdo. All existing properties are replaced with new set
+         */
+        this.setProperties = function( propertiesObject ) {
+           var prop;
 
+            if (arguments.length < 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 'setProperties', 1)); 
+            }
+            if (arguments.length > 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 'setProperties', 1)); 
+            }
+            if ( typeof propertiesObject == "object" ) {
+                /* Copy properties of the propertiesObject argument into _properties.
+                 * Note that if object passed in has a prototype, this code copies them too)
+                 */
+                this._properties = {};
+                
+                for (prop in propertiesObject) {
+                    if( propertiesObject.hasOwnProperty(prop) )  {
+                        if (typeof propertiesObject[prop] !== "function" ) {
+                            this._properties[prop] = propertiesObject[prop];
+                        }
+                    }
+                }
+            }
+            else if ( (propertiesObject === undefined) || (propertiesObject === null) ) {
+                this._properties = {};
+            }
+            else {
+                // {1}: Parameter {1} must be of type {3} in {4} call.
+                throw new Error(progress.data._getMsgText("jsdoMSG121", 'JSDO', 1, 'Object',
+                                                          'setProperties')); 
+            }
+        };
+
+        /* 
+         *  Set or remove an individual property in the property set maintained by the jsdo. 
+         *  This operates only on the property identified by propertyName; 
+         *  all other existing properties remain as they are.
+         *  If the propertyName is not part of the context, this call adds it.
+         *  If it exists, it is updated, unless -
+         *  If propertyValue is undefined, this call removes the property
+         */
+        this.setProperty = function( propertyName, propertyValue) {
+            if (arguments.length < 2) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 
+                                                           'setProperty', 2)); 
+            }
+            if (arguments.length !== 2) {
+                // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", "JSDO",
+                                                          "setProperty", 2)); 
+            }
+            if (typeof propertyName !== "string") {
+                // {1}: Parameter {1} must be of type {3} in {4} call.
+                throw new Error(progress.data._getMsgText("jsdoMSG121", 'JSDO', 1, 'string',
+                                                          'setProperty')); 
+            }
+
+            if ( propertyValue === undefined ) {
+                delete this._properties[propertyName]; // OK if it doesn't exist -- no error
+            }
+            else {
+                this._properties[propertyName] = propertyValue;
+            }
+        };
+         
+        /* 
+         * Gets the set of jsdo properties. Returns an object containing all the properties
+         */
+        this.getProperties = function( ) {
+            if (arguments.length > 0) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 'getProperties', 0)); 
+            }
+            return this._properties;
+        };
+        
+        /*  Gets the value of an individual property in the jsdo property set
+         */
+        this.getProperty = function( propertyName) {
+            if (arguments.length < 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be {3}.
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 'getProperty', 1)); 
+            }
+            if (arguments.length > 1) {
+                // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
+                throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 'getProperty', 1)); 
+            }
+            return this._properties[propertyName];
+            
+        };
 
         ///////////////////////////////////////////////////////////////////////////
         //
@@ -5652,7 +6502,7 @@ limitations under the License.
 
     }; // End of JSDO
 
-// Constants for progress.data.JSDO
+    // Constants for progress.data.JSDO
     if ((typeof Object.defineProperty) == 'function') {
         Object.defineProperty(progress.data.JSDO, 'MODE_APPEND', {
             value: 1,
@@ -5670,6 +6520,22 @@ limitations under the License.
             value: 4,
             enumerable: true
         });
+        Object.defineProperty(progress.data.JSDO, 'ERROR', {
+            value: -1,
+            enumerable: true
+        });
+        Object.defineProperty(progress.data.JSDO, 'APP_ERROR', {
+            value: -2,
+            enumerable: true
+        });
+        Object.defineProperty(progress.data.JSDO, 'RETVAL', {
+            value: -3,
+            enumerable: true
+        });
+        Object.defineProperty(progress.data.JSDO, 'DATA_ERROR', {
+            value: -4,
+            enumerable: true
+        });        
     } else {
         progress.data.JSDO.MODE_APPEND = 1;
         progress.data.JSDO.MODE_EMPTY = 2;
@@ -5687,7 +6553,10 @@ limitations under the License.
     /* Offline support: saving data to local storage  */
     progress.data.JSDO.ALL_DATA = 1;
     progress.data.JSDO.CHANGES_ONLY = 2;
-
+    
+    // Arrays elements as individual fields 
+    // Separator must have at least one characters
+    progress.data.JSDO.ARRAY_INDEX_SEPARATOR = "_";
 
 // setup inheritance for JSDO
     progress.data.JSDO.prototype = new progress.util.Observable();
@@ -5708,11 +6577,13 @@ limitations under the License.
 		requestMapping: function(jsdo, params, info) {
 			var sortFields,
 			field,
+            filter,
 			ablFilter,
             sqlQuery,
             methodProperties,
             capabilities,
             index,
+            option,
             capabilitiesObject,
             reqCapabilities = {
                 filter: { options: [ "ablFilter", "sqlQuery" ], mapping: undefined },
@@ -5721,6 +6592,7 @@ limitations under the License.
                 id:     { options: [ "id" ], mapping: undefined },
                 sort:   { options: [ "orderBy" ], mapping: undefined }
             },
+            doConversion = true,
             param;
 			
 			if (info.operation === "read") {
@@ -5765,25 +6637,38 @@ limitations under the License.
 				}
 				
 				if (params.filter) {
+                    // If filter is specified as string, then no conversion is necessary
+                    if (typeof params.filter === 'string') {
+                        doConversion = false;
+                    }
+                    
 					if (jsdo._defaultTableRef && params.tableRef === undefined) {
 						params.tableRef = jsdo._defaultTableRef._name;
 					}
-					if (params.tableRef) {
-                        
-                        if (reqCapabilities["filter"].mapping === "ablFilter") {
-							ablFilter = progress.util._convertToABLWhereString(
-									jsdo._buffers[params.tableRef], params.filter);
+                    
+                    if (doConversion && (params.tableRef === undefined)) {
+                        throw new Error(msg.getMsgText("jsdoMSG045", "fill() or read()", "params", 
+                                                       "tableRef"));
+					}  
+                       
+                    if (reqCapabilities["filter"].mapping === "ablFilter") {
+                        if (doConversion) {
+                            ablFilter = progress.util._convertToABLWhereString(
+                                        jsdo._buffers[params.tableRef], params.filter);
                         }
-                        else if (reqCapabilities["filter"].mapping === "sqlQuery") {
-							sqlQuery = progress.util._convertToSQLQueryString(
-									jsdo._buffers[params.tableRef], params.filter, true);
+                        else {
+                            ablFilter = params.filter;
                         }
-					}
-					else
-					{
-						throw new Error(
-                                    msg.getMsgText("jsdoMSG045", "fill() or read()", "params", "tableRef"));
-					}   
+                    }
+                    else if (reqCapabilities["filter"].mapping === "sqlQuery") {
+                        if (doConversion) {
+                            sqlQuery = progress.util._convertToSQLQueryString(
+                                        jsdo._buffers[params.tableRef], params.filter, true);
+                        }
+                        else {
+                            sqlQuery = params.filter;
+                        }
+                    }
 				}
                 
 				filter = JSON.stringify({
