@@ -33,7 +33,6 @@ limitations under the License.
         progress.data = {};
     }
     
-// REVIEW: PAGE REFRESH SUPPORT NEEDED
 // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
     progress.data.AuthenticationProvider = function (uriParam, authModelParam) {
         var uri,
@@ -74,7 +73,7 @@ limitations under the License.
                 storage.setItem(tokenDataKeys.refreshToken,  JSON.stringify(info.refresh_token));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
-                // we got a new token via refresh, but now we're not being given any more refersh tokens
+                // we got a new token via refresh, but now we're not being given any more refresh tokens
                 storage.removeItem(tokenDataKeys.refreshToken);
             }
             storage.setItem(tokenDataKeys.tokenType,  JSON.stringify(info.token_type));
@@ -130,7 +129,7 @@ limitations under the License.
 
         // implementation is SSO specific
         // put the internal state back to where it is when the constructor finishes running
-        function reinitialize() {
+        function reset() {
             if (authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 clearTokenInfo();
                 ssoTokenInfo = null;
@@ -282,7 +281,7 @@ limitations under the License.
                     ));
                 }
             } else if (xhr.status === 401) {
-                reinitialize();  // treat authentication failure as the equivalent of a logout
+                reset();  // treat authentication failure as the equivalent of a logout
                 result = progress.data.Session.AUTHENTICATION_FAILURE;
             } else {
                 result = progress.data.Session.GENERAL_FAILURE;
@@ -567,10 +566,10 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "logout"));
             }
             
-            // Unconditionally reinitialize --- even if the actual server request fails, we still want
+            // Unconditionally reset --- even if the actual server request fails, we still want
             // to reset this AuthenticationProvider so it can try a login if desired
             // (In the future we can add a parameter that controls whether the reinit is unconditional)
-            reinitialize();
+            reset();
             
             xhr = new XMLHttpRequest();
             openLogoutRequest(xhr);
@@ -604,24 +603,10 @@ limitations under the License.
             return retrieveToken();
         };
 
-        // implementation is SSO specific
-        this.addCredentialToRequest = function (xhr, consumer) {
-            if (this.hasCredential()) {
-                consumer.addCredentialToRequest(
-                    xhr,
-                    {token: this._getToken()}
-                );
-            } else {
-                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-            }
-        };
     };
 
-
-    // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
-    // implementation is SSO specific
-    progress.data.AuthenticationConsumer = function (options) {
+    progress.data.auth = {};
+    progress.data.auth.openRequestAndAuthorizeSSO = function(authProvider, xhr, verb, uri) {
         var tokenRequestDescriptor;
 
         tokenRequestDescriptor = {
@@ -629,41 +614,27 @@ limitations under the License.
             headerName : "Authorization"
         };
     
-        // Create a function where we add the token to the header
-        this.addCredentialToRequest = function (xhr, options) {
+        if (authProvider.hasCredential()) {
+            xhr.open(verb, uri, true);  // always use async for SSO
+
             xhr.setRequestHeader(
                 tokenRequestDescriptor.headerName,
-                "oecp " + options.token
-            );
-        };
-    };
+                "oecp " + authProvider._getToken() );
 
-    // FOR INTERNAL JSDO LIBRARY USE -- NOT SUPPORTED
-    // the application/json request header may be SSO specific
-    progress.data.AuthenticationImplementation = function (authProvider) {
-        this.provider = authProvider;
+            // We specify application/json for the response so that, if a bad token is sent, an 
+            // OE Web application that's based on Form auth will directly send back a 401.
+            // If we don't specify application/json, we'll get a redirect to login.jsp, which the
+            // user agent handles by getting login.jsp and returning it to our code with a status
+            // of 200. We could infer that authentication failed from that, but it's much cleaner this 
+            // way.
+            xhr.setRequestHeader("Accept", "application/json");
+        } else {
+            // This message is SSO specific, unless we can come up with a more general message 
+            // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+            throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+        }
         
-        this.consumer = new progress.data.AuthenticationConsumer();
-        
-        this.openRequest = function (xhr, verb, uri, options) {
-            if (this.provider.hasCredential()) {
-                xhr.open(verb, uri, true);  // always use async for SSO
-                this.provider.addCredentialToRequest(xhr, this.consumer);
-
-                // We specify application/json for the response so that, if a bad token is sent, an 
-                // OE Web application that's based on Form auth will directly send back a 401.
-                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
-                // user agent handles by getting login.jsp and returning it to our code with a status
-                // of 200. We could infer that authentication failed from that, but it's much cleaner this 
-                // way.
-                xhr.setRequestHeader("Accept", "application/json");
-            } else {
-                // This message is SSO specific, unless we can come up with a more general message 
-                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-            }
-        };
-    };
+    }
     
 }());
 
