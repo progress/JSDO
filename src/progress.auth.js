@@ -32,7 +32,7 @@ limitations under the License.
     if (typeof progress.data === "undefined") {
         progress.data = {};
     }
-    
+        
 // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
     progress.data.AuthenticationProvider = function (uriParam, authModelParam) {
         var uri,
@@ -157,6 +157,7 @@ limitations under the License.
                 // error processing the response (e.g., authentication succeeded but we didn't get a
                 // token for some reason)
                 loggedIn = true;
+
                 // get token and store it; if that goes well, resolve the promise, otherwise reject it
                 try {
                     ssoTokenInfo = JSON.parse(xhr.responseText);
@@ -369,7 +370,7 @@ limitations under the License.
             });
 
             
-        // process the constructor arguments
+        // process constructor arguments
         if (typeof uriParam !== "string") {
             // AuthenticationProvider: Argument 1 must be of type string in constructor call.
             throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",

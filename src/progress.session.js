@@ -3971,7 +3971,7 @@ limitations under the License.
         };
     
         // Determine whether the JSDOSession can currently access its web application.
-         // The use expected for this method is to determine a JSDOSession that has
+         // The use expected for this method is to determine whether a JSDOSession that has
          // previously authenticated to its web application still has authorization.
          // For example, if the JSDOSession is using Form authentication, is the server
          // session still valid or did it expire? 
@@ -4006,7 +4006,7 @@ limitations under the License.
                                              info);
                         } else {
                             if (xhr.status === 401) {
-                                cbresult = progress.data.Session.AUTHENTICATION_FAILURE;
+                                cbresult = determineAuthFailureResultCode(xhr);
                             } else {
                                 cbresult = progress.data.Session.GENERAL_FAILURE;
                             }
