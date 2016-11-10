@@ -4184,7 +4184,7 @@ limitations under the License.
     // VERSION WRITTEN FOR THE USE OF THE AuthenticationProvider OBJECT ADDED FOR SSO. IF
     // THE AUTH MODEL PASSED IN IS SSO, IT CALLS THE LATTER. IF NOT, IT CALLS THE OLDER 
     // VERSION. WHEN WE CONVERT THE OLDER AUTH MODELS TO USE THE NEW API, WE WILL GET RID OF THE
-    // OLDER IMPLEMNTATION (getSessionFormBasicAnon) ALTOGETHER AND TEH FUNCTION THAT IS NOW getSessionSSO
+    // OLDER IMPLMENTATION (getSessionFormBasicAnon) ALTOGETHER AND THE FUNCTION THAT IS NOW getSessionSSO
     // WILL BE THE ONE AND ONLY getSession
     progress.data.getSession = function (options) {
 
@@ -4229,6 +4229,7 @@ limitations under the License.
                     jsdosession.login(options.username, options.password)
                         .then(loginHandler, sessionRejectHandler);
                 } else {
+                    // getSession(): The login method was not executed because no credentials were supplied.
                     errorObject = new Error(progress.data._getMsgText(
                         "jsdoMSG052",
                         "getSession()"
@@ -4394,6 +4395,7 @@ limitations under the License.
                         );
                     }
                 } else {
+                    // getSession(): The login method was not executed because no credentials were supplied.
                     errorObject = new Error(progress.data._getMsgText(
                         "jsdoMSG052",
                         "getSession()"
