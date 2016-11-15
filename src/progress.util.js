@@ -1,5 +1,5 @@
 /* 
-progress.util.js    Version: 4.4.0-2
+progress.util.js    Version: 4.4.0-3
 
 Copyright (c) 2014-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -351,6 +351,7 @@ limitations under the License.
             idx,
             length,
             field,
+            fieldInfo,
             type,
             format,
             operator,
@@ -375,6 +376,14 @@ limitations under the License.
             filter = filters[idx];
             field = filter.field;
             value = filter.value;
+
+            if (tableRef._name) {
+                // Use original field name instead of serialized name
+                fieldInfo = tableRef._jsdo[tableRef._name]._fields[field.toLowerCase()];
+                if (fieldInfo && fieldInfo.origName) {
+                    field = fieldInfo.origName;
+                }
+            }            
 
             if (filter.filters) {
                 filter = progress.util._convertToABLWhereString(tableRef, filter);

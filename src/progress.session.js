@@ -1411,7 +1411,7 @@ limitations under the License.
                 }
             } else {
                 // JSDOSession: AuthenticationProvider objects must have a hasCredential method.
-                throw new Error(progress.data._getMsgText("jsdoMSG506",
+                throw new Error(progress.data._getMsgText("jsdoMSG505",
                                                           "progress.data.Session",
                                                           "AuthenticationProvider",
                                                           "hasCredential"));
@@ -4473,7 +4473,12 @@ limitations under the License.
             return deferred.promise();
         }
 
-        authModel = options.authenticationModel.toLowerCase();
+        if (typeof options.authenticationModel === "string") {
+            authModel = options.authenticationModel.toLowerCase();
+        }
+        // else let validation done by the function we call catch the type error
+        // (because the code here is just temporary)
+        
         if (authModel === progress.data.Session.AUTH_TYPE_SSO) {
             return getSessionSSO(options);
         } else {

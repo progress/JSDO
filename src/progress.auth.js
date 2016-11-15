@@ -378,7 +378,7 @@ limitations under the License.
         } else if (uriParam.length === 0) {
             // AuthenticationProvider: '' is an invalid value for the uri parameter in constructor call.
             throw new Error(progress.data._getMsgText(
-                "jsdoMSG504",
+                "jsdoMSG507",
                 "AuthenticationProvider",
                 uriParam,
                 "uri",
@@ -414,7 +414,7 @@ limitations under the License.
                 // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
                 //     parameter in constructor call."
                 throw new Error(progress.data._getMsgText(
-                    "jsdoMSG504",
+                    "jsdoMSG507",
                     "AuthenticationProvider",
                     authModelParam,
                     "authenticationModel",
