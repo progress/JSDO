@@ -4187,6 +4187,7 @@ limitations under the License.
     // OLDER IMPLMENTATION (getSessionFormBasicAnon) ALTOGETHER AND THE FUNCTION THAT IS NOW getSessionSSO
     // WILL BE THE ONE AND ONLY getSession
     progress.data.getSession = function (options) {
+        var authModel;
 
         function getSessionFormBasicAnon(options) {
 
@@ -4471,8 +4472,9 @@ limitations under the License.
             
             return deferred.promise();
         }
-      
-        if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+
+        authModel = options.authenticationModel.toLowerCase();
+        if (authModel === progress.data.Session.AUTH_TYPE_SSO) {
             return getSessionSSO(options);
         } else {
             return getSessionFormBasicAnon(options);
