@@ -563,26 +563,27 @@ limitations under the License.
                 xhr;
 
             if (!loggedIn) {
-                // "logout() was not attempted because the AuthenticationProvider is not logged in."
-                throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "logout"));
+                deferred.resolve( this, progress.data.Session.SUCCESS, {});
+            } else {
+                xhr = new XMLHttpRequest();
+                openLogoutRequest(xhr);
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        // process the response from the Web application
+                        processLogoutResult(xhr, deferred);
+                    }
+                };
+
+                xhr.send();
             }
             
             // Unconditionally reset --- even if the actual server request fails, we still want
-            // to reset this AuthenticationProvider so it can try a login if desired
-            // (In the future we can add a parameter that controls whether the reinit is unconditional)
+            // to reset this AuthenticationProvider so it can try a login if desired.
+            // We also reset even in the case where we're not logged in, just in case.
+            // (In the future we can add a parameter that controls whether the reinit is unconditional,
+            // if the developer wants to log out of the token server session but contnue to use the token)
             reset();
-            
-            xhr = new XMLHttpRequest();
-            openLogoutRequest(xhr);
-
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    // process the response from the Web application
-                    processLogoutResult(xhr, deferred);
-                }
-            };
-
-            xhr.send();
             return deferred.promise();
         };
         
