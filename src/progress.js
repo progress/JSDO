@@ -6597,7 +6597,7 @@ limitations under the License.
 		requestMapping: function(jsdo, params, info) {
 			var sortFields,
 			field,
-            fieldName,            
+            fieldName,
             fieldInfo,
             tableName,
             filter,
@@ -6655,8 +6655,8 @@ limitations under the License.
                 }
 
 				if (params.sort) {
-                    // Convert sort expression to JFP format				
-					
+                    // Convert sort expression to JFP format
+
                     if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
                         // Kendo UI sort format - object
                         // Make params.sort an array

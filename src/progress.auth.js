@@ -605,38 +605,38 @@ limitations under the License.
             return retrieveToken();
         };
 
+        this.openRequestAndAuthorize = function(xhr, verb, uri) {
+            var tokenRequestDescriptor;
+
+            tokenRequestDescriptor = {
+                type : "header",
+                headerName : "Authorization"
+            };
+        
+            if (this.hasCredential()) {
+                xhr.open(verb, uri, true);  // always use async for SSO
+
+                xhr.setRequestHeader(
+                    tokenRequestDescriptor.headerName,
+                    "oecp " + this._getToken() );
+
+                // We specify application/json for the response so that, if a bad token is sent, an 
+                // OE Web application that's based on Form auth will directly send back a 401.
+                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
+                // user agent handles by getting login.jsp and returning it to our code with a status
+                // of 200. We could infer that authentication failed from that, but it's much cleaner this 
+                // way.
+                xhr.setRequestHeader("Accept", "application/json");
+            } else {
+                // This message is SSO specific, unless we can come up with a more general message 
+                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            }
+            
+        };
+        
     };
 
-    progress.data.auth = {};
-    progress.data.auth.openRequestAndAuthorizeSSO = function(authProvider, xhr, verb, uri) {
-        var tokenRequestDescriptor;
-
-        tokenRequestDescriptor = {
-            type : "header",
-            headerName : "Authorization"
-        };
-    
-        if (authProvider.hasCredential()) {
-            xhr.open(verb, uri, true);  // always use async for SSO
-
-            xhr.setRequestHeader(
-                tokenRequestDescriptor.headerName,
-                "oecp " + authProvider._getToken() );
-
-            // We specify application/json for the response so that, if a bad token is sent, an 
-            // OE Web application that's based on Form auth will directly send back a 401.
-            // If we don't specify application/json, we'll get a redirect to login.jsp, which the
-            // user agent handles by getting login.jsp and returning it to our code with a status
-            // of 200. We could infer that authentication failed from that, but it's much cleaner this 
-            // way.
-            xhr.setRequestHeader("Accept", "application/json");
-        } else {
-            // This message is SSO specific, unless we can come up with a more general message 
-            // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-            throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-        }
-        
-    }
     
 }());
 

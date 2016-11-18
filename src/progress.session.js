@@ -723,8 +723,7 @@ limitations under the License.
             storedAuthModel,
             storedURI,
             newURI,
-            stateWasReadFromStorage = false,
-            openRequestAndAuthorize;
+            stateWasReadFromStorage = false;
 
         if (typeof navigator  !== "undefined") {
             if (typeof navigator.userAgent !== "undefined") {
@@ -884,9 +883,6 @@ limitations under the License.
                             default:
                                 throw new Error("Error setting Session.authenticationModel. '" + 
                                     newval + "' is an invalid value.");
-                        }
-                        if (_authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                            openRequestAndAuthorize = progress.data.auth.openRequestAndAuthorizeSSO;
                         }
                     },
                     enumerable: true
@@ -1314,9 +1310,9 @@ limitations under the License.
                 urlPlusCCID = this._addTimeStampToURL(urlPlusCCID);
             }
             
-            if (this._authProvider && openRequestAndAuthorize) {
+            if (this._authProvider) {
                 // note: throw an error if we have one of the above but not the other?
-                openRequestAndAuthorize(this._authProvider, xhr, verb, urlPlusCCID);
+                this._authProvider.openRequestAndAuthorize(xhr, verb, urlPlusCCID);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
             }
@@ -1435,7 +1431,7 @@ limitations under the License.
                     uriForRequest = this._addTimeStampToURL(uriForRequest);
                 }
                 
-                openRequestAndAuthorize(this._authProvider, xhr, 'GET', uriForRequest);
+                this._authProvider.openRequestAndAuthorize(xhr, 'GET', uriForRequest);
 
                 xhr.setRequestHeader("Cache-Control", "no-cache");
                 xhr.setRequestHeader("Pragma", "no-cache");
@@ -2342,8 +2338,8 @@ limitations under the License.
                 return progress.data.Session.CATALOG_ALREADY_LOADED;
             }
 
-            if (authProvider && openRequestAndAuthorize) {
-                openRequestAndAuthorize(authProvider, xhr, 'GET', catalogURI);
+            if (authProvider) {
+                authProvider.openRequestAndAuthorize(xhr, 'GET', catalogURI);
             } else {
                 this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
                 // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
@@ -2887,8 +2883,8 @@ limitations under the License.
         this._sendPing = function (args) {
             var xhr = new XMLHttpRequest();
             try {
-                if (this._authProvider && openRequestAndAuthorize) {
-                    openRequestAndAuthorize(this._authProvider, xhr, 'GET', args.pingURI);
+                if (this._authProvider) {
+                    this._authProvider.openRequestAndAuthorize(xhr, 'GET', args.pingURI);
                 } else {
                     this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
                 }
@@ -3696,42 +3692,68 @@ limitations under the License.
             execute asynchronously. Throws an error if the underlying login call does not 
             make the async request, otherwise returns a promise.
          */
-        this.login = function(username, password, options){
+        this.login = function (username, password, options) {
             var deferred = $.Deferred(),
                 loginResult,
                 errorObject,
-                iOSBasicAuthTimeout;
+                iOSBasicAuthTimeout,
+                authProvider,
+                that = this;
             
-            if ( typeof(options) === 'object' ) {
+            if (typeof options === 'object') {
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
-
-            try {
-                _pdsession.subscribe('afterLogin', genericSessionEventHandler, this);
+            
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+                authProvider = new progress.data.AuthenticationProviderAnon(
+                    this.serviceURI,
+                    this.authenticationModel
+                );
                 
-                loginResult = _pdsession.login(
-                    { 
-                      userName : username, 
-                      password : password, 
-                      async : true,
-                      deferred : deferred,
-                      iOSBasicAuthTimeout: iOSBasicAuthTimeout} );
-               
-                if (loginResult !== progress.data.Session.ASYNC_PENDING) {
-                    errorObject = new Error("JSDOSession: Unable to send login request.");
+                authProvider.login()
+                    .then(function () {
+                        return that.connect(authProvider);
+                    })
+                    .then(function (jsdosession, result, info) {
+                        deferred.resolve(that, result, info);
+                    },
+                        // catches errors on either login or connect
+                        function (provider, result, info) {
+                            deferred.reject(that, result, info);
+                        });
+            } else {   // should be able to get rid of this when we finish extending the AuthProv API
+                try {
+                    _pdsession.subscribe('afterLogin', genericSessionEventHandler, this);
+                    
+                    loginResult = _pdsession.login(
+                        {
+                            userName : username,
+                            password : password,
+                            async : true,
+                            deferred : deferred,
+                            iOSBasicAuthTimeout: iOSBasicAuthTimeout
+                        }
+                    );
+                   
+                    if (loginResult !== progress.data.Session.ASYNC_PENDING) {
+                        errorObject = new Error("JSDOSession: Unable to send login request.");
+                    }
+                } catch (e) {
+                // REVIEW: note change to the error message (the commented out msg is the old one)
+                    // errorObject = new Error("JSDOSession: Unable to send login request. " + e.message);
+                    // JSDOSession: Unexpected error calling login: {e.message}
+                    errorObject = new Error(progress.data._getMsgText(
+                        "jsdoMSG049",
+                        "JSDOSession",
+                        "login",
+                        e.message
+                    ));
                 }
-            } 
-            catch (e) {
-            // REVIEW: note change to the error message (the commented out msg is the old one)
-                // errorObject = new Error("JSDOSession: Unable to send login request. " + e.message);
-                // JSDOSession: Unexpected error calling login: {e.message}
-                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "login", e.message));
             }
-       
-            if ( errorObject ) {
+            
+            if (errorObject) {
                 throw errorObject;
-            }
-            else {
+            } else {
                 return deferred.promise();
             }
         };
@@ -3932,22 +3954,45 @@ limitations under the License.
             return deferred.promise();
         };
         
+        // Note that this will work for either of these cases:
+        //    - app originally called JSDOSession.login (so we implicitly created the AuthenticationProvider)
+        //    - app created an AuthenticationProvider and passed it to connect, but now for some reason has
+        //          called logout (this is actually a nice shortcut for soemone who has used getSession)
+        //          (NB: we should not allow this for SSO, tho)
         this.logout = function(){
             var deferred = $.Deferred(),
-                errorObject;
+                errorObject,
+                that = this,
+                authProv = this.authProvider;
 
-            try {
-                _pdsession.subscribe('afterLogout', onAfterLogout, this);
-                _pdsession.logout( {async: true,
-                                    deferred : deferred} );
-            } 
-            catch (e) {
-            // REVIEW: note change to the error message (the commented out msg is the old one)
-                // throw new Error("JSDOSession: Unable to send logout request. " + e.message);
-                // JSDOSession: Unexpected error calling logout: {e.message}
-                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "logout", e.message));
+                
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+                this.disconnect()
+                .then(function () {
+                        return authProv.logout();
+                    })
+                    .then(function (jsdosession, result, info) {
+                        deferred.resolve(that, result, info);
+                    },
+                        // catches errors on either login or connect
+                        function (provider, result, info) {
+                            deferred.reject(that, result, info);
+                        }
+                    );
+            } else {
+                try {
+                    _pdsession.subscribe('afterLogout', onAfterLogout, this);
+                    _pdsession.logout( {async: true,
+                                        deferred : deferred} );
+                } 
+                catch (e) {
+                // REVIEW: note change to the error message (the commented out msg is the old one)
+                    // throw new Error("JSDOSession: Unable to send logout request. " + e.message);
+                    // JSDOSession: Unexpected error calling logout: {e.message}
+                    errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "logout", e.message));
+                }
             }
-
+            
             if (errorObject) {
                 throw errorObject;
             } else {
@@ -4307,7 +4352,7 @@ limitations under the License.
         }
     
     
-        function getSessionSSO(options) {
+        function getSessionAuthProv(options) {
         
             var deferred = $.Deferred(),
                 authProvider,
@@ -4443,28 +4488,39 @@ limitations under the License.
                 } else {
                     authURI = options.serviceURI;
                 }
-                authProvider = new progress.data.AuthenticationProvider(authURI,
-                                                                        options.authenticationModel);
-                
+               switch (options.authenticationModel.toLowerCase()) {
+                case progress.data.Session.AUTH_TYPE_SSO:
+                    authProvider = new progress.data.AuthenticationProvider(authURI,
+                                                                            options.authenticationModel);
+                    break;
+                case progress.data.Session.AUTH_TYPE_ANON:
+                    authProvider = new progress.data.AuthenticationProviderAnon(authURI,
+                                                                            options.authenticationModel);
+                    break;
+                default:
+                    // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
+                    //     parameter in constructor call."
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG507",
+                        "AuthenticationProvider",
+                        options.authenticationModel,
+                        "authenticationModel",
+                        "constructor"
+                    ));
+                }
+                    
                 if (authProvider.hasCredential()) {
                     loginHandler(authProvider);
                 } else {
                     // use the following when the AuthenticationProvider model is extended to non-SSO
                     // If model is anon, just log in.
-                    // if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
-                        // authProvider.login()
-                            // .then(loginHandler, sessionRejectHandler);
-                    // } else {
-                        // We need to log-in with credentials.
-                        
-                        // If we were logged in, we need to logout
-                        // ???? if (result === progress.data.Session.AUTHENTICATION_FAILURE) {
-                            // jsdosession.logout()
-                            // .then(callLogin, sessionRejectHandler);
-                        // } else {
-                    callLogin(authProvider);
-                        // }
-                    // }  
+                    if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+                        authProvider.login()
+                            .then(loginHandler, sessionRejectHandler);
+                    } else {
+                        //  We need to log-in with credentials.
+                        callLogin(authProvider);
+                    }
                 }
             } catch (error) {
                 throw error;
@@ -4479,8 +4535,9 @@ limitations under the License.
         // else let validation done by the function we call catch the type error
         // (because the code here is just temporary)
         
-        if (authModel === progress.data.Session.AUTH_TYPE_SSO) {
-            return getSessionSSO(options);
+        if (authModel === progress.data.Session.AUTH_TYPE_SSO ||
+                authModel === progress.data.Session.AUTH_TYPE_ANON) {
+            return getSessionAuthProv(options);
         } else {
             return getSessionFormBasicAnon(options);
         }
