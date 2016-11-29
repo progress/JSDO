@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.3.1-26
+progress.js    Version: 4.3.1-27
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -136,6 +136,7 @@ limitations under the License.
     msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
     msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
     msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
+    msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";    
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
@@ -2198,7 +2199,14 @@ limitations under the License.
                 this._buffers[buf]._fields = {};
                 var fields = this._buffers[buf]._schema;
                 for (var i = 0; i < fields.length; i++) {
-                    this._buffers[buf]._fields[fields[i].name.toLowerCase()] = fields[i];
+                    this._buffers[buf]._fields[fields[i].name.toLowerCase()] = fields[i]; 
+                    if (typeof(fields[i].origName) !== "undefined") {
+                        if ((typeof(fields[i].origName) !== "string")
+                            || (fields[i].origName.trim() === "")) {
+                            throw new Error(msg.getMsgText("jsdoMSG504", 
+                                "JSDO", "Field '" + fields[i].name + "' in resource '" + this._resource.name + "'", "origName"));
+                        }
+                    }
                 }
                 
                 if (this._buffers[buf]._schema && (typeof Object.defineProperty) == 'function') {
