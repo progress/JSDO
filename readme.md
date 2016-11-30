@@ -8,6 +8,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 ### OpenEdge and Rollbase compatibility
 | JSDO version | OpenEdge version | Rollbase version |
 |----|----|----|
+| 4.3.1 | 11.4.0, 11.5.1, 11.6.x | 4.0.x |
 | 4.3 | 11.4.0, 11.5.1, 11.6.x | 4.0.x |
 | 4.2 | 11.4.0, 11.5.1, 11.6.x | 4.0.x |
 | 4.1 | 11.4.x, 11.5.x | 4.0.x |
