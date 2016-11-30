@@ -103,7 +103,13 @@ limitations under the License.
         
         // implementation may be SSO specific, depends on the headers they need
         function openLoginRequest(xhr) {
-            xhr.open('GET', loginURI, true);
+            var uriForRequest;
+            
+            if (progress.data.Session._useTimeStamp) {
+                uriForRequest = progress.data.Session._addTimeStampToURL(loginURI);
+            }
+
+            xhr.open('GET', uriForRequest, true);
             xhr.setRequestHeader("Cache-Control", "no-cache");
             xhr.setRequestHeader("Pragma", "no-cache");
         //  ?? setRequestHeaderFromContextProps(this, xhr);
@@ -195,40 +201,13 @@ limitations under the License.
                 tempURI = uriParam;
             }
 
-            uri = uriParam;
+            uri = uriParam; // keep the uri property the same as what was passed in
             loginURI = tempURI + loginURIsegment;
             logoutURI = tempURI + logoutURIsegment;
         }
 
-        // If we use something like a factory, we would move this to the factory method
-        if (typeof authModelParam === "string") {
-            authModelParam = authModelParam.toLowerCase();
-            switch (authModelParam) {
-            // case progress.data.Session.AUTH_TYPE_FORM:
-            // case progress.data.Session.AUTH_TYPE_BASIC:
-            case progress.data.Session.AUTH_TYPE_ANON:
-            case progress.data.Session.AUTH_TYPE_SSO:
-                authenticationModel = authModelParam;
+        authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
                 // future: for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
-
-                break;
-            default:
-                // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
-                //     parameter in constructor call."
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG507",
-                    "AuthenticationProvider",
-                    authModelParam,
-                    "authenticationModel",
-                    "constructor"
-                ));
-            }
-        } else {
-            // AuthenticationProvider: Argument 2 must be of type string in constructor call.
-            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "2",
-                                           "string", "constructor"));
-        }
-
         
         if (typeof sessionStorage === "undefined") {
             // "AuthenticationProvider: No support for sessionStorage."

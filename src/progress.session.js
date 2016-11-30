@@ -1307,7 +1307,7 @@ limitations under the License.
 
             // add time stamp to the url
             if (progress.data.Session._useTimeStamp) {
-                urlPlusCCID = this._addTimeStampToURL(urlPlusCCID);
+                urlPlusCCID = progress.data.Session._addTimeStampToURL(urlPlusCCID);
             }
             
             if (this._authProvider) {
@@ -1399,6 +1399,12 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG025", "progress.data.Session", "connect"));
             }
 
+            if (authProvider.authenticationModel !== this.authenticationModel) {
+                // progress.data.Session:  connect was not executed because the authenticationModels
+                // of the AuthenticationProvider (sso) and the JSDOSession (anonymous) were not the same.
+                throw new Error(progress.data._getMsgText("jsdoMSG059", "progress.data.Session",
+                    "connect", authProvider.authenticationModel, this.authenticationModel));
+            }
             // Check if the provider exposes the required API.
             if (typeof authProvider.hasCredential === 'function') {
                 if (!authProvider.hasCredential()) {
@@ -1428,7 +1434,7 @@ limitations under the License.
             try {
                 uriForRequest = this.serviceURI + this.loginTarget;
                 if (progress.data.Session._useTimeStamp) {
-                    uriForRequest = this._addTimeStampToURL(uriForRequest);
+                    uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
                 }
                 
                 this._authProvider.openRequestAndAuthorize(xhr, 'GET', uriForRequest);
@@ -1692,7 +1698,7 @@ limitations under the License.
             try {
                 uriForRequest = this.serviceURI + this.loginTarget;
                 if (progress.data.Session._useTimeStamp) {
-                    uriForRequest = this._addTimeStampToURL(uriForRequest);
+                    uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
                 }               
                 this._setXHRCredentials(xhr, 'GET', uriForRequest, uname, pw, isAsync);
 
@@ -2915,7 +2921,7 @@ limitations under the License.
             var pingURI = this.serviceURI + partialPingURI;
             // had caching problem with Firefox in its offline mode
             if (progress.data.Session._useTimeStamp) {
-                pingURI = this._addTimeStampToURL(pingURI);  
+                pingURI = progress.data.Session._addTimeStampToURL(pingURI);  
             }
             return pingURI;
         };
@@ -2992,45 +2998,6 @@ limitations under the License.
                     }
                 }
             }
-            return url;
-        };
-
-        var SEQ_MAX_VALUE = 999999999999999;
-        /* 15 - 9 */
-        var _tsseq = SEQ_MAX_VALUE;
-        /* Initialized to SEQ_MAX_VALUE to initialize values. */
-        var _tsprefix1 = 0;
-        var _tsprefix2 = 0;
-
-        this._getNextTimeStamp = function () {
-            var seq = ++_tsseq;
-            if (seq >= SEQ_MAX_VALUE) {
-                _tsseq = seq = 1;
-                var t = Math.floor(( Date.now ? Date.now() : (new Date().getTime())) / 10000);
-                if (_tsprefix1 == t) {
-                    _tsprefix2++;
-                    if (_tsprefix2 >= SEQ_MAX_VALUE) {
-                        _tsprefix2 = 1;
-                    }
-                }
-                else {
-                    _tsprefix1 = t;
-                    Math.random(); // Ignore call to random
-                    _tsprefix2 = Math.round(Math.random() * 10000000000);
-                }
-            }
-
-            return _tsprefix1 + "-" + _tsprefix2 + "-" + seq;
-        };
-
-        /*
-         * _addTimeStampToURL (intended for progress.data library use only)
-         * Add a time stamp to the a URL to prevent caching of the request.
-         * Set progress.data.Session._useTimeStamp = false to turn off.
-         */
-        this._addTimeStampToURL = function (url) {
-            var timeStamp = "_ts=" + this._getNextTimeStamp();
-            url += ((url.indexOf('?') == -1) ? "?" : "&") + timeStamp;
             return url;
         };
 
@@ -3120,7 +3087,6 @@ limitations under the License.
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function _make_basic_auth(user, pw) {
             var tok = user + ':' + pw;
-//        var hash = base64_encode(tok);
             var hash = btoa(tok);
             return "Basic " + hash;
         }
@@ -3299,6 +3265,53 @@ limitations under the License.
     }; // End of Session
     progress.data.Session._useTimeStamp = true;
 
+    var SEQ_MAX_VALUE = 999999999999999;
+    // 15 - 9 
+    var _tsseq = SEQ_MAX_VALUE;
+    // Initialized to SEQ_MAX_VALUE to initialize values.
+    var _tsprefix1 = 0;
+    var _tsprefix2 = 0;
+
+    // this._getNextTimeStamp = function () {
+    progress.data.Session._getNextTimeStamp = function () {
+        var seq = ++_tsseq;
+        if (seq >= SEQ_MAX_VALUE) {
+            _tsseq = seq = 1;
+            var t = Math.floor(( Date.now ? Date.now() : (new Date().getTime())) / 10000);
+            if (_tsprefix1 == t) {
+                _tsprefix2++;
+                if (_tsprefix2 >= SEQ_MAX_VALUE) {
+                    _tsprefix2 = 1;
+                }
+            }
+            else {
+                _tsprefix1 = t;
+                Math.random(); // Ignore call to random
+                _tsprefix2 = Math.round(Math.random() * 10000000000);
+            }
+        }
+
+        return _tsprefix1 + "-" + _tsprefix2 + "-" + seq;
+    };
+
+    /*
+     * _addTimeStampToURL (intended for progress.data library use only)
+     * Add a time stamp to the a URL to prevent caching of the request.
+     * Set progress.data.Session._useTimeStamp = false to turn off.
+     */
+    progress.data.Session._addTimeStampToURL = function (url) {
+        var timeStamp = "_ts=" + progress.data.Session._getNextTimeStamp();
+        url += ((url.indexOf('?') == -1) ? "?" : "&") + timeStamp;
+        return url;
+    };
+
+
+    
+    
+    
+    
+    
+    
 // Constants for progress.data.Session
     if ((typeof Object.defineProperty) == 'function') {
         Object.defineProperty(progress.data.Session, 'LOGIN_AUTHENTICATION_REQUIRED', {
@@ -3687,11 +3700,11 @@ limitations under the License.
         }
         
         // METHODS
-        /*  login()
-            Calls the progress.data.Session method, passing arguments that cause it to
-            execute asynchronously. Throws an error if the underlying login call does not 
-            make the async request, otherwise returns a promise.
-         */
+        
+        // login()
+          // Creates an AuthenticationProvider and calls its login() method. Any errors thrown by the 
+          // Auth Provider's constructor or login will bubble up to the caller, otherwise this method
+          // returns the promise from the A-P's login call.
         this.login = function (username, password, options) {
             var deferred = $.Deferred(),
                 loginResult,
@@ -3699,63 +3712,53 @@ limitations under the License.
                 iOSBasicAuthTimeout,
                 authProvider,
                 that = this;
-            
+
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                // JSDOSession: Called login() when authenticationModel is SSO. Use connect() instead.
+                throw new Error(progress.data._getMsgText("jsdoMSG057",
+                                                          'JSDOSession',
+                                                          'login()',
+                                                          "connect()"));
+            }
+
             if (typeof options === 'object') {
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
             
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+            switch (this.authenticationModel) {
+            case progress.data.Session.AUTH_TYPE_ANON:
                 authProvider = new progress.data.AuthenticationProviderAnon(
-                    this.serviceURI,
-                    this.authenticationModel
+                    this.serviceURI
                 );
+                break;
                 
-                authProvider.login()
-                    .then(function () {
-                        return that.connect(authProvider);
-                    })
-                    .then(function (jsdosession, result, info) {
-                        deferred.resolve(that, result, info);
-                    },
-                        // catches errors on either login or connect
-                        function (provider, result, info) {
-                            deferred.reject(that, result, info);
-                        });
-            } else {   // should be able to get rid of this when we finish extending the AuthProv API
-                try {
-                    _pdsession.subscribe('afterLogin', genericSessionEventHandler, this);
-                    
-                    loginResult = _pdsession.login(
-                        {
-                            userName : username,
-                            password : password,
-                            async : true,
-                            deferred : deferred,
-                            iOSBasicAuthTimeout: iOSBasicAuthTimeout
-                        }
-                    );
-                   
-                    if (loginResult !== progress.data.Session.ASYNC_PENDING) {
-                        errorObject = new Error("JSDOSession: Unable to send login request.");
-                    }
-                } catch (e) {
-                // REVIEW: note change to the error message (the commented out msg is the old one)
-                    // errorObject = new Error("JSDOSession: Unable to send login request. " + e.message);
-                    // JSDOSession: Unexpected error calling login: {e.message}
-                    errorObject = new Error(progress.data._getMsgText(
-                        "jsdoMSG049",
-                        "JSDOSession",
-                        "login",
-                        e.message
-                    ));
-                }
+            case progress.data.Session.AUTH_TYPE_BASIC:
+                authProvider = new progress.data.AuthenticationProviderBasic(
+                    this.serviceURI
+                );
+                break;
+                
+            case progress.data.Session.AUTH_TYPE_FORM:
+                authProvider = new progress.data.AuthenticationProviderForm(
+                    this.serviceURI
+                );
+                break;
+                
             }
-            
-            if (errorObject) {
-                throw errorObject;
-            } else {
-                return deferred.promise();
-            }
+                
+            authProvider.login(username, password)
+                .then(function () {
+                    return that.connect(authProvider);
+                })
+                .then(function (jsdosession, result, info) {
+                    deferred.resolve(that, result, info);
+                },
+                    // catches errors on either login or connect
+                    function (provider, result, info) {
+                        deferred.reject(that, result, info);
+                    });
+
+            return deferred.promise();
         };
 
         this.connect = function (authProvider) {
@@ -3965,8 +3968,10 @@ limitations under the License.
                 that = this,
                 authProv = this.authProvider;
 
-                
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+            switch (this.authenticationModel) {
+            case progress.data.Session.AUTH_TYPE_ANON:
+            case progress.data.Session.AUTH_TYPE_BASIC:
+            case progress.data.Session.AUTH_TYPE_FORM:
                 this.disconnect()
                 .then(function () {
                         return authProv.logout();
@@ -3979,7 +3984,9 @@ limitations under the License.
                             deferred.reject(that, result, info);
                         }
                     );
-            } else {
+                break;
+                
+            default:
                 try {
                     _pdsession.subscribe('afterLogout', onAfterLogout, this);
                     _pdsession.logout( {async: true,

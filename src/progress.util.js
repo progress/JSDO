@@ -1,5 +1,5 @@
 /* 
-progress.util.js    Version: 4.4.0-3
+progress.util.js    Version: 4.4.0-4
 
 Copyright (c) 2014-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 

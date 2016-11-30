@@ -130,11 +130,9 @@ limitations under the License.
         // implementation is SSO specific
         // put the internal state back to where it is when the constructor finishes running
         function reset() {
-            if (authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                clearTokenInfo();
-                ssoTokenInfo = null;
-                loggedIn = false;
-            }
+            clearTokenInfo();
+            ssoTokenInfo = null;
+            loggedIn = false;
         }
         
         // implementation may be SSO specific, depends on the headers they need
@@ -142,6 +140,7 @@ limitations under the License.
             xhr.open('POST', loginURI, true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             xhr.setRequestHeader("Cache-Control", "max-age=0");
+            xhr.setRequestHeader("Pragma", "no-cache");
             xhr.withCredentials = true;
             xhr.setRequestHeader("Accept", "application/json");
         }
@@ -393,7 +392,7 @@ limitations under the License.
                 tempURI = uriParam;
             }
 
-            uri = uriParam;
+            uri = uriParam; // keep the uri property the same as what was passed in
             loginURI = tempURI + loginURIsegment;
             refreshURI = tempURI + refreshURIsegment;
             logoutURI = tempURI + logoutURIsegment;
@@ -563,7 +562,7 @@ limitations under the License.
                 xhr;
 
             if (!loggedIn) {
-                deferred.resolve( this, progress.data.Session.SUCCESS, {});
+                deferred.resolve(this, progress.data.Session.SUCCESS, {});
             } else {
                 xhr = new XMLHttpRequest();
                 openLogoutRequest(xhr);
@@ -605,7 +604,7 @@ limitations under the License.
             return retrieveToken();
         };
 
-        this.openRequestAndAuthorize = function(xhr, verb, uri) {
+        this.openRequestAndAuthorize = function (xhr, verb, uri) {
             var tokenRequestDescriptor;
 
             tokenRequestDescriptor = {
@@ -618,7 +617,8 @@ limitations under the License.
 
                 xhr.setRequestHeader(
                     tokenRequestDescriptor.headerName,
-                    "oecp " + this._getToken() );
+                    "oecp " + this._getToken()
+                );
 
                 // We specify application/json for the response so that, if a bad token is sent, an 
                 // OE Web application that's based on Form auth will directly send back a 401.
