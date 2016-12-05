@@ -714,7 +714,7 @@ limitations under the License.
             partialPingURI = defaultPartialPingURI,
             needsReconnectAfterPageRefresh = false,
             _storageKey,
-            // initialize authImpl to null to indicate that we deliberately want it not to have a value 
+            // initialize authProvider to null to indicate that we deliberately want it not to have a value 
             // except when connected
             _authProvider = null,
 
@@ -4231,324 +4231,166 @@ limitations under the License.
     };
     
     
-    // THIS FUNCTION HAS BEEN KLUDGED FOR THE TIME BEING. IT IS A WRAPPER THAT CALLS ONE OF 2
-    // FUNCTIONS DEFINED IN IT. ONE IS THE OLD VERSION OF THIS FUNCTION, AND ONE IS A NEW
-    // VERSION WRITTEN FOR THE USE OF THE AuthenticationProvider OBJECT ADDED FOR SSO. IF
-    // THE AUTH MODEL PASSED IN IS SSO, IT CALLS THE LATTER. IF NOT, IT CALLS THE OLDER 
-    // VERSION. WHEN WE CONVERT THE OLDER AUTH MODELS TO USE THE NEW API, WE WILL GET RID OF THE
-    // OLDER IMPLMENTATION (getSessionFormBasicAnon) ALTOGETHER AND THE FUNCTION THAT IS NOW getSessionSSO
-    // WILL BE THE ONE AND ONLY getSession
     progress.data.getSession = function (options) {
         var authModel;
 
-        function getSessionFormBasicAnon(options) {
-
-            var jsdosession,
-                deferred = $.Deferred();
-            
-            // This is the reject handler for session-related operations
-            // login, addCatalog, and logout
-            function sessionRejectHandler(jsdosession, result, info) {
+        var deferred = $.Deferred(),
+            authProvider,
+            authURI,
+            promise;
+        
+        // This is the reject handler for session-related operations
+        // login, addCatalog, and logout
+        function sessionRejectHandler(originator, result, info) {
+            // undo the AuthenticationProvider's login if it succeeded
+            if (authProvider && authProvider.hasCredential()) {
+                authProvider.logout()
+                    .always(function () {
+                        deferred.reject(result, info);
+                    });
+            } else {
                 deferred.reject(result, info);
             }
-            
-            // This is the reject handler for the login callback
-            function callbackRejectHandler(reason) {
-                deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
-            }
-            
-            function loginHandler(jsdosession, result, info) {
-                jsdosession.addCatalog(options.catalogURI)
-                    .then(function (jsdosession, result, info) {
-                        deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
-                    }, sessionRejectHandler);
-            }
-            
-            // This function calls login using credentials from the appropriate source
-            // Note that as currently implemented, this should NOT be called when
-            // ANONYMOUS auth is being used, because it unconditionally returns 
-            // AUTHENTICATION_FAILURE if there are no credentials and no loginCallback
-            function callLogin(jsdosession, result, info) {
-                var errorObject;
-                
-                // Use the login callback if we are passed one 
-                if (typeof options.loginCallback !== 'undefined') {
-                    options.loginCallback()
-                        .then(function (result) {
-                            jsdosession.login(result.username, result.password)
-                                .then(loginHandler, sessionRejectHandler);
-                        }, callbackRejectHandler);
-                } else if (options.username && options.password) {
-                    jsdosession.login(options.username, options.password)
-                        .then(loginHandler, sessionRejectHandler);
-                } else {
-                    // getSession(): The login method was not executed because no credentials were supplied.
-                    errorObject = new Error(progress.data._getMsgText(
-                        "jsdoMSG052",
-                        "getSession()"
-                    ));
-                    sessionRejectHandler(
-                        jsdosession,
-                        progress.data.Session.AUTHENTICATION_FAILURE,
-                        {
-                            // including an Error object to make clear why there is no xhr (normally there would
-                            // be one for an authentication failure)
-                            errorObject: errorObject
-                        }
-                    );
-                }
-            }
-            
-            if (typeof options !== 'object') {
-                // getSession(): 'options' must be of type 'object'
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG503",
-                    "getSession()",
-                    "options",
-                    "object"
-                ));
-            }
-            
-            if (typeof options.loginCallback !== 'undefined' &&
-                    typeof options.loginCallback !== 'function') {
-                // getSession(): 'options.loginCallback' must be of type 'function'
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG503",
-                    "getSession()",
-                    "options.loginCallback",
-                    "function"
-                ));
-            }
-            
-            // Create the JSDOSession and let it handle the argument parsing
-            try {
-                jsdosession = new progress.data.JSDOSession(options);
-                
-                jsdosession.isAuthorized()
-                    .then(function (jsdosession, result, info) {
-                        // If we are logged in, then we just re-add the catalog.
-                        loginHandler(jsdosession, result, info);
-                    }, function (jsdosession, result, info) {
-                        // If model is anon, just log in.
-                        if (jsdosession.authenticationModel === progress.data.Session.AUTH_TYPE_ANON &&
-                                result !== progress.data.Session.GENERAL_FAILURE) {
-                            
-                            jsdosession.login(options.username, options.password)
-                                .then(loginHandler, sessionRejectHandler);
-                        } else if (result === progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED ||
-                                result === progress.data.Session.AUTHENTICATION_FAILURE) {
-                            // We need to log-in with credentials.
-                            
-                            // If we were logged in, we need to logout
-                            if (result === progress.data.Session.AUTHENTICATION_FAILURE) {
-                                jsdosession.logout()
-                                    .then(callLogin, sessionRejectHandler);
-                            } else {
-                                callLogin(jsdosession);
-                            }
-                        } else {
-                            // If we get here, it's probably because the server is down.
-                            sessionRejectHandler(jsdosession, result, info);
-                        }
-                    });
-            } catch (error) {
-                throw error;
-            }
-            
-            return deferred.promise();
         }
-    
-    
-        function getSessionAuthProv(options) {
         
-            var deferred = $.Deferred(),
-                authProvider,
-                authURI,
-                promise;
-            
-            // This is the reject handler for session-related operations
-            // login, addCatalog, and logout
-            function sessionRejectHandler(originator, result, info) {
-                // undo the AuthenticationProvider's login if it succeeded
-                if (authProvider && authProvider.hasCredential()) {
-                    authProvider.logout()
-                        .always(function () {
-                            deferred.reject(result, info);
-                        });
-                } else {
-                    deferred.reject(result, info);
-                }
-            }
-            
-            // This is the reject handler for the login callback
-            function callbackRejectHandler(reason) {
-                deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
-            }
-            
-            function loginHandler(provider) {
-                var jsdosession;
-                jsdosession = new progress.data.JSDOSession(options);
+        // This is the reject handler for the login callback
+        function callbackRejectHandler(reason) {
+            deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
+        }
+        
+        function loginHandler(provider) {
+            var jsdosession;
+            jsdosession = new progress.data.JSDOSession(options);
 
-                try {
-                    jsdosession.connect(provider)
-                        .then(function () {
-                            try {
-                                jsdosession.addCatalog(options.catalogURI)
-                                    .then(function (jsdosession, result, info) {
-                                        deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
-                                    }, sessionRejectHandler);
-                            } catch (e) {
-                                sessionRejectHandler(jsdosession,
-                                                     progress.data.Session.GENERAL_FAILURE,
-                                                     {errorObject: e});
-                            }
-                        }, sessionRejectHandler);
-                } catch (e) {
-                    sessionRejectHandler(jsdosession,
-                                         progress.data.Session.GENERAL_FAILURE,
-                                         {errorObject: e});
-                }
+            try {
+                jsdosession.connect(provider)
+                    .then(function () {
+                        try {
+                            jsdosession.addCatalog(options.catalogURI)
+                                .then(function (jsdosession, result, info) {
+                                    deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+                                }, sessionRejectHandler);
+                        } catch (e) {
+                            sessionRejectHandler(jsdosession,
+                                                 progress.data.Session.GENERAL_FAILURE,
+                                                 {errorObject: e});
+                        }
+                    }, sessionRejectHandler);
+            } catch (e) {
+                sessionRejectHandler(jsdosession,
+                                     progress.data.Session.GENERAL_FAILURE,
+                                     {errorObject: e});
             }
+        }
+        
+        // This function calls login using credentials from the appropriate source
+        // Note that as currently implemented, this should NOT be called when
+        // ANONYMOUS auth is being used, because it unconditionally returns 
+        // AUTHENTICATION_FAILURE if there are no credentials and no loginCallback
+        function callLogin(provider) {
+            var errorObject;
             
-            // This function calls login using credentials from the appropriate source
-            // Note that as currently implemented, this should NOT be called when
-            // ANONYMOUS auth is being used, because it unconditionally returns 
-            // AUTHENTICATION_FAILURE if there are no credentials and no loginCallback
-            function callLogin(provider) {
-                var errorObject;
-                
-                // Use the login callback if we are passed one 
-                if (typeof options.loginCallback !== 'undefined') {
-                    options.loginCallback()
-                        .then(function (result) {
-                            try {
-                                provider.login(result.username, result.password)
-                                    .then(loginHandler, sessionRejectHandler);
-                            } catch (e) {
-                                sessionRejectHandler(
-                                    provider,
-                                    progress.data.Session.GENERAL_FAILURE,
-                                    {
-                                        errorObject: e
-                                    }
-                                );
-                            }
-                        }, callbackRejectHandler);
-                } else if (options.username && options.password) {
-                    try {
-                        provider.login(options.username, options.password)
-                            .then(loginHandler, sessionRejectHandler);
-                    } catch (e) {
-                        sessionRejectHandler(
-                            provider,
-                            progress.data.Session.GENERAL_FAILURE,
-                            {
-                                errorObject: e
-                            }
-                        );
-                    }
-                } else {
-                    // getSession(): The login method was not executed because no credentials were supplied.
-                    errorObject = new Error(progress.data._getMsgText(
-                        "jsdoMSG052",
-                        "getSession()"
-                    ));
+            // Use the login callback if we are passed one 
+            if (typeof options.loginCallback !== 'undefined') {
+                options.loginCallback()
+                    .then(function (result) {
+                        try {
+                            provider.login(result.username, result.password)
+                                .then(loginHandler, sessionRejectHandler);
+                        } catch (e) {
+                            sessionRejectHandler(
+                                provider,
+                                progress.data.Session.GENERAL_FAILURE,
+                                {
+                                    errorObject: e
+                                }
+                            );
+                        }
+                    }, callbackRejectHandler);
+            } else if (options.username && options.password) {
+                try {
+                    provider.login(options.username, options.password)
+                        .then(loginHandler, sessionRejectHandler);
+                } catch (e) {
                     sessionRejectHandler(
                         provider,
-                        progress.data.Session.AUTHENTICATION_FAILURE,
+                        progress.data.Session.GENERAL_FAILURE,
                         {
-                            // including an Error object to make clear why there is no xhr (normally there would
-                            // be one for an authentication failure)
-                            errorObject: errorObject
+                            errorObject: e
                         }
                     );
                 }
-            }
-            
-            if (typeof options !== 'object') {
-                // getSession(): 'options' must be of type 'object'
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG503",
-                    "getSession()",
-                    "options",
-                    "object"
+            } else {
+                // getSession(): The login method was not executed because no credentials were supplied.
+                errorObject = new Error(progress.data._getMsgText(
+                    "jsdoMSG052",
+                    "getSession()"
                 ));
-            }
-            
-            if (typeof options.loginCallback !== 'undefined' &&
-                    typeof options.loginCallback !== 'function') {
-                // getSession(): 'options.loginCallback' must be of type 'function'
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG503",
-                    "getSession()",
-                    "options.loginCallback",
-                    "function"
-                ));
-            }
-            
-            // Create the AuthenticationProvider and let it handle the argument parsing
-            try {
-                // If authenticationURI is not set, use serviceURI (even for SSO -- the token server may 
-                // also be the data provider)
-                if (options.authenticationURI) {
-                    authURI = options.authenticationURI;
-                } else {
-                    authURI = options.serviceURI;
-                }
-               switch (options.authenticationModel.toLowerCase()) {
-                case progress.data.Session.AUTH_TYPE_SSO:
-                    authProvider = new progress.data.AuthenticationProvider(authURI,
-                                                                            options.authenticationModel);
-                    break;
-                case progress.data.Session.AUTH_TYPE_ANON:
-                    authProvider = new progress.data.AuthenticationProviderAnon(authURI,
-                                                                            options.authenticationModel);
-                    break;
-                default:
-                    // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
-                    //     parameter in constructor call."
-                    throw new Error(progress.data._getMsgText(
-                        "jsdoMSG507",
-                        "AuthenticationProvider",
-                        options.authenticationModel,
-                        "authenticationModel",
-                        "constructor"
-                    ));
-                }
-                    
-                if (authProvider.hasCredential()) {
-                    loginHandler(authProvider);
-                } else {
-                    // use the following when the AuthenticationProvider model is extended to non-SSO
-                    // If model is anon, just log in.
-                    if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
-                        authProvider.login()
-                            .then(loginHandler, sessionRejectHandler);
-                    } else {
-                        //  We need to log-in with credentials.
-                        callLogin(authProvider);
+                sessionRejectHandler(
+                    provider,
+                    progress.data.Session.AUTHENTICATION_FAILURE,
+                    {
+                        // including an Error object to make clear why there is no xhr (normally there would
+                        // be one for an authentication failure)
+                        errorObject: errorObject
                     }
-                }
-            } catch (error) {
-                throw error;
+                );
             }
-            
-            return deferred.promise();
         }
-
-        if (typeof options.authenticationModel === "string") {
-            authModel = options.authenticationModel.toLowerCase();
-        }
-        // else let validation done by the function we call catch the type error
-        // (because the code here is just temporary)
         
-        if (authModel === progress.data.Session.AUTH_TYPE_SSO ||
-                authModel === progress.data.Session.AUTH_TYPE_ANON) {
-            return getSessionAuthProv(options);
-        } else {
-            return getSessionFormBasicAnon(options);
+        if (typeof options !== 'object') {
+            // getSession(): 'options' must be of type 'object'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503",
+                "getSession()",
+                "options",
+                "object"
+            ));
         }
-    };
+        
+        if (typeof options.loginCallback !== 'undefined' &&
+                typeof options.loginCallback !== 'function') {
+            // getSession(): 'options.loginCallback' must be of type 'function'
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG503",
+                "getSession()",
+                "options.loginCallback",
+                "function"
+            ));
+        }
+        
+        // Create the AuthenticationProvider and let it handle the argument parsing
+        try {
+            // If authenticationURI is not set, use serviceURI (even for SSO -- the token server may 
+            // also be the data provider)
+            if (options.authenticationURI) {
+                authURI = options.authenticationURI;
+            } else {
+                authURI = options.serviceURI;
+            }
+
+            authProvider = new progress.data.AuthenticationProvider(authURI,
+                                                                    options.authenticationModel);
+                
+            if (authProvider.hasCredential()) {
+                loginHandler(authProvider);
+            } else {
+                // If model is anon, just log in.
+                if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+                    authProvider.login()
+                        .then(loginHandler, sessionRejectHandler);
+                } else {
+                    //  We need to log-in with credentials.
+                    callLogin(authProvider);
+                }
+            }
+        } catch (error) {
+            throw error;
+        }
+        
+        return deferred.promise();
+    }
+
 })();
 
 if (typeof exports !== "undefined") {

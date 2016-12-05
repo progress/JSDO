@@ -34,39 +34,39 @@ limitations under the License.
     }
         
 // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
-    progress.data.AuthenticationProviderAnon = function (uriParam, authModelParam) {
-        var uri,
-            authenticationModel,
-            that = this,
-            storage,  // ref to what we use to store session state and token data (currently sessionStorage)
-            storageKey,
-            tempURI,
-            loginURIsegment = "/static/home.html",
-            loginURI,
-            logoutURIsegment = "",
-            logoutURI,
-            loggedIn = false,
-            dataKeys = {    // SSO specific 
-                uri: ".uri",
-                loggedIn: ".loggedIn"
-            };
-            
+    progress.data.AuthenticationProviderAnon = function (uriParam) {
+        var that = this,
+            tempURI;
+        
+        this._uri = null;
+        this._authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
+        this._storage = null; // ref to what we use to store session state and token data
+        this._storageKey = null;
+        this._loginURIsegment = "/static/home.html";
+        this._loginURI = null;
+        this._logoutURIsegment = "";
+        this._logoutURI = null;
+        this._loggedIn = false;
+        this._dataKeys = {
+            uri: ".uri",
+            loggedIn: ".loggedIn"
+        };
+         
+        
         // PRIVATE FUNCTIONS
 
-        // SSO specific, though possibly other models would need something for storing credentials
         // Store the given token with the uri as the key. setItem() throws
         // a "QuotaExceededError" error if there is insufficient storage space or 
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
-        function storeInfo(info) {
-            storage.setItem(dataKeys.uri, JSON.stringify(uri));
-            storage.setItem(dataKeys.loggedIn, JSON.stringify(loggedIn));
-        }
+        this._storeInfo = function (info) {
+            this._storage.setItem(this._dataKeys.uri, JSON.stringify(this._uri));
+            this._storage.setItem(this._dataKeys.loggedIn, JSON.stringify(this._loggedIn));
+        };
 
-        // probably SSO specific
         // get one of the pieces of data related to tokens from storage (could be the token itself, or
         // the refresh token, expiration info, etc.). Returns null if the item isn't in storage
-        function retrieveInfoItem(propName) {
-            var jsonStr = storage.getItem(propName),
+        this._retrieveInfoItem = function (propName) {
+            var jsonStr = this._storage.getItem(propName),
                 value = null;
                 
             if (jsonStr !== null) {
@@ -77,36 +77,32 @@ limitations under the License.
                 }
             }
             return value;
-        }
+        };
 
-        function retrieveURI() {
-            return retrieveInfoItem(dataKeys.uri);
-        }
+        this._retrieveURI = function () {
+            return this._retrieveInfoItem(this._dataKeys.uri);
+        };
 
-        function retrieveLoggedIn() {
-            return retrieveInfoItem(dataKeys.loggedIn);
-        }
+        this._retrieveLoggedIn = function () {
+            return this._retrieveInfoItem(this._dataKeys.loggedIn);
+        };
 
-        // probably SSO specific, but maybe could be named something like "clearCredentialStore"
-        // and used for all models (no op for some)
-        function clearInfo(info) {
-            storage.removeItem(dataKeys.uri);
-            storage.removeItem(dataKeys.loggedIn);
-        }
+        this._clearInfo = function (info) {
+            this._storage.removeItem(this._dataKeys.uri);
+            this._storage.removeItem(this._dataKeys.loggedIn);
+        };
 
-        // implementation is SSO specific
         // put the internal state back to where it is when the constructor finishes running
-        function reset() {
-            clearInfo();
-            loggedIn = false;
-        }
+        this._reset = function () {
+            this._clearInfo();
+            this._loggedIn = false;
+        };
         
-        // implementation may be SSO specific, depends on the headers they need
         function openLoginRequest(xhr) {
             var uriForRequest;
             
             if (progress.data.Session._useTimeStamp) {
-                uriForRequest = progress.data.Session._addTimeStampToURL(loginURI);
+                uriForRequest = progress.data.Session._addTimeStampToURL(that._loginURI);
             }
 
             xhr.open('GET', uriForRequest, true);
@@ -114,14 +110,8 @@ limitations under the License.
             xhr.setRequestHeader("Pragma", "no-cache");
         //  ?? setRequestHeaderFromContextProps(this, xhr);
 
-            
-            // from the SSO version
-            // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            // xhr.setRequestHeader("Cache-Control", "max-age=0");
-            // xhr.setRequestHeader("Accept", "application/json");
         }
 
-        // implementation is SSO specific
         function processLoginResult(xhr, deferred) {
             var result;
 
@@ -129,8 +119,8 @@ limitations under the License.
                 // Need to set loggedIn now so we can call logout from here if there's an
                 // error processing the response (e.g., authentication succeeded but we didn't get a
                 // token for some reason)
-                loggedIn = true;
-                storeInfo();
+                that._loggedIn = true;
+                that._storeInfo();
                 result = progress.data.Session.SUCCESS;
             } else if (xhr.status === 401) {
                 // somebody gave us the wrong authenticationModel!
@@ -164,7 +154,7 @@ limitations under the License.
         Object.defineProperty(this, 'uri',
             {
                 get: function () {
-                    return uri;
+                    return this._uri;
                 },
                 enumerable: true
             });
@@ -172,72 +162,73 @@ limitations under the License.
         Object.defineProperty(this, 'authenticationModel',
             {
                 get: function () {
-                    return authenticationModel;
+                    return this._authenticationModel;
                 },
                 enumerable: true
             });
 
             
-        // process constructor arguments
-        if (typeof uriParam !== "string") {
-            // AuthenticationProvider: Argument 1 must be of type string in constructor call.
-            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
-                                           "string", "constructor"));
-        } else if (uriParam.length === 0) {
-            // AuthenticationProvider: '' is an invalid value for the uri parameter in constructor call.
-            throw new Error(progress.data._getMsgText(
-                "jsdoMSG507",
-                "AuthenticationProvider",
-                uriParam,
-                "uri",
-                "constructor"
-            ));
-        } else {
-            // get rid of trailing '/' because appending service url that starts with '/'
-            // will cause request failures
-            if (uriParam[uriParam.length - 1] === "/") {
-                tempURI = uriParam.substring(0, uriParam.length - 1);
+
+        this._initialize = function (uriParam, authModel) {
+            if (typeof uriParam !== "string") {
+                // AuthenticationProvider: Argument 1 must be of type string in constructor call.
+                throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
+                                               "string", "constructor"));
+            } else if (uriParam.length === 0) {
+                // AuthenticationProvider: '' is an invalid value for the uri parameter in constructor call.
+                throw new Error(progress.data._getMsgText(
+                    "jsdoMSG507",
+                    "AuthenticationProvider",
+                    uriParam,
+                    "uri",
+                    "constructor"
+                ));
             } else {
-                tempURI = uriParam;
+                // get rid of trailing '/' because appending service url that starts with '/'
+                // will cause request failures
+                if (uriParam[uriParam.length - 1] === "/") {
+                    tempURI = uriParam.substring(0, uriParam.length - 1);
+                } else {
+                    tempURI = uriParam;
+                }
+
+                this._uri = uriParam; // keep the uri property the same as what was passed in
+                this._loginURI = tempURI + this._loginURIsegment;
+                this._logoutURI = tempURI + this._logoutURIsegment;
             }
 
-            uri = uriParam; // keep the uri property the same as what was passed in
-            loginURI = tempURI + loginURIsegment;
-            logoutURI = tempURI + logoutURIsegment;
-        }
+            this._authenticationModel = authModel;
+            // future: for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
 
-        authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
-                // future: for page refresh -- storeSessionInfo("authenticationModel", authenticationModel);
+            if (typeof sessionStorage === "undefined") {
+                // "AuthenticationProvider: No support for sessionStorage."
+                throw new Error(progress.data._getMsgText("jsdoMSG126",
+                                                          "AuthenticationProvider",
+                                                          "sessionStorage"));
+            }
+            // if you switch to a different type of storage, change the error message argument above
+            this._storage = sessionStorage;
+
+            // should come up with something more intelligent than this (maybe)
+            this._storageKey = this._uri;  // or name
+            this._dataKeys.uri = this._storageKey + this._dataKeys.uri;
+            this._dataKeys.loggedIn = this._storageKey + this._dataKeys.loggedIn;
+
+            if (this._retrieveLoggedIn()) {
+                this._loggedIn = true;
+            }
+        };
         
-        if (typeof sessionStorage === "undefined") {
-            // "AuthenticationProvider: No support for sessionStorage."
-            throw new Error(progress.data._getMsgText("jsdoMSG126",
-                                                      "AuthenticationProvider",
-                                                      "sessionStorage"));
-        }
-        // if you switch to a different type of storage, change the error message argument above
-        storage = sessionStorage;
-
-        // should come up with something more intelligent than this (maybe)
-        storageKey = uri;  // or name
-        dataKeys.uri = storageKey + dataKeys.uri;
-        dataKeys.loggedIn = storageKey + dataKeys.loggedIn;
-
-        if (retrieveLoggedIn()) {
-            loggedIn = true;
-        }
-      // end of constructor processing except for definition of functions and methods
+        // process constructor arguments
+        this._initialize(uriParam, progress.data.Session.AUTH_TYPE_ANON);
         
-        
-
         // METHODS
         
-        // Probably the only SSO specific thing is the parameter passed to the send() call 
         this.login = function () {
             var deferred = $.Deferred(),
                 xhr;
 
-            if (loggedIn) {
+            if (this._loggedIn) {
                 // "The login method was not executed because the AuthenticationProvider is 
                 // already logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
@@ -261,14 +252,13 @@ limitations under the License.
         this.logout = function () {
             var deferred = $.Deferred();
 
-            reset();
+            this._reset();
             deferred.resolve(that, progress.data.Session.SUCCESS, {});
             return deferred.promise();
         };
         
-        // implementation is SSO specific
         this.hasCredential = function () {
-            return loggedIn;
+            return this._loggedIn;
         };
 
         this.openRequestAndAuthorize = function (xhr, verb, uri) {

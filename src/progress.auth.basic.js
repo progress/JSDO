@@ -23,84 +23,15 @@ limitations under the License.
 
     /*global progress : true*/
     /*global $ : false, storage, XMLHttpRequest, msg, btoa*/
-
-    /* define these if not defined yet - they may already be defined if
-       progress.js was included first */
-    if (typeof progress === "undefined") {
-        progress = {};
-    }
-    if (typeof progress.data === "undefined") {
-        progress.data = {};
-    }
-        
-    progress.data.AuthenticationProviderBasic = function (uriParam) {
-        var uri,
-            authenticationModel,
-            that = this,
-            storage,  // ref to what we use to store session state and token data (currently sessionStorage)
-            storageKey,
-            tempURI,
-            loginURIsegment = "/static/home.html",
-            loginURI,
-            logoutURIsegment = "",
-            logoutURI,
-            loggedIn = false,
-            dataKeys = {
-                uri: ".uri",
-                loggedIn: ".loggedIn"
-            },
-            
+    
+    progress.data.AuthenticationProviderBasic = function (uri) {
+        var that = this,
             // Basic auth specific
             defaultiOSBasicAuthTimeout,
             userName = null,
             password = null;
             
         // PRIVATE FUNCTIONS
-
-        // SSO specific, though possibly other models would need something for storing credentials
-        // Store the given token with the uri as the key. setItem() throws
-        // a "QuotaExceededError" error if there is insufficient storage space or 
-        // "the user has disabled storage for the site" (Web storage spec at WHATWG)
-        function storeInfo(info) {
-            storage.setItem(dataKeys.uri, JSON.stringify(uri));
-            storage.setItem(dataKeys.loggedIn, JSON.stringify(loggedIn));
-        }
-
-        // probably SSO specific
-        // get one of the pieces of data related to tokens from storage (could be the token itself, or
-        // the refresh token, expiration info, etc.). Returns null if the item isn't in storage
-        function retrieveInfoItem(propName) {
-            var jsonStr = storage.getItem(propName),
-                value = null;
-                
-            if (jsonStr !== null) {
-                try {
-                    value = JSON.parse(jsonStr);
-                } catch (e) {
-                    value = null;
-                }
-            }
-            return value;
-        }
-
-        function retrieveURI() {
-            return retrieveInfoItem(dataKeys.uri);
-        }
-
-        function retrieveLoggedIn() {
-            return retrieveInfoItem(dataKeys.loggedIn);
-        }
-
-        function clearInfo(info) {
-            storage.removeItem(dataKeys.uri);
-            storage.removeItem(dataKeys.loggedIn);
-        }
-
-        // put the internal state back to where it is when the constructor finishes running
-        function reset() {
-            clearInfo();
-            loggedIn = false;
-        }
         
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function _make_basic_auth(user, pw) {
@@ -114,7 +45,7 @@ limitations under the License.
                 uriForRequest;
             
             if (progress.data.Session._useTimeStamp) {
-                uriForRequest = progress.data.Session._addTimeStampToURL(loginURI);
+                uriForRequest = progress.data.Session._addTimeStampToURL(that._loginURI);
             }
 
             xhr.open("GET", uriForRequest, true);  // but see comments below inside the "if userName"
@@ -146,22 +77,8 @@ limitations under the License.
             xhr.setRequestHeader("Pragma", "no-cache");
             
             
-            
         //  ?? setRequestHeaderFromContextProps(this, xhr);
 
-            
-            // from the SSO version
-            // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            // xhr.setRequestHeader("Cache-Control", "max-age=0");
-            // xhr.setRequestHeader("Accept", "application/json");
-            
-            // for FORM
-            // xhr.withCredentials = true;
-            // xhr.setRequestHeader("Accept",
-                    // "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-
-            
-            
         }
 
         function processLoginResult(xhr, deferred) {
@@ -171,8 +88,8 @@ limitations under the License.
                 // Need to set loggedIn now so we can call logout from here if there's an
                 // error processing the response (e.g., authentication succeeded but we didn't get a
                 // token for some reason)
-                loggedIn = true;
-                storeInfo();
+                that._loggedIn = true;
+                that._storeInfo();
                 result = progress.data.Session.SUCCESS;
             } else if (xhr.status === 401) {
                 result = progress.data.Session.AUTHENTICATION_FAILURE;
@@ -201,77 +118,22 @@ limitations under the License.
                 );
             }
         }
-
-        
-        // PROPERTIES
-        Object.defineProperty(this, 'uri',
-            {
-                get: function () {
-                    return uri;
-                },
-                enumerable: true
-            });
-                
-        Object.defineProperty(this, 'authenticationModel',
-            {
-                get: function () {
-                    return progress.data.Session.AUTH_TYPE_BASIC;
-                },
-                enumerable: true
-            });
-
             
-        // process constructor arguments
-        if (typeof uriParam !== "string") {
-            // AuthenticationProvider: Argument 1 must be of type string in constructor call.
-            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
-                                           "string", "constructor"));
-        } else if (uriParam.length === 0) {
-            // AuthenticationProvider: '' is an invalid value for the uri parameter in constructor call.
-            throw new Error(progress.data._getMsgText(
-                "jsdoMSG507",
-                "AuthenticationProvider",
-                uriParam,
-                "uri",
-                "constructor"
-            ));
-        } else {
-            // get rid of trailing '/' because appending service url that starts with '/'
-            // will cause request failures
-            if (uriParam[uriParam.length - 1] === "/") {
-                tempURI = uriParam.substring(0, uriParam.length - 1);
-            } else {
-                tempURI = uriParam;
-            }
-
-            uri = uriParam; // keep the uri property the same as what was passed in
-            loginURI = tempURI + loginURIsegment;
-            logoutURI = tempURI + logoutURIsegment;
-        }
-
-        if (typeof sessionStorage === "undefined") {
-            // "AuthenticationProvider: No support for sessionStorage."
-            throw new Error(progress.data._getMsgText("jsdoMSG126",
-                                                      "AuthenticationProvider",
-                                                      "sessionStorage"));
-        }
-        // if you switch to a different type of storage, change the error message argument above
-        storage = sessionStorage;
-
-        // should come up with something more intelligent than this (maybe)
-        storageKey = uri;  // or name
-        dataKeys.uri = storageKey + dataKeys.uri;
-        dataKeys.loggedIn = storageKey + dataKeys.loggedIn;
-
-        if (retrieveLoggedIn()) {
-            loggedIn = true;
-        }
-      // end of constructor processing except for definition of functions and methods
         
+        // process constructor arguments, etc.
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC);
         
+
+        // "INTERNAL" METHODS
+        // put the internal state back to where it is when the constructor finishes running
+        this._reset = function () {
+            userName = null;
+            password = null;
+            this._clearInfo();
+            this._loggedIn = false;
+        };
 
         // METHODS
-        
         this.login = function (userName, password) {
             var deferred = $.Deferred(),
                 xhr;
@@ -312,7 +174,7 @@ limitations under the License.
                 ));
             }
 
-            if (loggedIn) {
+            if (this._loggedIn) {
                 // "The login method was not executed because the AuthenticationProvider is 
                 // already logged in." 
                 throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
@@ -333,16 +195,13 @@ limitations under the License.
         };
         
 
+        // NOTE: no logout, using the base class (Anonymous). If we decide we need to do
         this.logout = function () {
             var deferred = $.Deferred();
-
-            reset();
-            deferred.resolve(that, progress.data.Session.SUCCESS, {});
+            
+            this._reset();
+            deferred.resolve(this, progress.data.Session.SUCCESS, {});
             return deferred.promise();
-        };
-        
-        this.hasCredential = function () {
-            return loggedIn;
         };
 
         this.openRequestAndAuthorize = function (xhr, verb, uri) {
@@ -384,8 +243,15 @@ limitations under the License.
             }
             
         };
-
+        
     };
 
+    // using dummy arguments for a temporary object just to set the prototype
+    progress.data.AuthenticationProviderBasic.prototype =
+        new progress.data.AuthenticationProviderAnon(" ", progress.data.Session.AUTH_TYPE_BASIC);
+    progress.data.AuthenticationProviderBasic.prototype.constructor =
+        progress.data.AuthenticationProviderBasic;
+
+    
 }());
 
