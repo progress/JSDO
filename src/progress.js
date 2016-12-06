@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.3.0-24
+progress.js    Version: 4.3.1-27
 
 Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -136,6 +136,7 @@ limitations under the License.
     msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
     msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
     msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
+    msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";    
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
@@ -2198,7 +2199,14 @@ limitations under the License.
                 this._buffers[buf]._fields = {};
                 var fields = this._buffers[buf]._schema;
                 for (var i = 0; i < fields.length; i++) {
-                    this._buffers[buf]._fields[fields[i].name.toLowerCase()] = fields[i];
+                    this._buffers[buf]._fields[fields[i].name.toLowerCase()] = fields[i]; 
+                    if (typeof(fields[i].origName) !== "undefined") {
+                        if ((typeof(fields[i].origName) !== "string")
+                            || (fields[i].origName.trim() === "")) {
+                            throw new Error(msg.getMsgText("jsdoMSG504", 
+                                "JSDO", "Field '" + fields[i].name + "' in resource '" + this._resource.name + "'", "origName"));
+                        }
+                    }
                 }
                 
                 if (this._buffers[buf]._schema && (typeof Object.defineProperty) == 'function') {
@@ -3894,7 +3902,6 @@ limitations under the License.
 
             if (this.autoApplyChanges) {
                 // Arrays to keep track of changes
-                tableRef._beforeImage = {};
                 tableRef._added = [];
                 tableRef._changed = {};
                 tableRef._deleted = [];
@@ -6577,12 +6584,17 @@ limitations under the License.
 		requestMapping: function(jsdo, params, info) {
 			var sortFields,
 			field,
+            fieldName,            
+            fieldInfo,
+            tableName,
             filter,
+            sortDir,
 			ablFilter,
             sqlQuery,
             methodProperties,
             capabilities,
             index,
+            position,
             option,
             capabilitiesObject,
             reqCapabilities = {
@@ -6622,17 +6634,63 @@ limitations under the License.
                     }
                 }
                 
+                if (jsdo._defaultTableRef && params.tableRef === undefined) {
+                    tableName = jsdo._defaultTableRef._name;
+                }
+                else {
+                    tableName = params.tableRef;
+                }
+
 				if (params.sort) {
+                    // Convert sort expression to JFP format				
+					
+                    if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
+                        // Kendo UI sort format - object
+                        // Make params.sort an array
+                        params.sort = [params.sort];
+                    }
 					sortFields = "";
 					for (index = 0; index < params.sort.length; index += 1) {
-						field = params.sort[index].field;
-						if (params.sort[index].dir == "desc") {
-							field += " DESC";
-						}
-						sortFields += field;
-						if (index < params.sort.length - 1) {
-							sortFields += ",";
-						}
+                        field = params.sort[index];
+                        sortDir = "";
+						
+                        if (typeof(field) === "string") {
+                            // setSortFields format
+                            // Extract fieldName and sortDir from string
+                            fieldName = field;
+                            position = field.indexOf(":");
+                            if (position !== -1) {
+                                sortDir = fieldName.substring(position + 1);
+                                fieldName = fieldName.substring(0, position);
+                                switch(sortDir.toLowerCase()) {
+                                case "desc":
+                                case "descending":                                
+                                    sortDir = "desc";
+                                    break;
+                                }
+                            }
+                        } else {
+                            // Kendo UI sort format - array
+                            // Extract fieldName and sortDir from object
+                            fieldName = field.field;
+                            if (params.sort[index].dir === "desc") {
+                                sortDir = params.sort[index].dir;                                
+                            }
+                        }
+                        if (tableName) {
+                            // Use original fieldName instead of serialized name
+                            fieldInfo = jsdo[tableName]._fields[fieldName.toLowerCase()];
+                            if (fieldInfo && fieldInfo.origName) {
+								fieldName = fieldInfo.origName;
+                            }
+                        }
+                        if (sortDir === "desc") {
+                            fieldName += " DESC";
+                        }
+                        sortFields += fieldName;
+                        if (index < params.sort.length - 1) {
+                            sortFields += ",";
+                        }                     
 					}                                                                             
 				}
 				
@@ -6642,9 +6700,7 @@ limitations under the License.
                         doConversion = false;
                     }
                     
-					if (jsdo._defaultTableRef && params.tableRef === undefined) {
-						params.tableRef = jsdo._defaultTableRef._name;
-					}
+                    params.tableRef = tableName;
                     
                     if (doConversion && (params.tableRef === undefined)) {
                         throw new Error(msg.getMsgText("jsdoMSG045", "fill() or read()", "params", 

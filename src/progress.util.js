@@ -1,7 +1,7 @@
 /* 
-progress.util.js    Version: 4.3.0-1
+progress.util.js    Version: 4.3.1-4
 
-Copyright (c) 2014-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
@@ -350,6 +350,7 @@ limitations under the License.
             idx,
             length,
             field,
+            fieldInfo,
             type,
             format,
             operator,
@@ -375,6 +376,14 @@ limitations under the License.
             field = filter.field;
             value = filter.value;
 
+            if (tableRef._name) {
+                // Use original field name instead of serialized name
+                fieldInfo = tableRef._jsdo[tableRef._name]._fields[field.toLowerCase()];
+                if (fieldInfo && fieldInfo.origName) {
+                    field = fieldInfo.origName;
+                }
+            }            
+
             if (filter.filters) {
                 filter = progress.util._convertToABLWhereString(tableRef, filter);
             } else {
@@ -391,6 +400,7 @@ limitations under the License.
                     // We'll first add positional info for the value
                     if (type === STRING_OBJECT_TYPE) {
                         format = "'{1}'";
+                        value = value.replace(/'/g, "~'");
                     } 
                     else if (type === DATE_OBJECT_TYPE) {
                         ablType = tableRef._getABLType(field);
