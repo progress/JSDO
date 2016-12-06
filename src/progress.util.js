@@ -1,7 +1,7 @@
 /* 
 progress.util.js    Version: 4.3.1-4
 
-Copyright (c) 2014-2015 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
