@@ -149,7 +149,7 @@ limitations under the License.
     msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";
     msg.msgs.jsdoMSG505 = "{1}: '{2}' objects must have a '{3}' method.";
                 // use message below if invalid parameter value is an object    
-    msg.msgs.jsdoMSG506 = "{1}: Invalid value for the {2} parameter in {3} call.";
+    msg.msgs.jsdoMSG506 = "{1}: Invalid argument for the {2} parameter in {3} call.";
                 // use message below if invalid parameter value is a primitive
     msg.msgs.jsdoMSG507 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
 

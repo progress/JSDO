@@ -25,230 +25,148 @@ limitations under the License.
     /*global $ : false, storage, XMLHttpRequest, msg*/
     
     progress.data.AuthenticationProviderForm = function (uri) {
-        var that = this;
         
-        // PRIVATE FUNCTIONS
+        // PROCESS CONSTRUCTOR ARGUMENTS, CREATE API PROPERTIES, ETC.
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_FORM,
+                                 {"_loginURI": "/static/auth/j_spring_security_check",
+                                  "_logoutURI": "/static/auth/j_spring_security_logout"
+                                 });
 
-        function openLoginRequest(xhr) {
-            xhr.open('POST', that._loginURI, true);
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.setRequestHeader("Cache-Control", "max-age=0");
-            xhr.setRequestHeader("Pragma", "no-cache");
-            xhr.withCredentials = true;
-            xhr.setRequestHeader("Accept", "application/json");
+    };
+
+    var fn;
+    for (fn in progress.data.AuthenticationProvider.prototype) {
+        if (progress.data.AuthenticationProvider.prototype.hasOwnProperty(fn)) {
+            progress.data.AuthenticationProviderForm.prototype[fn] =
+                progress.data.AuthenticationProvider.prototype[fn];
+        }
+    }
+    
+    // NOTE: no definition of _reset method; using the reference copied from
+    //       the "base" object
+
+    // We are probably never going to call the prototype's method from inside this class,
+     // so we simply override and don't bother to keep a reference to the AuthenticationProvider
+     // _openLoginRequest method
+    progress.data.AuthenticationProviderForm.prototype._openLoginRequest = function (xhr) {
+        var uriForRequest;
+
+        if (progress.data.Session._useTimeStamp) {
+            uriForRequest = progress.data.Session._addTimeStampToURL(this._loginURI);
         }
 
-        // implementation is SSO specific
-        function processLoginResult(xhr, deferred) {
-            var errorObject,
-                result,
-                ssoTokenJSON;
+        xhr.open('POST', uriForRequest, true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.setRequestHeader("Cache-Control", "max-age=0");
+        xhr.setRequestHeader("Pragma", "no-cache");
+        xhr.withCredentials = true;
+        xhr.setRequestHeader("Accept", "application/json");
+    };
 
-            if (xhr.status === 200) {
-                // Need to set loggedIn now so we can call logout from here if there's an
-                // error processing the response
-                that._loggedIn = true;
-                that._storeInfo();
-                result = progress.data.Session.SUCCESS;
-            } else if (xhr.status === 401) {
-                result = progress.data.Session.AUTHENTICATION_FAILURE;
-            } else {
-                result = progress.data.Session.GENERAL_FAILURE;
-            }
+    // NOTE: no definition of _processLoginResult method; using the reference copied from
+    //       the "base" object
 
-            if (result === progress.data.Session.SUCCESS) {
-                deferred.resolve(
-                    that,
-                    result,
-                    {
-                        "xhr": xhr
-                    }
-                );
-            } else {
-                deferred.reject(
-                    that,
-                    result,
-                    {
-                        // currently, there will never be an Error object if login fails for Form
-                        // errorObject : errorObject,
-                        xhr: xhr
-                    }
-                );
-            }
+    progress.data.AuthenticationProviderForm.prototype._openLogoutRequest = function (xhr) {
+        xhr.open('GET',  this._logoutURI, true);
+        xhr.setRequestHeader("Cache-Control", "max-age=0");
+        xhr.withCredentials = true;
+        xhr.setRequestHeader("Accept", "application/json");
+    };
+
+    
+    progress.data.AuthenticationProviderForm.prototype._processLogoutResult = function (xhr, deferred) {
+        var result;
+
+        if (xhr.status === 200) {
+            result = progress.data.Session.SUCCESS;
+        } else if (xhr.status === 401) {
+            // treat this as a success because the most likely cause is that the session expired
+            // (Note that an 11.7 OE PAS Web application will return a 200 if we log out with
+            // an expired JSESSIONID, so this code may not be executed anyway)
+            result = progress.data.Session.SUCCESS;
+        } else {
+            result = progress.data.Session.GENERAL_FAILURE;
         }
 
+        this._settlePromise(deferred, result, {"xhr": xhr});
 
-        function openLogoutRequest(xhr) {
-            xhr.open('GET',  that._logoutURI, true);
-            xhr.setRequestHeader("Cache-Control", "max-age=0");
-            xhr.withCredentials = true;
-            xhr.setRequestHeader("Accept", "application/json");
+    };
+
+    // get a temp reference to the "base object" version of this method, define the version for this object,
+    // then copy the saved reference to a _super property of the new method so teh new methiod can call the
+    // base 
+    fn = progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize;
+    progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize = 
+        function fubar(xhr, verb, uri) {
+
+        // this._openRequestAndAuthorize._super.apply(this, [xhr, verb, uri]);
+        progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
+                                                                                        this,
+                                                                                        [xhr, verb, uri]);
+        xhr.withCredentials = true;
+    
+    };
+    progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super = fn;
+    
+    // API METHODS
+    progress.data.AuthenticationProviderForm.prototype.login = function (userNameParam, passwordParam) {
+        var deferred = $.Deferred(),
+            xhr,
+            that = this;
+
+        // these throw if the check fails (may want to do something more elegant)
+        this._checkStringArg("login", userNameParam, 1, "userName");
+        this._checkStringArg("login", passwordParam, 2, "password");
+
+        if (this._loggedIn) {
+            // "The login method was not executed because the AuthenticationProvider is 
+            // already logged in." 
+            throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
         }
 
-        
-        function processLogoutResult(xhr, deferred) {
-            var result;
+        xhr = new XMLHttpRequest();
 
-            if (xhr.status === 200) {
-                result = progress.data.Session.SUCCESS;
-            } else if (xhr.status === 401) {
-                // treat this as a success because the most likely cause is that the session expired
-                // (Note that an 11.7 OE PAS Web application will return a 200 if we log out with
-                // an expired JSESSIONID, so this code may not be executed anyway)
-                result = progress.data.Session.SUCCESS;
-            } else {
-                result = progress.data.Session.GENERAL_FAILURE;
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                // process the response from the Web application
+                that._processLoginResult(xhr, deferred);
             }
+        };
 
-            if (result === progress.data.Session.SUCCESS) {
-                deferred.resolve(
-                    that,
-                    result,
-                    {
-                        "xhr": xhr
-                    }
-                );
-            } else {
-                deferred.reject(
-                    that,
-                    result,
-                    {
-                        xhr: xhr
-                    }
-                );
-            }
-        }
-            
-        
-        // PROPERTIES
-        this._loginURIsegment = "/static/auth/j_spring_security_check";
-        this._logoutURIsegment = "/static/auth/j_spring_security_logout";
+        this._openLoginRequest(xhr);
+        xhr.send("j_username=" + userNameParam + "&j_password=" + passwordParam + "&submit=Submit");
+        return deferred.promise();
+    };
+    
+    progress.data.AuthenticationProviderForm.prototype.logout = function () {
+        var deferred = $.Deferred(),
+            xhr,
+            that = this;
 
-        // process constructor arguments, etc.
-        this._initialize(uri, progress.data.Session.AUTH_TYPE_FORM);
-        
-        
-
-        // METHODS
-        this.login = function (userName, password) {
-            var deferred = $.Deferred(),
-                xhr;
-
-            if (userName && typeof userName !== "string") {
-                // AuthenticationProvider: Argument 1 must be of type string in login call.
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG121",
-                    "AuthenticationProvider",
-                    "1",
-                    "string",
-                    "login"
-                ));
-            } else if (userName.length === 0) {
-                //  AuthenticationProvider: userName cannot be an empty string.
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG501",
-                    "AuthenticationProvider",
-                    "userName"
-                ));
-            }
-            
-            if (password && typeof password !== "string") {
-                // AuthenticationProvider: Argument 2 must be of type string in login call.
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG121",
-                    "AuthenticationProvider",
-                    "2",
-                    "string",
-                    "login"
-                ));
-            } else if (password.length === 0) {
-               // AuthenticationProvider: 'password' cannot be an empty string.
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG501",
-                    "AuthenticationProvider",
-                    "password"
-                ));
-            }
-            
-            if (this._loggedIn) {
-                // "The login method was not executed because the AuthenticationProvider is 
-                // already logged in." 
-                throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
-            }
-
+        if (!this._loggedIn) {
+            deferred.resolve(this, progress.data.Session.SUCCESS, {});
+        } else {
             xhr = new XMLHttpRequest();
-            openLoginRequest(xhr);
+            this._openLogoutRequest(xhr);
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
                     // process the response from the Web application
-                    processLoginResult(xhr, deferred);
+                    that._processLogoutResult(xhr, deferred);
                 }
             };
 
-            xhr.send("j_username=" + userName + "&j_password=" + password +
-                     "&submit=Submit");
-            return deferred.promise();
-        };
+            xhr.send();
+        }
         
-        this.logout = function () {
-            var deferred = $.Deferred(),
-                xhr;
-
-            if (!this._loggedIn) {
-                deferred.resolve(this, progress.data.Session.SUCCESS, {});
-            } else {
-                xhr = new XMLHttpRequest();
-                openLogoutRequest(xhr);
-
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        // process the response from the Web application
-                        processLogoutResult(xhr, deferred);
-                    }
-                };
-
-                xhr.send();
-            }
-            
-            // Unconditionally reset --- even if the actual server request fails, we still want
-            // to reset this AuthenticationProvider so it can try a login if desired.
-            // We also reset even in the case where we're not logged in, just in case.
-            // (In the future we can add a parameter that controls whether the reinit is unconditional,
-            // if the developer wants to log out of the token server session but contnue to use the token)
-            this._reset();
-            return deferred.promise();
-        };
-        
-        this.openRequestAndAuthorize = function (xhr, verb, uri) {
-            var tokenRequestDescriptor;
-
-            if (this.hasCredential()) {
-                xhr.open(verb, uri, true);  // always use async for SSO
-
-                // We specify application/json for the response so that if there's an authentication error,
-                // an OE Web application that's based on Form auth will directly send back a 401.
-                // If we don't specify application/json, we'll get a redirect to login.jsp, which the
-                // user agent handles by getting login.jsp and returning it to our code with a status
-                // of 200. We could infer that authentication failed from that, but it's much cleaner this 
-                // way.
-                xhr.withCredentials = true;
-                xhr.setRequestHeader("Accept", "application/json");
-            } else {
-                // This message is SSO specific, unless we can come up with a more general message 
-                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-            }
-            
-        };
-        
+        // Unconditionally reset --- even if the actual server request fails, we still want
+        // to reset this AuthenticationProvider so it can try a login if desired.
+        // We also reset even in the case where we're not logged in, just in case.
+        // (In the future we can add a parameter that controls whether the reinit is unconditional,
+        // if the developer wants to log out of the token server session but contnue to use the token)
+        this._reset();
+        return deferred.promise();
     };
-
-    // using dummy arguments for a temporary object just to set the prototype
-    progress.data.AuthenticationProviderForm.prototype =
-        new progress.data.AuthenticationProviderAnon(" ", progress.data.Session.AUTH_TYPE_FORM);
-    progress.data.AuthenticationProviderForm.prototype.constructor =
-        progress.data.AuthenticationProviderForm;
     
 }());
 

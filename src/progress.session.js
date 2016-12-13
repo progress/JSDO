@@ -1312,7 +1312,7 @@ limitations under the License.
             
             if (this._authProvider) {
                 // note: throw an error if we have one of the above but not the other?
-                this._authProvider.openRequestAndAuthorize(xhr, verb, urlPlusCCID);
+                this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
             }
@@ -1437,7 +1437,7 @@ limitations under the License.
                     uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
                 }
                 
-                this._authProvider.openRequestAndAuthorize(xhr, 'GET', uriForRequest);
+                this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest);
 
                 xhr.setRequestHeader("Cache-Control", "no-cache");
                 xhr.setRequestHeader("Pragma", "no-cache");
@@ -2345,7 +2345,7 @@ limitations under the License.
             }
 
             if (authProvider) {
-                authProvider.openRequestAndAuthorize(xhr, 'GET', catalogURI);
+                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI);
             } else {
                 this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
                 // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
@@ -2890,7 +2890,7 @@ limitations under the License.
             var xhr = new XMLHttpRequest();
             try {
                 if (this._authProvider) {
-                    this._authProvider.openRequestAndAuthorize(xhr, 'GET', args.pingURI);
+                    this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI);
                 } else {
                     this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
                 }
@@ -3727,8 +3727,12 @@ limitations under the License.
             
             switch (this.authenticationModel) {
             case progress.data.Session.AUTH_TYPE_ANON:
-                authProvider = new progress.data.AuthenticationProviderAnon(
-                    this.serviceURI
+          //      authProvider = new progress.data.AuthenticationProviderAnon(
+                    // this.serviceURI
+                // );
+                authProvider = new progress.data.AuthenticationProvider(
+                    this.serviceURI,
+                    this.authenticationModel
                 );
                 break;
                 
@@ -3739,8 +3743,12 @@ limitations under the License.
                 break;
                 
             case progress.data.Session.AUTH_TYPE_FORM:
-                authProvider = new progress.data.AuthenticationProviderForm(
-                    this.serviceURI
+                // authProvider = new progress.data.AuthenticationProviderForm(
+                    // this.serviceURI
+                // );
+                authProvider = new progress.data.AuthenticationProvider(
+                    this.serviceURI,
+                    this.authenticationModel
                 );
                 break;
                 
