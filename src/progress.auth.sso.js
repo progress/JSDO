@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.4.0-1
+progress.auth.sso.js    Version: 4.4.0-1
 
 Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -22,7 +22,7 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false, storage, XMLHttpRequest, msg*/
+    /*global $ : false */
 
 // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
     progress.data.AuthenticationProviderSSO = function (uri) {
@@ -37,11 +37,12 @@ limitations under the License.
                 expiration: ".expires_in"
             };
         
-        // PRIVATE PROPERTIES
-
-        
         // PRIVATE FUNCTIONS
-
+        // (The constructor uses local variables and functions mainly to try to protect the token
+        // information as much as possible. A few could probably be defined as properties/methods, but
+        // there's currently no need for that because the AuthenticationProvider API has no objects 
+        // that inherit from AuthenticationProviderSSO.)
+        
         // Store the given token with the uri as the key. setItem() throws
         // a "QuotaExceededError" error if there is insufficient storage space or 
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
@@ -165,7 +166,6 @@ limitations under the License.
                                                    "errorObject": errorObject});  // OK if undefined
         }
 
-
         
         this._processLoginResult = function (xhr, deferred) {
             var errorObject,
@@ -231,57 +231,37 @@ limitations under the License.
             this._settlePromise(deferred, result, {"xhr": xhr});
         };
 
-        // NOTE: no definition of _openLoginRequest method; using the reference copied from
-        //       the "base" object
-
-        // NOTE: no definition of _openLogoutRequest method; using the reference copied from
-        //       the "base" object
-
-        // NOTE: no definition of _processLogoutResult method; using the reference copied from
-        //       the "base" object
-
         
-        fn = progress.data.AuthenticationProviderForm.prototype._reset; // temporary
-        // put the internal state back to where it is when the constructor finishes running
+        // Override the protoype's method but call it from within the override. (Define the override 
+        // here in the constructor so it has access to the internal function and variable)
         this._reset = function () {
-            // this._reset._super.apply(this);
-            this._reset._super.apply(this);
+            progress.data.AuthenticationProviderSSO.prototype._reset.apply(this);
             clearTokenInfo();
             ssoTokenInfo = null;
         };
-        // add a "_super" property to the new method that is a reference to the overridden
-        // method, because we want to call the old one as part of teh implementation of the new
-        this._reset._super = fn;
 
 
-        // override the protoype's method but save it so we can call it from the body of the override
-        fn = progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize; // temporary
+        // Override the protoype's method but call it from within the override. (Define the override 
+        // here in the constructor so it has access to the internal function)
         this._openRequestAndAuthorize =
             function (xhr, verb, uri) {
             
-                this._openRequestAndAuthorize._super.apply(
+                progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                     this,
                     [xhr, verb, uri]
                 );
             
                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
             };
-        this._openRequestAndAuthorize._super = fn;
 
         
         // API METHODS
         
-        // NOTE: no definition of login method; using the reference copied from
-        //       the "base" object because for an OE SSO server, the login model is Form (using a special URI)
-
-        // NOTE: no definition of logout method; using the reference copied from
-        //       the "base" object because for an OE SSO server, the login/logout model is Form
-        
-        
-        // overriding the prototype's hasCredential method
+        // override the prototype's hasCredential method
         this.hasCredential = function () {
             return (retrieveToken() === null ? false : true);
         };
+        
         
         this.refresh = function () {
             var deferred = $.Deferred(),
@@ -344,17 +324,35 @@ limitations under the License.
       // END OF CONSTRUCTOR PROCESSING
         
     };
+   // END OF AuthenticationProviderSSO CONSTRUCTOR
 
     
-    var fn;
-    // COPY METHODS TO OUR PROTOTYPE FROM THE PROTOTYPE OF A "BASE OBJECT" 
-    for (fn in progress.data.AuthenticationProviderForm.prototype) {
-        if (progress.data.AuthenticationProviderForm.prototype.hasOwnProperty(fn)) {
-            progress.data.AuthenticationProviderSSO.prototype[fn] =
-                progress.data.AuthenticationProviderForm.prototype[fn];
-        }
-    }
+    // Define the prototype as an instance of an AuthenticationProviderForm object
+    function SSOProxy() {}
+    SSOProxy.prototype = progress.data.AuthenticationProviderForm.prototype;
+    progress.data.AuthenticationProviderSSO.prototype =
+        new SSOProxy();
+        
+    // But reset the constructor back to the SSO constructor (this is pretty much irrelevant,
+    // though. The correct constructor would be called anyway. It's mainly for the sake of anyone 
+    // wanting to see what the constructor of an object is (maybe a framework)
+    progress.data.AuthenticationProviderSSO.prototype.constructor =
+        progress.data.AuthenticationProviderSSO;
 
-  
+    // NOTE: There are no overrides of the following methods (either here or in the constructor).
+    //       This object uses these methods from the original prototype(i.e., the implementations from the
+    //       Auth...Form object) because for an OE SSO token server, the login/logout model is Form (the 
+    //       only difference is the use of a special URI query string in the login (see the call to 
+    //       initialize() in the SSO constructor (above)):
+    //          login  (API method)
+    //          _openLoginRequest  (API helper method)
+    //          logout  (API method)
+    //          _openLogoutRequest  (API helper method)
+    //          _processLogoutResult  (API helper method)
+
+    // NOTE: All overrides are implemented in the constructor (rather than adding them to the prototype)
+    //       because they need access to variables and/or functions that are defined in the constructor 
+    //       (in an attempt to protect the token info somewhat)
+    
 }());
 

@@ -22,7 +22,7 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false, storage, XMLHttpRequest, msg*/
+    /*global $ : false, storage, XMLHttpRequest*/
 
     /* define these if not defined yet - they may already be defined if
        progress.js was included first */
@@ -34,12 +34,13 @@ limitations under the License.
     }
         
 // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
+
+    // This is really more along the lines of a Factory method in that it explicitly creates an object 
+    // and returns it based on the the authModel parameter (rather than following the default JS
+    // pattern of adding properties to the "this" object created for it and passed in by the runtime).
     progress.data.AuthenticationProvider = function (uri, authModel) {
         var authProv;
-            
-        // PRIVATE FUNCTIONS
-        
-        
+
         // process constructor arguments
 
         if (typeof authModel === "string") {
@@ -48,23 +49,17 @@ limitations under the License.
             switch (authModel) {
             case progress.data.Session.AUTH_TYPE_ANON:
                 this._initialize(uri, progress.data.Session.AUTH_TYPE_ANON,
-                                 {"_loginURI": "/static/home.html"});
+                         {"_loginURI": "/static/home.html"});
                 authProv = this;
                 break;
             case progress.data.Session.AUTH_TYPE_BASIC:
-                authProv = new progress.data.AuthenticationProviderBasic(
-                    uri
-                );
+                authProv = new progress.data.AuthenticationProviderBasic(uri);
                 break;
             case progress.data.Session.AUTH_TYPE_FORM:
-                authProv = new progress.data.AuthenticationProviderForm(
-                    uri
-                );
+                authProv = new progress.data.AuthenticationProviderForm(uri);
                 break;
             case progress.data.Session.AUTH_TYPE_SSO:
-                authProv = new progress.data.AuthenticationProviderSSO(
-                    uri
-                );
+                authProv = new progress.data.AuthenticationProviderSSO(uri);
                 break;
             default:
                 // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
@@ -89,74 +84,68 @@ limitations under the License.
     };
         
 
-    // ADD METHODS TO THE PROTOYPE
+    // ADD METHODS TO THE AuthenticationProvider PROTOYPE
     
-    
-    // "INTERNAL" METHODS (not documented, intended for use only within the JSDO library)
+    // GENERIC IMPLEMENTATION FOR login METHOD THAT THE API IMPLEMENTATIONS OF login CAN CALL
+    // (technically, they don't override it, they each have small login methods that call this)
+    progress.data.AuthenticationProvider.prototype._loginProto =
+        function (headers, sendParam) {
+            var deferred = $.Deferred(),
+                xhr,
+                uriForRequest,
+                header,
+                that = this;
 
-    // Store the given token with the uri as the key. setItem() throws
-    // a "QuotaExceededError" error if there is insufficient storage space or 
-    // "the user has disabled storage for the site" (Web storage spec at WHATWG)
-    progress.data.AuthenticationProvider.prototype._storeInfo = function (info) {
-        this._storage.setItem(this._dataKeys.uri, JSON.stringify(this._uri));
-        this._storage.setItem(this._dataKeys.loggedIn, JSON.stringify(this._loggedIn));
-        // this._storage.setItem(this._dataKeys_uri, JSON.stringify(this._uri));
-        // this._storage.setItem(this._dataKeys_loggedIn, JSON.stringify(this._loggedIn));
-    };
-
-    // get one of the pieces of data related to tokens from storage (could be the token itself, or
-    // the refresh token, expiration info, etc.). Returns null if the item isn't in storage
-    progress.data.AuthenticationProvider.prototype._retrieveInfoItem = function (propName) {
-        var jsonStr = this._storage.getItem(propName),
-            value = null;
-            
-        if (jsonStr !== null) {
-            try {
-                value = JSON.parse(jsonStr);
-            } catch (e) {
-                value = null;
+            if (this._loggedIn) {
+                // "The login method was not executed because the AuthenticationProvider is 
+                // already logged in." 
+                throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
             }
-        }
-        return value;
-    };
 
-    progress.data.AuthenticationProvider.prototype._retrieveURI = function () {
-        return this._retrieveInfoItem(this._dataKeys.uri);
-        // return this._retrieveInfoItem(this._dataKeys_uri);
-    };
+            xhr = new XMLHttpRequest();
 
-    progress.data.AuthenticationProvider.prototype._retrieveLoggedIn = function () {
-        return this._retrieveInfoItem(this._dataKeys.loggedIn);
-        // return this._retrieveInfoItem(this._dataKeys_loggedIn);
-    };
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    // process the response from the Web application
+                    that._processLoginResult(xhr, deferred);
+                }
+            };
 
-    progress.data.AuthenticationProvider.prototype._clearInfo = function (info) {
-        this._storage.removeItem(this._dataKeys.uri);
-        this._storage.removeItem(this._dataKeys.loggedIn);
-        // this._storage.removeItem(this._dataKeys_uri);
-        // this._storage.removeItem(this._dataKeys_loggedIn);
-    };
+            if (progress.data.Session._useTimeStamp) {
+                uriForRequest = progress.data.Session._addTimeStampToURL(this._loginURI);
+            } else {
+                uriForRequest = this._loginURI;
+            }
 
-    // put the internal state back to where it is when the constructor finishes running
-    progress.data.AuthenticationProvider.prototype._reset = function () {
-        this._clearInfo();
-        this._loggedIn = false;
+            this._openLoginRequest(xhr, uriForRequest);
+
+            for (header in headers) {
+                if (headers.hasOwnProperty(header)) {
+                    xhr.setRequestHeader(header, headers[header]);
+                }
+            }
+           //  ?? setRequestHeaderFromContextProps(this, xhr);
+
+            xhr.send(sendParam);
+            return deferred.promise();
+        };
+        
+        
+    
+    // PUBLIC METHODS (and their "helpers") (documented as part of the JSDO library API)
+
+    // login API method -- just a shell that calls loginProto
+    progress.data.AuthenticationProvider.prototype.login = function () {
+        return this._loginProto({"Cache-Control": "no-cache",
+                                 "Pragma": "no-cache"});
     };
     
-    progress.data.AuthenticationProvider.prototype._openLoginRequest = function (xhr) {
-        var uriForRequest;
-        
-        if (progress.data.Session._useTimeStamp) {
-            uriForRequest = progress.data.Session._addTimeStampToURL(this._loginURI);
-        }
-
-        xhr.open('GET', uriForRequest, true);
-        xhr.setRequestHeader("Cache-Control", "no-cache");
-        xhr.setRequestHeader("Pragma", "no-cache");
-    //  ?? setRequestHeaderFromContextProps(this, xhr);
-
+    // HELPER FOR login METHOD, PROBABLY OVERRIDDEN IN MOST CONSTRUCTORS
+    progress.data.AuthenticationProvider.prototype._openLoginRequest = function (xhr, uri) {
+        xhr.open('GET', uri, true);
     };
 
+    // HELPER FOR login METHOD, PROBABLY OVERRIDDEN IN MOST CONSTRUCTORS
     progress.data.AuthenticationProvider.prototype._processLoginResult = function (xhr, deferred) {
         var result;
 
@@ -176,7 +165,31 @@ limitations under the License.
 
         this._settlePromise(deferred, result, {"xhr": xhr});
     };
+    
+    
+    // logout API METHOD -- SOME CONSTRUCTORS OR PROTOTYPES WILL OVERRIDE THIS
+    progress.data.AuthenticationProvider.prototype.logout = function () {
+        var deferred = $.Deferred();
 
+        this._reset();
+        deferred.resolve(this, progress.data.Session.SUCCESS, {});
+        return deferred.promise();
+    };
+
+    
+    // hasCredential API METHOD -- PROBABLY ONLY OVERRIDDEN BY SSO
+    progress.data.AuthenticationProvider.prototype.hasCredential = function () {
+        return this._loggedIn;
+    };
+
+
+    // QUASI-PUBLIC METHOD 
+    
+    // general-purpose method for opening requests (mainly for jsdo calls)
+    // This method is not part of the documented API that a developer would
+    // program against, but it gets used in a validation check by the JSDOSESSION, because the
+    // JSDOSESSION code expects it to be present. The point here is that if a developer were to
+    // create their own AuthenticationProvider object, it would need to include this method
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr, verb, uri) {
     
         if (this.hasCredential()) {
@@ -196,12 +209,18 @@ limitations under the License.
         }
         
     };
-    
-        
-    progress.data.AuthenticationProvider.prototype._initialize = function (uriParam, authModel, targetURIs) {
+
+
+    // GENERAL PURPOSE "INTERNAL" METHODS, NOT RELATED TO SPECIFIC API ELEMENTS
+    // (not documented, intended for use only within the JSDO library)
+
+
+    // General purpose method for initializing an object
+    progress.data.AuthenticationProvider.prototype._initialize = function (uriParam,
+                                                                        authModel,
+                                                                        targetURIs) {
         var tempURI,
             target;
-//            loginURIsegment = "/static/home.html";
         
         Object.defineProperty(this, 'uri',
             {
@@ -247,7 +266,7 @@ limitations under the License.
         // in. E.g., the targetURIs object will include a "loginURI" property that has the 
         // uri segment which is to be added to the auth uri for logging in         
         for (target in targetURIs) {
-            if(targetURIs.hasOwnProperty(target)) {
+            if (targetURIs.hasOwnProperty(target)) {
                 this[target] = tempURI + targetURIs[target];
             }
         }
@@ -283,47 +302,56 @@ limitations under the License.
     };
 
     
-    // PUBLIC METHODS  (documented as part of the JSDO library API)
-    
-    progress.data.AuthenticationProvider.prototype.login = function () {
-        var deferred = $.Deferred(),
-            xhr,
-            that = this;
+    // Store data in storage with the uri as the key. setItem() throws. (Should add an
+    // option for the developer to specify the key)
+    // a "QuotaExceededError" error if there is insufficient storage space or 
+    // "the user has disabled storage for the site" (Web storage spec at WHATWG)
+    progress.data.AuthenticationProvider.prototype._storeInfo = function (info) {
+        this._storage.setItem(this._dataKeys.uri, JSON.stringify(this._uri));
+        this._storage.setItem(this._dataKeys.loggedIn, JSON.stringify(this._loggedIn));
+    };
 
-        if (this._loggedIn) {
-            // "The login method was not executed because the AuthenticationProvider is 
-            // already logged in." 
-            throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
-        }
-
-        xhr = new XMLHttpRequest();
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) {
-                // process the response from the Web application
-                // processLoginResult(xhr, deferred);
-                that._processLoginResult(xhr, deferred);
+    // Get a piece of state data from storage. Returns null if the item isn't in storage
+    progress.data.AuthenticationProvider.prototype._retrieveInfoItem = function (propName) {
+        var jsonStr = this._storage.getItem(propName),
+            value = null;
+            
+        if (jsonStr !== null) {
+            try {
+                value = JSON.parse(jsonStr);
+            } catch (e) {
+                value = null;
             }
-        };
-
-        this._openLoginRequest(xhr);
-        xhr.send();
-        return deferred.promise();
+        }
+        return value;
     };
+
+    // Get an AuthenticationProvider's uri from storage
+    progress.data.AuthenticationProvider.prototype._retrieveURI = function () {
+        return this._retrieveInfoItem(this._dataKeys.uri);
+    };
+
+    // Get an AuthenticationProvider's logon status from storage
+    progress.data.AuthenticationProvider.prototype._retrieveLoggedIn = function () {
+        return this._retrieveInfoItem(this._dataKeys.loggedIn);
+    };
+
+    // Clear the persistent storage used by an AuthenticationProvider
+    progress.data.AuthenticationProvider.prototype._clearInfo = function (info) {
+        this._storage.removeItem(this._dataKeys.uri);
+        this._storage.removeItem(this._dataKeys.loggedIn);
+    };
+
+    // Put the internal state back to where it is when the constructor finishes
+    // running (so the authentication model and uri are not changed, but other data is reset.
+    // and storage is cleared out)
+    progress.data.AuthenticationProvider.prototype._reset = function () {
+        this._clearInfo();
+        this._loggedIn = false;
+    };
+
     
-
-    progress.data.AuthenticationProvider.prototype.logout = function () {
-        var deferred = $.Deferred();
-
-        this._reset();
-        deferred.resolve(this, progress.data.Session.SUCCESS, {});
-        return deferred.promise();
-    };
-    
-    progress.data.AuthenticationProvider.prototype.hasCredential = function () {
-        return this._loggedIn;
-    };
-
+    // General purpose utility method, no overrides expected
     progress.data.AuthenticationProvider.prototype._settlePromise = function (deferred, result, info) {
         if (result === progress.data.Session.SUCCESS) {
             deferred.resolve(this, result, info);
@@ -332,6 +360,7 @@ limitations under the License.
         }
     };
     
+    // General purpose utility method, no overrides expected
     progress.data.AuthenticationProvider.prototype._checkStringArg = function (fnName,
                                                                               argToCheck,
                                                                               argPosition,

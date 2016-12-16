@@ -23,8 +23,14 @@ limitations under the License.
 
     /*global progress : true*/
     /*global $ : false, storage, XMLHttpRequest, msg, btoa*/
-    
+
+
     progress.data.AuthenticationProviderBasic = function (uri) {
+    
+        // process constructor arguments, etc.
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
+                                 {"_loginURI": "/static/home.html"});
+    
         var //that = this,
             // Basic auth specific
             defaultiOSBasicAuthTimeout,
@@ -44,25 +50,21 @@ limitations under the License.
 
             
         // "INTERNAL" METHODS
-        // overriding the protoype's method but calling it as well
-        fn = progress.data.AuthenticationProviderBasic.prototype._reset;
+        // Override the protoype's method but call it from within the override
+        // (Define the override here in the constructor so it has access to instance variables)
         this._reset = function () {
             userName = null;
             password = null;
-            progress.data.AuthenticationProviderBasic.prototype._reset._super.apply(this);
+            progress.data.AuthenticationProviderBasic.prototype._reset.apply(this);
         };
-        progress.data.AuthenticationProviderBasic.prototype._reset._super = fn;
 
 
-        this._openLoginRequest = function (xhr) {
-            var auth,
-                uriForRequest;
+        // Override the protoype's method (this method does not invoke the prototype's copy)
+        // (Define the override here in the constructor so it has access to instance variables)
+        this._openLoginRequest = function (xhr, uri) {
+            var auth;
             
-            if (progress.data.Session._useTimeStamp) {
-                uriForRequest = progress.data.Session._addTimeStampToURL(this._loginURI);
-            }
-
-            xhr.open("GET", uriForRequest, true);  // but see comments below inside the "if userName"
+            xhr.open("GET", uri, true);  // but see comments below inside the "if userName"
                                               // may have to go with that approach
             
             if (userName) {
@@ -84,19 +86,12 @@ limitations under the License.
             // else {
                 // xhr.open(verb, uri, async);
             // }
-            
-            xhr.setRequestHeader("Cache-Control", "no-cache");
-            xhr.setRequestHeader("Pragma", "no-cache");
-            
-            
-        //  ?? setRequestHeaderFromContextProps(this, xhr);
-
         };
 
-        // overriding the protoype's method but calling it as well
-        fn = progress.data.AuthenticationProviderBasic.prototype._processLoginResult;
-        this._processLoginResult = function (xhr, deferred) {
-            progress.data.AuthenticationProviderBasic.prototype._processLoginResult._super.apply(
+        // Override the protoype's method but call it from within the override
+        // (Define the override here in the constructor so it has access to instance variables)
+        this._processLoginResult = function _basic_processLoginResult(xhr, deferred) {
+            progress.data.AuthenticationProviderBasic.prototype._processLoginResult.apply(
                 this,
                 [xhr, deferred]
             );
@@ -106,94 +101,89 @@ limitations under the License.
                 password = null;
             }
         };
-        progress.data.AuthenticationProviderBasic.prototype._processLoginResult._super = fn;
-        
-        
-        this._openRequestAndAuthorize = function (xhr, verb, uri) {
-                var auth;
-
-                if (this.hasCredential()) {
-
-                    xhr.open(verb, uri, true);  // but see comments below inside the "if userName"
-                                                      // may have to go with that approach
-
-                    if (userName) {
-
-                        // See the comment at the definition of the canPassCredentialsToOpen() function
-                        // for why we pass credentials to open() in some cases but not others. (If we're 
-                        // not using Basic auth, we never pass credentials)
-                        // if (canPassCredentialsToOpen()) {
-                            // xhr.open(verb, uri, async, userName, password);
-                        // }
-                        // else {
-                            // xhr.open("GET", loginURI, true);
-                        // }
-
-                        // set Authorization header
-                        auth = make_basic_auth(userName, password);
-                        xhr.setRequestHeader('Authorization', auth);
-                    }
-                    // else {
-                        // xhr.open(verb, uri, async);
-                    // }
-
-                    xhr.setRequestHeader("Cache-Control", "no-cache");
-                    xhr.setRequestHeader("Pragma", "no-cache");
-                //  ?? setRequestHeaderFromContextProps(this, xhr);
-
-                } else {
-                    // This message is SSO specific, unless we can come up with a more general message 
-                    // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                    throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-                }
-
-            };
 
         
-        // API METHODS
-
-        // get a temp reference to the "base object" version of this method, define the version for
-        // this object, then copy the saved reference to a _super property of the new method so
-        // the new method can call the base 
-        fn = progress.data.AuthenticationProviderBasic.prototype.login;
+        // Override the protoype's method (this method does not invoke the prototype's copy, but
+        // calls a prototype general-purpose login method)
+        // (Define the override here in the constructor so it has access to instance variables)
         this.login = function (userNameParam, passwordParam) {
-            var deferred = $.Deferred(),
-                xhr;
-
             // these throw if the check fails (may want to do something more elegant)
             this._checkStringArg("login", userNameParam, 1, "userName");
             this._checkStringArg("login", passwordParam, 2, "password");
 
             userName = userNameParam;
             password = passwordParam;
-
-            return progress.data.AuthenticationProviderBasic.prototype.login._super.apply(this);
+            return this._loginProto({"Cache-Control": "no-cache",
+                                     "Pragma": "no-cache"});
         };
-        progress.data.AuthenticationProviderBasic.prototype.login._super = fn;
         
+        // Override the protoype's method (this method does not invoke the prototype's copy)
+        // (Define the override here in the constructor so it has access to instance variables)
+        this._openRequestAndAuthorize = function (xhr, verb, uri) {
+            var auth;
 
-        // NOTE: no definition of logout method; using the reference copied from
-        //       the "base" object
+            if (this.hasCredential()) {
 
-        // NOTE: no definition of hasCredential method; using the reference copied from
-        //       the "base" object
-        
-    
-        // process constructor arguments, etc.
-        this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
-                                 {"_loginURI": "/static/home.html"});
-        
+                xhr.open(verb, uri, true);  // but see comments below inside the "if userName"
+                                                  // may have to go with that approach
+
+                if (userName) {
+
+                    // See the comment at the definition of the canPassCredentialsToOpen() function
+                    // for why we pass credentials to open() in some cases but not others. (If we're 
+                    // not using Basic auth, we never pass credentials)
+                    // if (canPassCredentialsToOpen()) {
+                        // xhr.open(verb, uri, async, userName, password);
+                    // }
+                    // else {
+                        // xhr.open("GET", loginURI, true);
+                    // }
+
+                    // set Authorization header
+                    auth = make_basic_auth(userName, password);
+                    xhr.setRequestHeader('Authorization', auth);
+                }
+                // else {
+                    // xhr.open(verb, uri, async);
+                // }
+
+                xhr.setRequestHeader("Cache-Control", "no-cache");
+                xhr.setRequestHeader("Pragma", "no-cache");
+            //  ?? setRequestHeaderFromContextProps(this, xhr);
+
+            } else {
+                // This message is SSO specific, unless we can come up with a more general message 
+                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            }
+
+        };
         
     };
 
-    var fn;
-    for (fn in progress.data.AuthenticationProvider.prototype) {
-        if (progress.data.AuthenticationProvider.prototype.hasOwnProperty(fn)) {
-            progress.data.AuthenticationProviderBasic.prototype[fn] =
-                progress.data.AuthenticationProvider.prototype[fn];
-        }
-    }
+    
+    // Give this constructor the prototype from the "base" AuthenticationProvider
+    // Do this indirectly by way of an intermediate object so changes to the prototype ("method overrides")
+    // don't affect other types of AuthenticationProviders that use the prototype)
+    function BasicProxy() {}
+    BasicProxy.prototype = progress.data.AuthenticationProvider.prototype;
+    progress.data.AuthenticationProviderBasic.prototype =
+        new BasicProxy();
+        
+    // Reset the prototype's constructor property so it points to AuthenticationProviderForm rather than
+    // the one that it just inherited (this is pretty much irrelevant though - the correct constructor
+    // will get called regardless)
+    progress.data.AuthenticationProviderBasic.prototype.constructor =
+        progress.data.AuthenticationProviderBasic;
 
+        
+    // OVERRIDE METHODS ON PROTOTYPE IF NECESSARY AND POSSIBLE
+    // (SOME METHODS ARE OVERRIDDEN IN THE CONSTRUCTOR BECAUSE THEY NEED ACCESS TO INSTANCE VARIABLES)
 
-
+    // NOTE: There are no overrides of the following methods (either here or in the constructor).
+    //       This object uses these methods from the original prototype(i.e., the implementations from the
+    //       AuthenticationProvider object):
+    //          logout (API method)
+    //          hasCredential (API method)
+        
 }());

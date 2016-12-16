@@ -1310,21 +1310,23 @@ limitations under the License.
                 urlPlusCCID = progress.data.Session._addTimeStampToURL(urlPlusCCID);
             }
             
+              // should be able to remove this check soem day because will always have an auth provider
             if (this._authProvider) {
                 // note: throw an error if we have one of the above but not the other?
                 this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
+                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
+                    _addWithCredentialsAndAccept(xhr, "application/json");
+                }
             }
             
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                _addWithCredentialsAndAccept(xhr, "application/json");
-            }
-
             // add CCID header
+   /* check with Mike -- incorporate this into authenticationProvider if we should continue to do it  */
             if (this.clientContextId && (this.clientContextId !== "0")) {
                 xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", this.clientContextId);
             }
+            
             // set X-CLIENT-PROPS header
             setRequestHeaderFromContextProps(this, xhr);
             
@@ -1561,6 +1563,7 @@ limitations under the License.
         };
         
 
+        // GET RID OF progress.data.Session login CODE (AND RELATED) IF WE DROP SYNCHRONOUS SUPPORT 
         /* login
          *
          */
@@ -2028,7 +2031,7 @@ limitations under the License.
             pdsession.trigger("afterLogin", pdsession, result, errObj, xhr);
         };
 
-
+        // GET RID OF progress.data.Session logout CODE (AND RELATED) IF WE DROP SYNCHRONOUS SUPPORT 
         /* logout
          *
          */
@@ -2346,8 +2349,11 @@ limitations under the License.
 
             if (authProvider) {
                 authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI);
-            } else {
+            } else {  // should be able to get rid of this if we do away with synchronous support
                 this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
+                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
+                    _addWithCredentialsAndAccept(xhr, "application/json");
+                }
                 // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
                 // be stored with the REST app and even if it is, the AppServer ID shouldn't be relevant
             }
@@ -2363,9 +2369,6 @@ limitations under the License.
             xhr.setRequestHeader("Pragma", "no-cache");
             // set X-CLIENT-PROPS header
             setRequestHeaderFromContextProps(this, xhr);
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                _addWithCredentialsAndAccept(xhr, "application/json");
-            }
 
             if (isAsync) {
                 xhr.onreadystatechange = this._onReadyStateChangeGeneric;
@@ -2892,6 +2895,7 @@ limitations under the License.
                 if (this._authProvider) {
                     this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI);
                 } else {
+                    // get rid of this if we do away with synchronous support
                     this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
                 }
                 if (args.async) {
@@ -3064,6 +3068,7 @@ limitations under the License.
 
         // Functions
 
+        // get rid of this if we get rid of synchronous support?
         // Set an XMLHttpRequest object's withCredentials attribute and Accept header,
         // using a try-catch so that if setting withCredentials throws an error it doesn't
         // interrupt execution (this is a workaround for the fact that Firefox doesn't
@@ -3083,7 +3088,7 @@ limitations under the License.
             }
         }
 
-
+        // get rid of this if we get rid of synchronous support? (becasue it's in AuthenticationProviderBasic)
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function _make_basic_auth(user, pw) {
             var tok = user + ':' + pw;
@@ -3138,6 +3143,7 @@ limitations under the License.
             return false;
         }
 
+        // get rid of this if we get rid of synchronous support?
         /* sets the statusFromjson property in the params object to indicate
          * the status of a response from an OE Mobile Web application that has
          * to do with authentication (the response to a login request, or a
@@ -3725,34 +3731,10 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
             
-            switch (this.authenticationModel) {
-            case progress.data.Session.AUTH_TYPE_ANON:
-          //      authProvider = new progress.data.AuthenticationProviderAnon(
-                    // this.serviceURI
-                // );
-                authProvider = new progress.data.AuthenticationProvider(
-                    this.serviceURI,
-                    this.authenticationModel
-                );
-                break;
-                
-            case progress.data.Session.AUTH_TYPE_BASIC:
-                authProvider = new progress.data.AuthenticationProviderBasic(
-                    this.serviceURI
-                );
-                break;
-                
-            case progress.data.Session.AUTH_TYPE_FORM:
-                // authProvider = new progress.data.AuthenticationProviderForm(
-                    // this.serviceURI
-                // );
-                authProvider = new progress.data.AuthenticationProvider(
-                    this.serviceURI,
-                    this.authenticationModel
-                );
-                break;
-                
-            }
+            authProvider = new progress.data.AuthenticationProvider(
+                this.serviceURI,
+                this.authenticationModel
+            );
                 
             authProvider.login(username, password)
                 .then(function () {
@@ -3968,51 +3950,35 @@ limitations under the License.
         // Note that this will work for either of these cases:
         //    - app originally called JSDOSession.login (so we implicitly created the AuthenticationProvider)
         //    - app created an AuthenticationProvider and passed it to connect, but now for some reason has
-        //          called logout (this is actually a nice shortcut for soemone who has used getSession)
+        //          called logout (this is actually a nice shortcut for someone who has used getSession)
         //          (NB: we should not allow this for SSO, tho)
         this.logout = function(){
             var deferred = $.Deferred(),
-                errorObject,
                 that = this,
                 authProv = this.authProvider;
 
-            switch (this.authenticationModel) {
-            case progress.data.Session.AUTH_TYPE_ANON:
-            case progress.data.Session.AUTH_TYPE_BASIC:
-            case progress.data.Session.AUTH_TYPE_FORM:
-                this.disconnect()
-                .then(function () {
-                        return authProv.logout();
-                    })
-                    .then(function (jsdosession, result, info) {
-                        deferred.resolve(that, result, info);
-                    },
-                        // catches errors on either login or connect
-                        function (provider, result, info) {
-                            deferred.reject(that, result, info);
-                        }
-                    );
-                break;
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                // JSDOSession: Called logout() when authenticationModel is SSO. Use disconnect() instead.
+                throw new Error(progress.data._getMsgText("jsdoMSG057",
+                                                          'JSDOSession',
+                                                          'logout()',
+                                                          "disconnect()"));
+            }
+
+            this.disconnect()
+            .then(function () {
+                    return authProv.logout();
+                })
+                .then(function (jsdosession, result, info) {
+                    deferred.resolve(that, result, info);
+                },
+                    // catches errors on either login or connect
+                    function (provider, result, info) {
+                        deferred.reject(that, result, info);
+                    }
+                );
                 
-            default:
-                try {
-                    _pdsession.subscribe('afterLogout', onAfterLogout, this);
-                    _pdsession.logout( {async: true,
-                                        deferred : deferred} );
-                } 
-                catch (e) {
-                // REVIEW: note change to the error message (the commented out msg is the old one)
-                    // throw new Error("JSDOSession: Unable to send logout request. " + e.message);
-                    // JSDOSession: Unexpected error calling logout: {e.message}
-                    errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "logout", e.message));
-                }
-            }
-            
-            if (errorObject) {
-                throw errorObject;
-            } else {
-                return deferred.promise();
-            }
+            return deferred.promise();
         };       
 
         this.ping = function() {
