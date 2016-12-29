@@ -1391,35 +1391,10 @@ limitations under the License.
         // Parameters:
         //      authProvider  AuthenticationProvider; will be kept by the Session if _connect suceeds 
         //      deferred      Deferred object created by caller, just attached to the xhr here
-        this._connect = function (authProvider, deferred) {
+        this._connect = function (deferred) {
             var uriForRequest,   // "decorated" version of serviceURI, used to actually send the request
                 xhr,
                 params;
-
-            if (typeof authProvider !== 'object') {
-                // JSDOSession: Invalid parameters in call to connect function.
-                throw new Error(progress.data._getMsgText("jsdoMSG025", "progress.data.Session", "connect"));
-            }
-
-            if (authProvider.authenticationModel !== this.authenticationModel) {
-                // progress.data.Session:  connect was not executed because the authenticationModels
-                // of the AuthenticationProvider (sso) and the JSDOSession (anonymous) were not the same.
-                throw new Error(progress.data._getMsgText("jsdoMSG059", "progress.data.Session",
-                    "connect", authProvider.authenticationModel, this.authenticationModel));
-            }
-            // Check if the provider exposes the required API.
-            if (typeof authProvider.hasCredential === 'function') {
-                if (!authProvider.hasCredential()) {
-                    // JSDOSession: The AuthenticationProvider is not managing valid credentials.
-                    throw new Error(progress.data._getMsgText("jsdoMSG125", "progress.data.Session"));
-                }
-            } else {
-                // JSDOSession: AuthenticationProvider objects must have a hasCredential method.
-                throw new Error(progress.data._getMsgText("jsdoMSG505",
-                                                          "progress.data.Session",
-                                                          "AuthenticationProvider",
-                                                          "hasCredential"));
-            }
 
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
                     !needsReconnectAfterPageRefresh) {
@@ -1427,9 +1402,6 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG056", "progress.data.Session"));
             }
             
-            // doesn't need try-catch because we just validated the authProvider
-            setAuthProvider(authProvider);
-
             xhr = new XMLHttpRequest();
             xhr.pdsession = this;
 
@@ -1472,7 +1444,6 @@ limitations under the License.
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
-                setAuthProvider(null);  // connect failed, so clear the authProvider
                 throw e;
             }
 
@@ -1513,7 +1484,6 @@ limitations under the License.
                 } else {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
                 }
-                setAuthProvider(null);  // connect failed, so clear the authProvider
             }
             setLastSessionXHR(xhr, pdsession);
             updateContextPropsFromResponse(pdsession, xhr);
@@ -2208,8 +2178,6 @@ limitations under the License.
             setClientContextID(null, pdsession);
             setUserName(null, pdsession);
             _password = null;
-            setAuthProvider(null);
-
 
             if (success) {
                 setRestApplicationIsOnline(false);
@@ -3223,6 +3191,7 @@ limitations under the License.
             
             jsdosession = options.jsdosession;
             newURI = options.serviceURI;
+            setAuthProvider(options.authProvider);
             
             // get rid of trailing '/' because appending service url that starts with '/'
             // will cause request failures
@@ -3363,6 +3332,9 @@ limitations under the License.
         });
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_SSO', {
             value: "sso", enumerable: true
+        });
+        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM_SSO', {
+            value: "form_sso", enumerable: true
         });
         
 
@@ -3735,7 +3707,11 @@ limitations under the License.
                 this.serviceURI,
                 this.authenticationModel
             );
-                
+
+            // is there a better way to do this? Need it because we didn't have the authprovider when
+            // running the constructor
+            _pdsession._authProvider = authProvider;
+            
             authProvider.login(username, password)
                 .then(function () {
                     return that.connect(authProvider);
@@ -3751,14 +3727,14 @@ limitations under the License.
             return deferred.promise();
         };
 
-        this.connect = function (authProvider) {
+        this.connect = function () {
             var deferred = $.Deferred(),
                 errorObject;
             
             try {
                 _pdsession.subscribe('afterConnect', genericSessionEventHandler, this);
                 
-                _pdsession._connect(authProvider, deferred);
+                _pdsession._connect(deferred);
             } catch (e) {
                 // JSDOSession: Unexpected error calling connect: {e.message}
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "connect", e.message));
@@ -4115,30 +4091,72 @@ limitations under the License.
                        "The options parameter must include a 'serviceURI' property that is a string.") );
             }
             
-            if (options.authenticationModel !== undefined) {
+            if (options.authenticationModel) {
                 if (typeof(options.authenticationModel) !== "string" ) {
                     throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                         "The authenticationModel property of the options parameter must be a string.") ); 
                 }
                 
                 options.authenticationModel = options.authenticationModel.toLowerCase();
+            } else {
+                options.authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
             }
+            
+            // TODO: clean this up. Maybe make an immediate function
+            if (options.authProvider) {
+                if (typeof options.authProvider !== 'object') {
+                    // JSDOSession: The 'options' parameter passed to the 'constructor' function
+                    //                          has an invalid value for the 'authProvider' property.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG502",
+                        "JSDOSession",
+                        "options",
+                        "constructor",
+                        "authProvider"
+                    ));
+                }
+                
+                if (options.authProvider.authenticationModel !== options.authenticationModel &&
+                        (options.authProvider.authenticationModel !== progress.data.Session.AUTH_TYPE_FORM_SSO
+                          && options.authenticationModel !== progress.data.Session.AUTH_TYPE_SSO)
+                ) {
+                    // JSDOSession: Error in constructor. The authenticationModels of the " +
+                    // AuthenticationProvider ({2}) and the JSDOSession ({3}) were not compatible.";
+                    throw new Error(progress.data._getMsgText("jsdoMSG059", "JSDOSession",
+                         options.authProvider.authenticationModel, options.authenticationModel));
+                }
+                // Check if the provider exposes the required API.
+                if (typeof options.authProvider.hasClientCredentials === 'function') {
+                    if (!options.authProvider.hasClientCredentials()) {
+                        // JSDOSession: The AuthenticationProvider is not managing valid credentials.
+                        throw new Error(progress.data._getMsgText("jsdoMSG125", "JSDOSession"));
+                    }
+                } else {
+                    // JSDOSession: AuthenticationProvider objects must have a hasClientCredentials method.
+                    throw new Error(progress.data._getMsgText("jsdoMSG505",
+                                                              "JSDOSession",
+                                                              "AuthenticationProvider",
+                                                              "hasClientCredentials"));
+                }
+            } else if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                // JSDOSession: If a JSDOSession object is using the SSO authentication model,
+                // the options object passed to its constructor must include an authProvider property.
+                throw new Error(progress.data._getMsgText("jsdoMSG508"));
+            }
+            
         }
         else {
             throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "the constructor", 
                 "The options argument was missing or invalid.") );            
         }    
         
-
-        if (!options.authenticationModel) {
-            options.authenticationModel = progress.data.Session.AUTH_TYPE_ANON;
-        }
         _name = options.name;
         
         _pdsession = new progress.data.Session({_storageKey: _name,
                                                 authenticationModel: options.authenticationModel,
                                                 serviceURI: options.serviceURI,
-                                                jsdosession: this});
+                                                jsdosession: this,
+                                                authProvider: options.authProvider});
 
         try {
             if (options.context) {
@@ -4217,7 +4235,7 @@ limitations under the License.
         // login, addCatalog, and logout
         function sessionRejectHandler(originator, result, info) {
             // undo the AuthenticationProvider's login if it succeeded
-            if (authProvider && authProvider.hasCredential()) {
+            if (authProvider && authProvider.hasClientCredentials()) {
                 authProvider.logout()
                     .always(function () {
                         deferred.reject(result, info);
@@ -4346,7 +4364,7 @@ limitations under the License.
             authProvider = new progress.data.AuthenticationProvider(authURI,
                                                                     options.authenticationModel);
                 
-            if (authProvider.hasCredential()) {
+            if (authProvider.hasClientCredentials()) {
                 loginHandler(authProvider);
             } else {
                 // If model is anon, just log in.

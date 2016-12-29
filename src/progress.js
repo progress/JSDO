@@ -111,8 +111,8 @@ limitations under the License.
     msg.msgs.jsdoMSG057 = "{1}: Called {2} when authenticationModel is sso. Use {3} instead.";
     msg.msgs.jsdoMSG058 = "{1}: Cannot pass username and password to addCatalog when authenticationModel " +
         "is sso. Pass an AuthenticationProvider instead.";
-    msg.msgs.jsdoMSG059 = "{1}: {2} was not executed because the authenticationModels of the " +
-        "AuthenticationProvider ({3}) and the JSDOSession ({4}) were not the same.";
+    msg.msgs.jsdoMSG059 = "{1}: Error in constructor. The authenticationModels of the " +
+        "AuthenticationProvider ({3}) and the JSDOSession ({4}) were not compatible.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -143,8 +143,9 @@ limitations under the License.
     
     //                    500 - 998 are for generic errors
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
-    msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
-    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
+    msg.msgs.jsdoMSG501 = "{1}: '{2}' in '{3}' function cannot be an empty string.";
+    msg.msgs.jsdoMSG502 = "{1}: The '{2}' parameter passed to the '{3}' function has an invalid value for " +
+        "the '{4}' property.";
     msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'.";
     msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";
     msg.msgs.jsdoMSG505 = "{1}: '{2}' objects must have a '{3}' method.";
@@ -152,6 +153,8 @@ limitations under the License.
     msg.msgs.jsdoMSG506 = "{1}: Invalid argument for the {2} parameter in {3} call.";
                 // use message below if invalid parameter value is a primitive
     msg.msgs.jsdoMSG507 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
+    msg.msgs.jsdoMSG508 = "JSDOSession: If a JSDOSession object is using the SSO authentication model, " +
+        "the options object passed to its constructor must include an authProvider property.";
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 

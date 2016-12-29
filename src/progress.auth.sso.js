@@ -257,8 +257,8 @@ limitations under the License.
         
         // API METHODS
         
-        // override the prototype's hasCredential method
-        this.hasCredential = function () {
+        // override the prototype's hasClientCredentials method
+        this.hasClientCredentials = function () {
             return (retrieveToken() === null ? false : true);
         };
         

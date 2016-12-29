@@ -64,7 +64,7 @@ limitations under the License.
     //       This object uses these methods from the original prototype(i.e., the implementations from the
     //       AuthenticationProvider object):
     //          _reset  (general-purpose helper)
-    //          hasCredential  (API method)
+    //          hasClientCredentials  (API method)
     //          _processLoginResult (API helper method)
 
     

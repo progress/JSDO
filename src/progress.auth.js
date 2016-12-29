@@ -38,46 +38,66 @@ limitations under the License.
     // This is really more along the lines of a Factory method in that it explicitly creates an object 
     // and returns it based on the the authModel parameter (rather than following the default JS
     // pattern of adding properties to the "this" object created for it and passed in by the runtime).
-    progress.data.AuthenticationProvider = function (uri, authModel) {
-        var authProv;
+    progress.data.AuthenticationProvider = function (initObject) {
+        var authProv,
+            authModel,
+            uri;
 
         // process constructor arguments
+        if (typeof initObject === 'object') {
+            
+            // these 2 calls throw an appropriate error if the check doesn't pass
+            this._checkStringArg(
+                "constructor",
+                initObject.authenticationModel,
+                "initObject.authenticationModel",
+                "initObject.authenticationModel"
+            );
 
-        if (typeof authModel === "string") {
-
-            authModel = authModel.toLowerCase();
-            switch (authModel) {
-            case progress.data.Session.AUTH_TYPE_ANON:
-                this._initialize(uri, progress.data.Session.AUTH_TYPE_ANON,
-                         {"_loginURI": "/static/home.html"});
-                authProv = this;
-                break;
-            case progress.data.Session.AUTH_TYPE_BASIC:
-                authProv = new progress.data.AuthenticationProviderBasic(uri);
-                break;
-            case progress.data.Session.AUTH_TYPE_FORM:
-                authProv = new progress.data.AuthenticationProviderForm(uri);
-                break;
-            case progress.data.Session.AUTH_TYPE_SSO:
-                authProv = new progress.data.AuthenticationProviderSSO(uri);
-                break;
-            default:
-                // "AuthenticationProvider: '{2} is an invalid value for the AuthenticationModel 
-                //     parameter in constructor call."
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG507",
-                    "AuthenticationProvider",
-                    authModel,
-                    "authenticationModel",
-                    "constructor"
-                ));
-                //break;
-            }
+            this._checkStringArg(
+                "constructor",
+                initObject.uri,
+                "init-object.uri",
+                "init-object.uri"
+            );
         } else {
-            // AuthenticationProvider: '{2}' is an invalid value for the authenticationModel
-            // parameter in constructor call.
-            throw new Error(progress.data._getMsgText("jsdoMSG507", "AuthenticationProvider", authModel,
-                                           "authenticationModel", "constructor"));
+            // AuthenticationProvider: Invalid signature for constructor. The init-object argument 
+            //                         was missing or invalid.
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG033",
+                "AuthenticationProvider",
+                "the constructor",
+                "The init-object argument was missing or invalid."
+            ));
+        }
+
+        authModel = initObject.authenticationModel.toLowerCase();
+        switch (authModel) {
+        case progress.data.Session.AUTH_TYPE_ANON:
+            this._initialize(initObject.uri, progress.data.Session.AUTH_TYPE_ANON,
+                     {"_loginURI": "/static/home.html"});
+            authProv = this;
+            break;
+        case progress.data.Session.AUTH_TYPE_BASIC:
+            authProv = new progress.data.AuthenticationProviderBasic(initObject.uri);
+            break;
+        case progress.data.Session.AUTH_TYPE_FORM:
+            authProv = new progress.data.AuthenticationProviderForm(initObject.uri);
+            break;
+        case progress.data.Session.AUTH_TYPE_FORM_SSO:
+            authProv = new progress.data.AuthenticationProviderSSO(initObject.uri);
+            break;
+        default:
+            // AuthenticationProvider: The 'init-object' parameter passed to the 'constructor' function
+            //                          has an invalid value for the 'authenticationModel' property.
+            throw new Error(progress.data._getMsgText(
+                "jsdoMSG502",
+                "AuthenticationProvider",
+                "init-object",
+                "constructor",
+                "authenticationModel"
+            ));
+            //break;
         }
 
         return authProv;
@@ -177,8 +197,8 @@ limitations under the License.
     };
 
     
-    // hasCredential API METHOD -- PROBABLY ONLY OVERRIDDEN BY SSO
-    progress.data.AuthenticationProvider.prototype.hasCredential = function () {
+    // hasClientCredentials API METHOD -- PROBABLY ONLY OVERRIDDEN BY SSO
+    progress.data.AuthenticationProvider.prototype.hasClientCredentials = function () {
         return this._loggedIn;
     };
 
@@ -192,7 +212,7 @@ limitations under the License.
     // create their own AuthenticationProvider object, it would need to include this method
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr, verb, uri) {
     
-        if (this.hasCredential()) {
+        if (this.hasClientCredentials()) {
             xhr.open(verb, uri, true);
 
             // We specify application/json for the response so that, if a bad token is sent, an 
@@ -239,27 +259,12 @@ limitations under the License.
             });
         
 
-        if (typeof uriParam !== "string") {
-            // AuthenticationProvider: Argument 1 must be of type string in constructor call.
-            throw new Error(progress.data._getMsgText("jsdoMSG121", "AuthenticationProvider", "1",
-                                           "string", "constructor"));
-        } else if (uriParam.length === 0) {
-            // AuthenticationProvider: '' is an invalid value for the uri parameter in constructor call.
-            throw new Error(progress.data._getMsgText(
-                "jsdoMSG507",
-                "AuthenticationProvider",
-                uriParam,
-                "uri",
-                "constructor"
-            ));
+        // get rid of trailing '/' because appending service url that starts with '/'
+        // will cause request failures
+        if (uriParam[uriParam.length - 1] === "/") {
+            tempURI = uriParam.substring(0, uriParam.length - 1);
         } else {
-            // get rid of trailing '/' because appending service url that starts with '/'
-            // will cause request failures
-            if (uriParam[uriParam.length - 1] === "/") {
-                tempURI = uriParam.substring(0, uriParam.length - 1);
-            } else {
-                tempURI = uriParam;
-            }
+            tempURI = uriParam;
         }
 
         // take the modified authentication uri and prepend it to all of the targets passed
@@ -379,7 +384,8 @@ limitations under the License.
             throw new Error(progress.data._getMsgText(
                 "jsdoMSG501",
                 "AuthenticationProvider",
-                argName
+                argName,
+                fnName
             ));
         }
     };

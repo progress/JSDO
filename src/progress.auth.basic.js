@@ -31,9 +31,7 @@ limitations under the License.
         this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
                                  {"_loginURI": "/static/home.html"});
     
-        var //that = this,
-            // Basic auth specific
-            defaultiOSBasicAuthTimeout,
+        var defaultiOSBasicAuthTimeout, // TO DO: need to implement the use of this
             userName = null,
             password = null,
             fn;
@@ -122,7 +120,7 @@ limitations under the License.
         this._openRequestAndAuthorize = function (xhr, verb, uri) {
             var auth;
 
-            if (this.hasCredential()) {
+            if (this.hasClientCredentials()) {
 
                 xhr.open(verb, uri, true);  // but see comments below inside the "if userName"
                                                   // may have to go with that approach
@@ -167,8 +165,7 @@ limitations under the License.
     // don't affect other types of AuthenticationProviders that use the prototype)
     function BasicProxy() {}
     BasicProxy.prototype = progress.data.AuthenticationProvider.prototype;
-    progress.data.AuthenticationProviderBasic.prototype =
-        new BasicProxy();
+    progress.data.AuthenticationProviderBasic.prototype = new BasicProxy();
         
     // Reset the prototype's constructor property so it points to AuthenticationProviderForm rather than
     // the one that it just inherited (this is pretty much irrelevant though - the correct constructor
@@ -184,6 +181,6 @@ limitations under the License.
     //       This object uses these methods from the original prototype(i.e., the implementations from the
     //       AuthenticationProvider object):
     //          logout (API method)
-    //          hasCredential (API method)
+    //          hasClientCredentials (API method)
         
 }());
