@@ -1,7 +1,7 @@
 /* 
 progress.auth.sso.js    Version: 4.4.0-1
 
-Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -300,7 +300,7 @@ limitations under the License.
 
 
         // PROCESS CONSTRUCTOR ARGUMENTS, CREATE API PROPERTIES, ETC.
-        this._initialize(uri, progress.data.Session.AUTH_TYPE_SSO,
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_FORM_SSO,
                                  {"_loginURI": "/static/auth/j_spring_security_check?OECP=yes",
                                   "_logoutURI": "/static/auth/j_spring_security_logout",
                                   "_refreshURI": "/static/auth/token?op=refresh"

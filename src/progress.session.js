@@ -2,7 +2,7 @@
 /* 
 progress.session.js    Version: 4.4.0-1
 
-Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -963,6 +963,15 @@ limitations under the License.
                                    {  
                                        get: function () {
                                             return _authProvider;
+                                       },
+                                       set: function(newval) {
+                                            if (_authProvider) {
+                                                throw new Error("Internal Error setting Session._authProvider. '" + 
+                                                    "The property has already been set.");
+                                                
+                                            } else {
+                                                setAuthProvider(newval);
+                                            }
                                        },
                                        enumerable: false
                                    }
@@ -3703,10 +3712,10 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
             
-            authProvider = new progress.data.AuthenticationProvider(
-                this.serviceURI,
-                this.authenticationModel
-            );
+            authProvider = new progress.data.AuthenticationProvider({
+                uri: this.serviceURI,
+                authenticationModel: this.authenticationModel
+            });
 
             // is there a better way to do this? Need it because we didn't have the authprovider when
             // running the constructor
@@ -4222,14 +4231,11 @@ limitations under the License.
         return "progress.data.JSDOSession";
     };
     
-    
     progress.data.getSession = function (options) {
-        var authModel;
-
         var deferred = $.Deferred(),
             authProvider,
-            authURI,
-            promise;
+            promise,
+            authProviderInitObject = {};
         
         // This is the reject handler for session-related operations
         // login, addCatalog, and logout
@@ -4252,10 +4258,10 @@ limitations under the License.
         
         function loginHandler(provider) {
             var jsdosession;
-            jsdosession = new progress.data.JSDOSession(options);
 
             try {
-                jsdosession.connect(provider)
+                jsdosession = new progress.data.JSDOSession(options);
+                jsdosession.connect()
                     .then(function () {
                         try {
                             jsdosession.addCatalog(options.catalogURI)
@@ -4355,15 +4361,37 @@ limitations under the License.
         try {
             // If authenticationURI is not set, use serviceURI (even for SSO -- the token server may 
             // also be the data provider)
+            if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                if (options.authenticationURI === undefined ||
+                        options.authProviderAuthenticationModel === undefined) {
+                    throw new Error(progress.data._getMsgText("jsdoMSG509"));
+                }
+            }
+            
             if (options.authenticationURI) {
-                authURI = options.authenticationURI;
+                authProviderInitObject.uri = options.authenticationURI;
+                authProviderInitObject.authenticationModel = options.authProviderAuthenticationModel;
+                
+                // if auth uri has been passed, there must be an authProviderAuthenticationModel
+                if (typeof authProviderInitObject.authenticationModel !== "string") {
+                    // JSDOSession: The 'object' parameter passed to the 'getSession' function
+                    //              has an invalid value for the 'authProviderAuthenticationModel' property.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG502",
+                        "progress.data.getSession",
+                        "object",
+                        "getSession",
+                        "authProviderAuthenticationModel"
+                    ));
+                }
             } else {
-                authURI = options.serviceURI;
+                authProviderInitObject.uri = options.serviceURI;
+                authProviderInitObject.authenticationModel = options.authenticationModel;
             }
 
-            authProvider = new progress.data.AuthenticationProvider(authURI,
-                                                                    options.authenticationModel);
-                
+            authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
+            options.authProvider = authProvider;
+            
             if (authProvider.hasClientCredentials()) {
                 loginHandler(authProvider);
             } else {
@@ -4377,14 +4405,22 @@ limitations under the License.
                 }
             }
         } catch (error) {
-            throw error;
+            // throw error;
+            sessionRejectHandler(
+                null,
+                progress.data.Session.GENERAL_FAILURE,
+                {
+                    errorObject: error
+                }
+            );
         }
         
         return deferred.promise();
-    }
+    };
 
 })();
 
 if (typeof exports !== "undefined") {
     exports.progress = progress;
 }
+    

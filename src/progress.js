@@ -2,7 +2,7 @@
 /* 
 progress.js    Version: 4.4.0-5
 
-Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ limitations under the License.
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
     msg.msgs.jsdoMSG501 = "{1}: '{2}' in '{3}' function cannot be an empty string.";
     msg.msgs.jsdoMSG502 = "{1}: The '{2}' parameter passed to the '{3}' function has an invalid value for " +
-        "the '{4}' property.";
+        "its '{4}' property.";
     msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'.";
     msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";
     msg.msgs.jsdoMSG505 = "{1}: '{2}' objects must have a '{3}' method.";
@@ -155,6 +155,8 @@ limitations under the License.
     msg.msgs.jsdoMSG507 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
     msg.msgs.jsdoMSG508 = "JSDOSession: If a JSDOSession object is using the SSO authentication model, " +
         "the options object passed to its constructor must include an authProvider property.";
+    msg.msgs.jsdoMSG509 = "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as the authenticationModel, " +
+        "it must also be passed an authProvider and an authProviderAuthenticationModel.";
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 

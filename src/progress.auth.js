@@ -1,7 +1,7 @@
 /* 
 progress.auth.js    Version: 4.4.0-1
 
-Copyright (c) 2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -223,8 +223,7 @@ limitations under the License.
             // wnet wrong
             xhr.setRequestHeader("Accept", "application/json");
         } else {
-            // This message is SSO specific, unless we can come up with a more general message 
-            // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+            // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
             throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
         }
         
@@ -370,6 +369,8 @@ limitations under the License.
                                                                               argToCheck,
                                                                               argPosition,
                                                                               argName) {
+        // TODO: ? distinguish between undefined (so we can give developer a clue that they may be missing a property)
+        // and defined but wrong type
         if (typeof argToCheck !== "string") {
             // AuthenticationProvider: Argument {param-position} must be of type string in {fnName} call.
             throw new Error(progress.data._getMsgText(
