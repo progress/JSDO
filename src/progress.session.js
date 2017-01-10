@@ -714,8 +714,6 @@ limitations under the License.
             partialPingURI = defaultPartialPingURI,
             needsReconnectAfterPageRefresh = false,
             _storageKey,
-            // initialize authProvider to null to indicate that we deliberately want it not to have a value 
-            // except when connected
             _authProvider = null,
 
             // Note: the variables above here are used during the lifetime of the object; the ones below
@@ -956,8 +954,8 @@ limitations under the License.
                                    }
                                  );
 
-            // used internally, not supported as part of the Session API (tho authIProvider is part
-            // of the JSDOSession API)
+            // used internally, not supported as part of the Session API (tho authProvider is part
+            // of the *JSDOSession* API)
             Object.defineProperty( this, 
                                    "_authProvider",
                                    {  
@@ -1319,7 +1317,7 @@ limitations under the License.
                 urlPlusCCID = progress.data.Session._addTimeStampToURL(urlPlusCCID);
             }
             
-              // should be able to remove this check soem day because will always have an auth provider
+              // should be able to remove this check some day because will always have an auth provider
             if (this._authProvider) {
                 // note: throw an error if we have one of the above but not the other?
                 this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID);
@@ -3712,18 +3710,18 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
             
-            authProvider = new progress.data.AuthenticationProvider({
-                uri: this.serviceURI,
-                authenticationModel: this.authenticationModel
-            });
-
-            // is there a better way to do this? Need it because we didn't have the authprovider when
-            // running the constructor
-            _pdsession._authProvider = authProvider;
+            if (!_pdsession._authProvider) {
+                // is there a better way to do this? Need it because we didn't have the authprovider when
+                // running the constructor
+                _pdsession._authProvider = new progress.data.AuthenticationProvider({
+                    uri: this.serviceURI,
+                    authenticationModel: this.authenticationModel
+                });
+            }
             
-            authProvider.login(username, password)
+            _pdsession._authProvider.login(username, password)
                 .then(function () {
-                    return that.connect(authProvider);
+                    return that.connect();
                 })
                 .then(function (jsdosession, result, info) {
                     deferred.resolve(that, result, info);
