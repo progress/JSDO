@@ -4359,8 +4359,7 @@ limitations under the License.
         
         // Create the AuthenticationProvider and let it handle the argument parsing
         try {
-            // If authenticationURI is not set, use serviceURI (even for SSO -- the token server may 
-            // also be the data provider)
+            // If authenticationURI is not set, use serviceURI (except for SSO)
             if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 if (options.authenticationURI === undefined ||
                         options.authProviderAuthenticationModel === undefined) {

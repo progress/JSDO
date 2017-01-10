@@ -202,6 +202,11 @@ limitations under the License.
         return this._loggedIn;
     };
 
+    // hasRefreshToken API METHOD -- returns false for all AutghenticationProvider types except SSO,
+    // which overrides it
+    progress.data.AuthenticationProvider.prototype.hasRefreshToken = function () {
+        return false;
+    };
 
     // QUASI-PUBLIC METHOD 
     
