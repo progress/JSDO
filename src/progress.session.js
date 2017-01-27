@@ -697,7 +697,7 @@ limitations under the License.
             defPropSupported = true;
         }
         
-        var myself = this,
+        var that = this,
             jsdosession, // "backpointer" if this Session is being used by a JSDOSession
             isUserAgentiOS = false,  // checked just below this var statement
             isFirefox = false,  // checked just below this var statement
@@ -754,12 +754,12 @@ limitations under the License.
         
         this._onlineHandler = function () {
             setDeviceIsOnline(true);
-            myself.trigger("online", myself, null);
+            that.trigger("online", that, null);
         };
 
         this._offlineHandler = function () {
             setDeviceIsOnline(false);
-            myself.trigger("offline", myself, progress.data.Session.DEVICE_OFFLINE, null);
+            that.trigger("offline", that, progress.data.Session.DEVICE_OFFLINE, null);
         };
 
         if ((typeof window != 'undefined' ) && (window.addEventListener)) {
@@ -995,7 +995,7 @@ limitations under the License.
         // 
         function storeSessionInfo(infoName, value) {
             var key;
-            if (myself.loginResult === progress.data.Session.LOGIN_SUCCESS &&
+            if (that.loginResult === progress.data.Session.LOGIN_SUCCESS &&
                 typeof (sessionStorage) === 'object' && _storageKey) {
                     
                 key = _storageKey;
@@ -1042,17 +1042,22 @@ limitations under the License.
 
         function storeAllSessionInfo() {
             if (_storageKey) {
-                storeSessionInfo("loginResult", myself.loginResult);
-                storeSessionInfo("userName", myself.userName);
-                storeSessionInfo("serviceURI", myself.serviceURI);
-                storeSessionInfo("loginHttpStatus", myself.loginHttpStatus);
-                storeSessionInfo("authenticationModel", myself.authenticationModel);
-                storeSessionInfo("pingInterval", myself.pingInterval);
+                storeSessionInfo("loginResult", that.loginResult);
+                storeSessionInfo("userName", that.userName);
+                storeSessionInfo("serviceURI", that.serviceURI);
+                storeSessionInfo("loginHttpStatus", that.loginHttpStatus);
+                storeSessionInfo("authenticationModel", that.authenticationModel);
+                storeSessionInfo("pingInterval", that.pingInterval);
                 storeSessionInfo("oepingAvailable", oepingAvailable);
                 storeSessionInfo("partialPingURI", partialPingURI);
-                storeSessionInfo("clientContextId", myself.clientContextId);
+                storeSessionInfo("clientContextId", that.clientContextId);
                 storeSessionInfo("deviceIsOnline", deviceIsOnline);
                 storeSessionInfo("restApplicationIsOnline", restApplicationIsOnline);
+                if (that._authProvider) {
+                    storeSessionInfo("_authProvider.init",
+                                     {uri: that._authProvider.uri,
+                                      authenticationModel: that._authProvider.authenticationModel});
+                }
                 storeSessionInfo(_storageKey, true);
             }
         }
@@ -1071,12 +1076,15 @@ limitations under the License.
                     clearSessionInfo("pingInterval");
                     clearSessionInfo("oepingAvailable");
                     clearSessionInfo("partialPingURI");
+                    clearSessionInfo("_authProvider.init");
                     clearSessionInfo(_storageKey);
                 }
             }
         }
         
         function setSessionInfoFromStorage(key) {
+            var authproviderInitObject,
+                authProvider;
             if (retrieveSessionInfo(key)) {
                 setLoginResult(retrieveSessionInfo("loginResult"), this);
                 setUserName(retrieveSessionInfo("userName"), this);
@@ -1085,10 +1093,21 @@ limitations under the License.
                 setClientContextID(retrieveSessionInfo("clientContextId"), this);
                 setDeviceIsOnline(retrieveSessionInfo("deviceIsOnline"));
                 setRestApplicationIsOnline(retrieveSessionInfo("restApplicationIsOnline"));
-                myself.authenticationModel = retrieveSessionInfo("authenticationModel");
-                myself.pingInterval = retrieveSessionInfo("pingInterval");
+                that.authenticationModel = retrieveSessionInfo("authenticationModel");
+                that.pingInterval = retrieveSessionInfo("pingInterval");
                 setOepingAvailable(retrieveSessionInfo("oepingAvailable"));
                 setPartialPingURI(retrieveSessionInfo("partialPingURI"));
+                // if information on an AuthenticationProvider for the session is in storage, and if
+                // the authProvider hasn't already been set for this Session, create a new authProvider
+                // using the same info as the old one. This would be likely to happen if the app's code
+                // had used the old JSDOSession.login API, where we create the AuthenticationProvider
+                // automatically during login instead of the code passing one to the constructor               
+                if (!that._authProvider) {
+                    authproviderInitObject = retrieveSessionInfo("_authProvider.init");
+                    if (authproviderInitObject) {
+                        setAuthProvider(new progress.data.AuthenticationProvider(authproviderInitObject));
+                    }
+                }
             }
         }
 
@@ -1266,28 +1285,6 @@ limitations under the License.
             return null;
         }
         
-        // Takes an XHR as an input. If the xhr status is 401 (Unauthorized), determines whether
-        // the auth failure was due to an expired token. Returns progress.data.Session.EXPIRED_TOKEN 
-        // if it was, progress.data.Session.AUTHENTICATION_FAILURE if it wasn't, null if the xhr status wasn't 401
-        function determineAuthFailureResultCode(xhr) {
-            var contentType,
-                jsonObject,
-                result = progress.data.Session.AUTHENTICATION_FAILURE;
-            
-            if (xhr.status === 401) {
-                contentType = xhr.getResponseHeader("Content-Type");
-                if (contentType && (contentType.indexOf("application/json") > -1) && xhr.responseText) {
-                    jsonObject = JSON.parse(xhr.responseText);
-                    if (jsonObject.error === "sso.token.expired_token") {
-                        result = progress.data.Session.EXPIRED_TOKEN;
-                    }
-                }
-            } else {
-                result = null;
-            }
-            return result;
-        }
-
         // "Methods"
 
         this._pushJSDOs = function (jsdo) {
@@ -1317,7 +1314,9 @@ limitations under the License.
                 urlPlusCCID = progress.data.Session._addTimeStampToURL(urlPlusCCID);
             }
             
-              // should be able to remove this check some day because will always have an auth provider
+            // should be able to remove this check when we no longer support calling the Session
+            // API directly (need to keep that now becasue tdriver, for one, uses the Session object,
+            // and uses it synchronously
             if (this._authProvider) {
                 // note: throw an error if we have one of the above but not the other?
                 this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID);
@@ -1329,7 +1328,7 @@ limitations under the License.
             }
             
             // add CCID header
-   /* check with Mike -- incorporate this into authenticationProvider if we should continue to do it  */
+            /* check with Mike -- incorporate this into AuthenticationProvider if we should continue to do it  */
             if (this.clientContextId && (this.clientContextId !== "0")) {
                 xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", this.clientContextId);
             }
@@ -1420,8 +1419,7 @@ limitations under the License.
                 
                 this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest);
 
-                xhr.setRequestHeader("Cache-Control", "no-cache");
-                xhr.setRequestHeader("Pragma", "no-cache");
+                progress.data.Session._setNoCacheHeaders(xhr);
                 // set X-CLIENT-PROPS header
                 setRequestHeaderFromContextProps(this, xhr);
 
@@ -1487,7 +1485,8 @@ limitations under the License.
                 pdsession._sendPing(pingTestArgs);  // see whether the ping feature is available
             } else {
                 if (pdsession.loginHttpStatus === 401) {
-                    setLoginResult(determineAuthFailureResultCode(xhr), pdsession);                        
+                    setLoginResult(progress.data.AuthenticationProvider._getAuthFailureReason(xhr),
+                                   pdsession);
                 } else {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
                 }
@@ -1540,7 +1539,9 @@ limitations under the License.
         };
         
 
-        // GET RID OF progress.data.Session login CODE (AND RELATED) IF WE DROP SYNCHRONOUS SUPPORT 
+        // GET RID OF progress.data.Session login CODE (AND RELATED) IF WE DROP SUPPORT FOR USING
+        // THE OLD progress.data.Session API DIRECTLY (mainly a problem for existing code (tdriver),
+        // or anyone who wants to call methods synchronously, which should be no one)
         /* login
          *
          */
@@ -1682,8 +1683,7 @@ limitations under the License.
                 }               
                 this._setXHRCredentials(xhr, 'GET', uriForRequest, uname, pw, isAsync);
 
-                xhr.setRequestHeader("Cache-Control", "no-cache");
-                xhr.setRequestHeader("Pragma", "no-cache");
+                progress.data.Session._setNoCacheHeaders(xhr);
                 // set X-CLIENT-PROPS header
                 setRequestHeaderFromContextProps(this, xhr);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
@@ -2008,7 +2008,9 @@ limitations under the License.
             pdsession.trigger("afterLogin", pdsession, result, errObj, xhr);
         };
 
-        // GET RID OF progress.data.Session logout CODE (AND RELATED) IF WE DROP SYNCHRONOUS SUPPORT 
+        // GET RID OF progress.data.Session logout CODE (AND RELATED) IF WE DROP SUPPORT FOR USING
+        // THE OLD progress.data.Session API DIRECTLY (mainly a problem for existing code (tdriver),
+        // or anyone who wants to call methods synchronously, which should be no one)
         /* logout
          *
          */
@@ -2285,7 +2287,7 @@ limitations under the License.
             
         // TODO: we expect that there will always be an authImpl if a login has been done. Therefore,
         // we don't need to set catalogUsername and catalogPassword if they aren't passed in. What we should
-        // do here, when we extend the AuthenticationPrivider API for the older auth models, is take
+        // do here, when we extend the AuthenticationProvider API for the older auth models, is take
         // any uname and pw passed in and create an auth provider, log in to the catalogURI with it, 
         // create an authImpl, and then fetch the catalog.
             if (!catalogUserName) {
@@ -2324,7 +2326,7 @@ limitations under the License.
 
             if (authProvider) {
                 authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI);
-            } else {  // should be able to get rid of this if we do away with synchronous support
+            } else {  // should be able to get rid of this if we do away with synchronous (old Session API) support
                 this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                     _addWithCredentialsAndAccept(xhr, "application/json");
@@ -2340,8 +2342,7 @@ limitations under the License.
              * but the request used to get it was a non-CORS request and the browser will
              * raise an error
              */
-            xhr.setRequestHeader("Cache-Control", "no-cache");
-            xhr.setRequestHeader("Pragma", "no-cache");
+            progress.data.Session._setNoCacheHeaders(xhr);
             // set X-CLIENT-PROPS header
             setRequestHeaderFromContextProps(this, xhr);
 
@@ -2444,7 +2445,7 @@ limitations under the License.
                 progress.data.ServicesManager.addSession(catalogURI, theSession);
             }
             else if (_catalogHttpStatus == 401) {
-                return determineAuthFailureResultCode(xhr);                        
+                return progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
             }
             else if (xhr._iosTimeOutExpired) { 
                 throw new Error( progress.data._getMsgText("jsdoMSG047", "addCatalog") );
@@ -2533,11 +2534,11 @@ limitations under the License.
              * Call _processPingResult() if we're synchronous, otherwise the handler for the xhr.send()
              * will call it
              */
-            pingArgs.pingURI = myself._makePingURI();
-            myself._sendPing(pingArgs);
+            pingArgs.pingURI = that._makePingURI();
+            that._sendPing(pingArgs);
             if (!pingArgs.async) {
                 if (pingArgs.xhr) {
-                    pingResult = myself._processPingResult(pingArgs);
+                    pingResult = that._processPingResult(pingArgs);
                     if (args.offlineReason !== undefined) {
                         args.offlineReason = pingArgs.offlineReason;
                     }
@@ -2650,7 +2651,7 @@ limitations under the License.
                         offlineReason: null,
                         async: false
                     };
-                    if (!(myself.ping(localPingArgs) )) {
+                    if (!(that.ping(localPingArgs) )) {
                         offlineReason = localPingArgs.offlineReason;
                         setRestApplicationIsOnline(false);
                     }
@@ -2807,10 +2808,10 @@ limitations under the License.
             // decide whether to fire an event, and if so do it
             if (args.fireEventIfOfflineChange) {
                 if (wasOnline && !connectedBeforeCallback) { 
-                    myself.trigger("offline", myself, args.offlineReason, null);
+                    that.trigger("offline", that, args.offlineReason, null);
                 }
                 else if (!wasOnline && connectedBeforeCallback) {
-                    myself.trigger("online", myself, null);
+                    that.trigger("online", that, null);
                 }
             }
 
@@ -2828,9 +2829,9 @@ limitations under the License.
                     fireEventIfOfflineChange: true,
                     offlineReason: null
                 };
-                myself._processPingResult(args);
+                that._processPingResult(args);
                 if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(myself._autoping, _pingInterval);
+                    _timeoutID = setTimeout(that._autoping, _pingInterval);
                 }
             }
         };
@@ -2844,7 +2845,7 @@ limitations under the License.
                     foundOeping = true;
                 }
                 else {
-                    setPartialPingURI(myself.loginTarget);
+                    setPartialPingURI(that.loginTarget);
                     console.warn("Default ping target not available, will use loginTarget instead.");
                 }
                 setOepingAvailable(foundOeping);
@@ -2852,7 +2853,7 @@ limitations under the License.
                 // If we're here, we've just logged in. If pingInterval has been set, we need
                 // to start autopinging
                 if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(myself._autoping, _pingInterval);
+                    _timeoutID = setTimeout(that._autoping, _pingInterval);
                 }
             }
         };
@@ -2870,7 +2871,8 @@ limitations under the License.
                 if (this._authProvider) {
                     this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI);
                 } else {
-                    // get rid of this if we do away with synchronous support
+                    // get rid of this if we do away with synchronous support (i.e., customer use of 
+                    // old Session API)
                     this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
                 }
                 if (args.async) {
@@ -2879,8 +2881,7 @@ limitations under the License.
                     xhr._jsdosession = jsdosession; // in case the Session is part of a JSDOSession
                     xhr._deferred = args.deferred;  // in case the Session is part of a JSDOSession
                 }
-                xhr.setRequestHeader("Cache-Control", "no-cache");
-                xhr.setRequestHeader("Pragma", "no-cache");
+                progress.data.Session._setNoCacheHeaders(xhr);
                 // set X-CLIENT-PROPS header
                 setRequestHeaderFromContextProps(this, xhr);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
@@ -2910,7 +2911,7 @@ limitations under the License.
          *  autoping -- callback
          */
         this._autoping = function () {
-            myself.ping({async: true});
+            that.ping({async: true});
         };
 
 
@@ -3043,7 +3044,7 @@ limitations under the License.
 
         // Functions
 
-        // get rid of this if we get rid of synchronous support?
+        // get rid of this if we get rid of synchronous (old Session object API) support?
         // Set an XMLHttpRequest object's withCredentials attribute and Accept header,
         // using a try-catch so that if setting withCredentials throws an error it doesn't
         // interrupt execution (this is a workaround for the fact that Firefox doesn't
@@ -3063,7 +3064,8 @@ limitations under the License.
             }
         }
 
-        // get rid of this if we get rid of synchronous support? (becasue it's in AuthenticationProviderBasic)
+        // get rid of this if we get rid of synchronous (old Session API) support?
+        // (because it's in AuthenticationProviderBasic)
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function _make_basic_auth(user, pw) {
             var tok = user + ':' + pw;
@@ -3118,7 +3120,7 @@ limitations under the License.
             return false;
         }
 
-        // get rid of this if we get rid of synchronous support?
+        // get rid of this if we get rid of synchronous (old Session API) support?
         /* sets the statusFromjson property in the params object to indicate
          * the status of a response from an OE Mobile Web application that has
          * to do with authentication (the response to a login request, or a
@@ -3198,7 +3200,7 @@ limitations under the License.
             
             jsdosession = options.jsdosession;
             newURI = options.serviceURI;
-            setAuthProvider(options.authProvider);
+            setAuthProvider(options.authProvider);  // do this BEFORE calling setSessionInfoFromStorage
             
             // get rid of trailing '/' because appending service url that starts with '/'
             // will cause request failures
@@ -3216,6 +3218,10 @@ limitations under the License.
                             (storedURI !== newURI)) {
                         clearAllSessionInfo();
                     } else {
+                         // Note: be sure we have set authProvider (if any) from options before 
+                         // calling setSessionInfoFromStorage (important so that the logic in 
+                         // setSessionInfoFromStorage that re-creates an AuthenticationProvider
+                         // after page refresh only gets used if the app is using the old JSDOSession.login)
                         setSessionInfoFromStorage(_storageKey);
                         needsReconnectAfterPageRefresh = true;
                         stateWasReadFromStorage = true;
@@ -3287,11 +3293,14 @@ limitations under the License.
         return url;
     };
 
+    // Do whatever it takes to direct the XMLHttpRequest not to fulfill the request
+    // from a cache
+    // (convenience method --- we do this several different places in the code)
+    progress.data.Session._setNoCacheHeaders = function (xhr) {
+        xhr.setRequestHeader("Cache-Control", "no-cache");
+        xhr.setRequestHeader("Pragma", "no-cache");
+    };
 
-    
-    
-    
-    
     
     
 // Constants for progress.data.Session
@@ -3446,7 +3455,7 @@ limitations under the License.
     progress.data.JSDOSession = function JSDOSession( options ){
         var _pdsession,
             _serviceURI,
-            _myself = this,
+            that = this,
             _name;
 
         // PROPERTIES
@@ -3583,12 +3592,12 @@ limitations under the License.
         
         // Wrapper to make it easier to change the promise implementation we use.
         // Note that in the JSDO library's first implementation of promise support,
-        // the "promise" parameter for thsi function is actually a jQuery Deferred object
+        // the "promise" parameter for this function is actually a jQuery Deferred object
         function settlePromise(promise, fulfill, result, info) {
             if (fulfill) {
-                promise.resolve(_myself, result, info);
+                promise.resolve(that, result, info);
             } else {
-                promise.reject(_myself, result, info);                
+                promise.reject(that, result, info);                
             }
         }
 
@@ -3648,7 +3657,7 @@ limitations under the License.
                     }
                     settlePromise(xhr._deferred,
                                   fulfill,
-                                  result,
+                                  settleResult,
                                   xhr._deferred._results);
                 }
             }
@@ -3695,8 +3704,7 @@ limitations under the License.
                 loginResult,
                 errorObject,
                 iOSBasicAuthTimeout,
-                authProvider,
-                that = this;
+                authProvider;
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: Called login() when authenticationModel is SSO. Use connect() instead.
@@ -3917,7 +3925,7 @@ limitations under the License.
                    end (the obvious example is if there are no async requests actually made by 
                    Session.addCatalog). In that case, we have to resolve/reject from here. Chances are
                    very good that if we're doing this here, there's been at least one error, but just
-                   to be sure, we check teh deferred._overallCatalogResult anyway
+                   to be sure, we check the deferred._overallCatalogResult anyway
                  */
                 if ( deferred._overallCatalogResult === progress.data.Session.GENERAL_FAILURE ) {
                     deferred.reject( this, progress.data.Session.GENERAL_FAILURE, deferred._results );
@@ -3937,7 +3945,6 @@ limitations under the License.
         //          (NB: we should not allow this for SSO, tho)
         this.logout = function(){
             var deferred = $.Deferred(),
-                that = this,
                 authProv = this.authProvider;
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
@@ -3986,7 +3993,6 @@ limitations under the License.
          // session still valid or did it expire? 
         this.isAuthorized = function () {
             var deferred = $.Deferred(),
-                that = this,
                 xhr = new XMLHttpRequest(),
                 result;
 
@@ -4015,7 +4021,7 @@ limitations under the License.
                                              info);
                         } else {
                             if (xhr.status === 401) {
-                                cbresult = determineAuthFailureResultCode(xhr);
+                                cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
                             } else {
                                 cbresult = progress.data.Session.GENERAL_FAILURE;
                             }
@@ -4053,7 +4059,7 @@ limitations under the License.
          *  between client and Web application in the X-CLIENT-PROPS header. This operates only 
          *  on the property identiofied by propertyName; all other existing properties remain
          *  as they are.
-         *  If the propertyName is not part of the context, thsi call adds it
+         *  If the propertyName is not part of the context, this call adds it
          *  If it is part of the context, this call updates it, unless -
          *  If propertyValue is undefined, this call removes the property
          */
@@ -4078,11 +4084,11 @@ limitations under the License.
 
         
         this._onlineHandler = function( session, request ) {
-            _myself.trigger( "online", _myself, request );            
+            that.trigger( "online", that, request );            
         };    
         
         this._offlineHandler = function( session, offlineReason, request ) {
-            _myself.trigger( "offline", _myself, offlineReason, request );            
+            that.trigger( "offline", that, offlineReason, request );            
         };    
         
         // PROCESS CONSTRUCTOR ARGUMENTS 
@@ -4358,9 +4364,13 @@ limitations under the License.
         // Create the AuthenticationProvider and let it handle the argument parsing
         try {
             // If authenticationURI is not set, use serviceURI (except for SSO)
+            // Note: the test will of course catch any value that evaluates to false, not just undefined or
+            // null (which are the main concern), but that's probably OK
             if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                if (options.authenticationURI === undefined ||
-                        options.authProviderAuthenticationModel === undefined) {
+                if (!options.authenticationURI || !options.authProviderAuthenticationModel) {
+                    // "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as
+                    // the authenticationModel, it must also be passed an authProvider and an 
+                    // authProviderAuthenticationModel."
                     throw new Error(progress.data._getMsgText("jsdoMSG509"));
                 }
             }

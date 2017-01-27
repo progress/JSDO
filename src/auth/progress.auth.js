@@ -33,11 +33,12 @@ limitations under the License.
         progress.data = {};
     }
         
-// ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
-
     // This is really more along the lines of a Factory method in that it explicitly creates an object 
     // and returns it based on the the authModel parameter (rather than following the default JS
     // pattern of adding properties to the "this" object created for it and passed in by the runtime).
+    // NOTE: If we support multiple AuthenticationProviders that get different tokens from the same
+    //       server, we may need to add a "name" property to the initObject to use as a storage key
+
     progress.data.AuthenticationProvider = function (initObject) {
         var authProv,
             authModel,
@@ -75,7 +76,7 @@ limitations under the License.
         switch (authModel) {
         case progress.data.Session.AUTH_TYPE_ANON:
             this._initialize(initObject.uri, progress.data.Session.AUTH_TYPE_ANON,
-                     {"_loginURI": "/static/home.html"});
+                     {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
             authProv = this;
             break;
         case progress.data.Session.AUTH_TYPE_BASIC:
@@ -109,7 +110,7 @@ limitations under the License.
     // GENERIC IMPLEMENTATION FOR login METHOD THAT THE API IMPLEMENTATIONS OF login CAN CALL
     // (technically, they don't override it, they each have small login methods that call this)
     progress.data.AuthenticationProvider.prototype._loginProto =
-        function (headers, sendParam) {
+        function (sendParam) {
             var deferred = $.Deferred(),
                 xhr,
                 uriForRequest,
@@ -139,11 +140,6 @@ limitations under the License.
 
             this._openLoginRequest(xhr, uriForRequest);
 
-            for (header in headers) {
-                if (headers.hasOwnProperty(header)) {
-                    xhr.setRequestHeader(header, headers[header]);
-                }
-            }
            //  ?? setRequestHeaderFromContextProps(this, xhr);
 
             xhr.send(sendParam);
@@ -156,13 +152,13 @@ limitations under the License.
 
     // login API method -- just a shell that calls loginProto
     progress.data.AuthenticationProvider.prototype.login = function () {
-        return this._loginProto({"Cache-Control": "no-cache",
-                                 "Pragma": "no-cache"});
+        return this._loginProto();
     };
     
     // HELPER FOR login METHOD, PROBABLY OVERRIDDEN IN MOST CONSTRUCTORS
     progress.data.AuthenticationProvider.prototype._openLoginRequest = function (xhr, uri) {
         xhr.open('GET', uri, true);
+        progress.data.Session._setNoCacheHeaders(xhr);
     };
 
     // HELPER FOR login METHOD, PROBABLY OVERRIDDEN IN MOST CONSTRUCTORS
@@ -262,7 +258,7 @@ limitations under the License.
                 enumerable: true
             });
         
-
+                
         // get rid of trailing '/' because appending service url that starts with '/'
         // will cause request failures
         if (uriParam[uriParam.length - 1] === "/") {
@@ -374,8 +370,8 @@ limitations under the License.
                                                                               argToCheck,
                                                                               argPosition,
                                                                               argName) {
-        // TODO: ? distinguish between undefined (so we can give developer a clue that they may be missing a property)
-        // and defined but wrong type
+        // TODO: ? distinguish between undefined (so we can give developer a clue that they
+        // may be missing a property) and defined but wrong type
         if (typeof argToCheck !== "string") {
             // AuthenticationProvider: Argument {param-position} must be of type string in {fnName} call.
             throw new Error(progress.data._getMsgText(
@@ -396,5 +392,52 @@ limitations under the License.
         }
     };
     
+    
+    // "STATIC" PROPERTIES AND METHODS -- not on the prototype -- you cannot access these through an
+    // object created by "new" --- they are  properties of the AuthenticationProvider constructor function
+    
+    // Takes an XHR as an input. If the xhr status is 401 (Unauthorized), determines whether
+    // the auth failure was due to an expired token. Returns progress.data.Session.EXPIRED_TOKEN 
+    // if it was, progress.data.Session.AUTHENTICATION_FAILURE if it wasn't, null if the xhr status wasn't 401
+    progress.data.AuthenticationProvider._getAuthFailureReason = function (xhr) {
+        var contentType,
+            jsonObject,
+            result = progress.data.Session.AUTHENTICATION_FAILURE;
+        
+        if (xhr.status === 401) {
+            contentType = xhr.getResponseHeader("Content-Type");
+            if (contentType && (contentType.indexOf("application/json") > -1) && xhr.responseText) {
+                jsonObject = JSON.parse(xhr.responseText);
+                if (jsonObject.error === "sso.token.expired_token") {
+                    result = progress.data.Session.EXPIRED_TOKEN;
+                }
+            }
+        } else {
+            result = null;
+        }
+        return result;
+    };
+
+    Object.defineProperty(progress.data.AuthenticationProvider, '_homeLoginURIBase', {
+        value: "/static/home.html",
+        enumerable: true
+    });
+    Object.defineProperty(progress.data.AuthenticationProvider, '_springLoginURIBase', {
+        value: "/static/auth/j_spring_security_check",
+        enumerable: true
+    });
+    Object.defineProperty(progress.data.AuthenticationProvider, '_springLogoutURIBase', {
+        value: "/static/auth/j_spring_security_logout",
+        enumerable: true
+    });
+    Object.defineProperty(progress.data.AuthenticationProvider, '_springFormTokenLoginURIBase', {
+        value: progress.data.AuthenticationProvider._springLoginURIBase + "?OECP=yes",
+        enumerable: true
+    });
+    Object.defineProperty(progress.data.AuthenticationProvider, '_springFormTokenRefreshURIBase', {
+        value: "/static/auth/token?op=refresh",
+        enumerable: true
+    });
+
 }());
 

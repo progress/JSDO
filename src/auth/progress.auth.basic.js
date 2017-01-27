@@ -26,21 +26,21 @@ limitations under the License.
 
 
     progress.data.AuthenticationProviderBasic = function (uri) {
-    
-        // process constructor arguments, etc.
-        this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
-                                 {"_loginURI": "/static/home.html"});
-    
         var defaultiOSBasicAuthTimeout, // TO DO: need to implement the use of this
             userName = null,
             password = null,
             fn;
 
+        // process constructor arguments, etc.
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
+                                 {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
+    
+
         // PRIVATE FUNCTIONS
 
 
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
-        function make_basic_auth(user, pw) {
+        function make_basic_auth_header(user, pw) {
             var tok = user + ':' + pw,
                 hash = btoa(tok);
             return "Basic " + hash;
@@ -63,7 +63,7 @@ limitations under the License.
             var auth;
             
             xhr.open("GET", uri, true);  // but see comments below inside the "if userName"
-                                              // may have to go with that approach
+                                         // may have to go with that approach
             
             if (userName) {
 
@@ -78,12 +78,13 @@ limitations under the License.
                 // }
                 
                 // set Authorization header
-                auth = make_basic_auth(userName, password);
+                auth = make_basic_auth_header(userName, password);
                 xhr.setRequestHeader('Authorization', auth);
             }
             // else {
                 // xhr.open(verb, uri, async);
             // }
+            progress.data.Session._setNoCacheHeaders(xhr);
         };
 
         // Override the protoype's method but call it from within the override
@@ -111,8 +112,7 @@ limitations under the License.
 
             userName = userNameParam;
             password = passwordParam;
-            return this._loginProto({"Cache-Control": "no-cache",
-                                     "Pragma": "no-cache"});
+            return this._loginProto();
         };
         
         // Override the protoype's method (this method does not invoke the prototype's copy)
@@ -123,7 +123,7 @@ limitations under the License.
             if (this.hasClientCredentials()) {
 
                 xhr.open(verb, uri, true);  // but see comments below inside the "if userName"
-                                                  // may have to go with that approach
+                                            // may have to go with that approach
 
                 if (userName) {
 
@@ -138,15 +138,14 @@ limitations under the License.
                     // }
 
                     // set Authorization header
-                    auth = make_basic_auth(userName, password);
+                    auth = make_basic_auth_header(userName, password);
                     xhr.setRequestHeader('Authorization', auth);
                 }
                 // else {
                     // xhr.open(verb, uri, async);
                 // }
 
-                xhr.setRequestHeader("Cache-Control", "no-cache");
-                xhr.setRequestHeader("Pragma", "no-cache");
+                progress.data.Session._setNoCacheHeaders(xhr);
             //  ?? setRequestHeaderFromContextProps(this, xhr);
 
             } else {

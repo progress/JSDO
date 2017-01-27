@@ -48,17 +48,17 @@ limitations under the License.
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
         function storeTokenInfo(info) {
             if (info.access_token.length) {
-                that._storage.setItem(tokenDataKeys.token,  JSON.stringify(info.access_token));
+                that._storage.setItem(tokenDataKeys.token, JSON.stringify(info.access_token));
             }
             if (info.refresh_token.length) {
-                that._storage.setItem(tokenDataKeys.refreshToken,  JSON.stringify(info.refresh_token));
+                that._storage.setItem(tokenDataKeys.refreshToken, JSON.stringify(info.refresh_token));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
                 // we got a new token via refresh, but now we're not being given any more refresh tokens
                 that._storage.removeItem(tokenDataKeys.refreshToken);
             }
-            that._storage.setItem(tokenDataKeys.tokenType,  JSON.stringify(info.token_type));
-            that._storage.setItem(tokenDataKeys.expiration,  JSON.stringify(info.expires_in));
+            that._storage.setItem(tokenDataKeys.tokenType, JSON.stringify(info.token_type));
+            that._storage.setItem(tokenDataKeys.expiration, JSON.stringify(info.expires_in));
         }
 
         // get one of the pieces of data related to tokens from storage (could be the token itself, or
@@ -300,11 +300,12 @@ limitations under the License.
 
 
         // PROCESS CONSTRUCTOR ARGUMENTS, CREATE API PROPERTIES, ETC.
-        this._initialize(uri, progress.data.Session.AUTH_TYPE_FORM_SSO,
-                                 {"_loginURI": "/static/auth/j_spring_security_check?OECP=yes",
-                                  "_logoutURI": "/static/auth/j_spring_security_logout",
-                                  "_refreshURI": "/static/auth/token?op=refresh"
-                                 });
+        this._initialize(uri,
+                         progress.data.Session.AUTH_TYPE_FORM_SSO,
+                         {"_loginURI": progress.data.AuthenticationProvider._springFormTokenLoginURIBase,
+                          "_logoutURI": progress.data.AuthenticationProvider._springLogoutURIBase,
+                          "_refreshURI": progress.data.AuthenticationProvider._springFormTokenRefreshURIBase
+                         });
         
 
         // We're currently storing the token in storage with the 

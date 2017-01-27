@@ -30,10 +30,9 @@ limitations under the License.
         
         // PROCESS CONSTRUCTOR ARGUMENTS, CREATE API PROPERTIES, ETC.
         this._initialize(uri, progress.data.Session.AUTH_TYPE_FORM,
-                                 {"_loginURI": "/static/auth/j_spring_security_check",
-                                  "_logoutURI": "/static/auth/j_spring_security_logout"
-                                 });
-
+                         {"_loginURI": progress.data.AuthenticationProvider._springLoginURIBase,
+                          "_logoutURI": progress.data.AuthenticationProvider._springLogoutURIBase
+                         });
     };
     
     // Start by giving this constructor the prototype from the "base" AuthenticationProvider
@@ -78,11 +77,8 @@ limitations under the License.
         this._checkStringArg("login", userNameParam, 1, "userName");
         this._checkStringArg("login", passwordParam, 2, "password");
 
-        return this._loginProto({"Pragma": "no-cache",
-                                 "Content-Type": "application/x-www-form-urlencoded",
-                                 "Cache-Control": "max-age=0",
-                                 "Accept": "application/json"},
-                    "j_username=" + userNameParam + "&j_password=" + passwordParam + "&submit=Submit");
+        return this._loginProto("j_username=" + userNameParam +
+                                "&j_password=" + passwordParam + "&submit=Submit");
     };
     
     // login helper
@@ -92,6 +88,12 @@ limitations under the License.
     progress.data.AuthenticationProviderForm.prototype._openLoginRequest = function (xhr, uri) {
 
         xhr.open('POST', uri, true);
+
+        xhr.setRequestHeader("Cache-Control", "max-age=0");
+        xhr.setRequestHeader("Pragma", "no-cache");
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.setRequestHeader("Accept", "application/json");
+
         xhr.withCredentials = true;
 
     };
