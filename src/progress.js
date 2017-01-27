@@ -1,8 +1,8 @@
 
 /* 
-progress.js    Version: 4.3.1-27
+progress.js    Version: 4.4.0-5
 
-Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,10 +100,19 @@ limitations under the License.
     msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
     msg.msgs.jsdoMSG047 = "{1} timeout expired.";
     msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
-    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error calling {2}: {3}";
     msg.msgs.jsdoMSG050 = "No token returned from server";
-    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
-    msg.msgs.jsdoMSG052 = "{1}: Login was not attempted because no credentials were supplied.";
+    msg.msgs.jsdoMSG051 = "{1} The login method was not executed because the AuthenticationProvider is already logged in.";
+    msg.msgs.jsdoMSG052 = "{1}: The login method was not executed because no credentials were supplied.";
+    msg.msgs.jsdoMSG053 = "{1}: {2} was not executed because the AuthenticationProvider is not logged in.";
+    msg.msgs.jsdoMSG054 = "{1}: Token refresh was not executed because the AuthenticationProvider does not have a refresh token.";
+    msg.msgs.jsdoMSG055 = "{1}: Token refresh was not executed  because the authentication model is not sso.";
+    msg.msgs.jsdoMSG056 = "{1}: Already connected or logged in.";
+    msg.msgs.jsdoMSG057 = "{1}: Called {2} when authenticationModel is sso. Use {3} instead.";
+    msg.msgs.jsdoMSG058 = "{1}: Cannot pass username and password to addCatalog when authenticationModel " +
+        "is sso. Pass an AuthenticationProvider instead.";
+    msg.msgs.jsdoMSG059 = "{1}: Error in constructor. The authenticationModels of the " +
+        "AuthenticationProvider ({3}) and the JSDOSession ({4}) were not compatible.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -129,14 +138,25 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
-    msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider needs to be managing a valid token.";
+    msg.msgs.jsdoMSG125 = "{1}: The AuthenticationProvider is not managing valid credentials.";
+    msg.msgs.jsdoMSG126 = "{1}: No support for {2}.";
     
     //                    500 - 998 are for generic errors
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
-    msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
-    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
-    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
-    msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";    
+    msg.msgs.jsdoMSG501 = "{1}: '{2}' in '{3}' function cannot be an empty string.";
+    msg.msgs.jsdoMSG502 = "{1}: The '{2}' parameter passed to the '{3}' function has an invalid value for " +
+        "its '{4}' property.";
+    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'.";
+    msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";
+    msg.msgs.jsdoMSG505 = "{1}: '{2}' objects must have a '{3}' method.";
+                // use message below if invalid parameter value is an object    
+    msg.msgs.jsdoMSG506 = "{1}: Invalid argument for the {2} parameter in {3} call.";
+                // use message below if invalid parameter value is a primitive
+    msg.msgs.jsdoMSG507 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
+    msg.msgs.jsdoMSG508 = "JSDOSession: If a JSDOSession object is using the SSO authentication model, " +
+        "the options object passed to its constructor must include an authProvider property.";
+    msg.msgs.jsdoMSG509 = "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as the authenticationModel, " +
+        "it must also be passed an authProvider and an authProviderAuthenticationModel.";
 
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
@@ -5976,6 +5996,7 @@ limitations under the License.
                         }
                     }
                 } catch (e) {
+                    request.success = false;				
                     request.exception = e;
                     if ((typeof xhr.onErrorFn) == 'function') {
                         xhr.onErrorFn(xhr.jsdo, request.success, request);
@@ -6584,7 +6605,7 @@ limitations under the License.
 		requestMapping: function(jsdo, params, info) {
 			var sortFields,
 			field,
-            fieldName,            
+            fieldName,
             fieldInfo,
             tableName,
             filter,
@@ -6642,8 +6663,8 @@ limitations under the License.
                 }
 
 				if (params.sort) {
-                    // Convert sort expression to JFP format				
-					
+                    // Convert sort expression to JFP format
+
                     if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
                         // Kendo UI sort format - object
                         // Make params.sort an array
