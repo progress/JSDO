@@ -1,5 +1,5 @@
 /* 
-progress.util.js    Version: 4.4.0-4
+progress.util.js    Version: 4.4.0-5
 
 Copyright (c) 2014-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -18,9 +18,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
  */
-
+/*global progress:true*/
+/*jslint nomen: true*/
 (function () {
-    
+
      /* Define these if not defined yet - they may already be defined if
       * progress.js was included first */
     if (typeof progress === "undefined") {
@@ -34,7 +35,8 @@ limitations under the License.
     progress.util = {};
     
     var STRING_OBJECT_TYPE = "String",
-        DATE_OBJECT_TYPE = "Date";
+        DATE_OBJECT_TYPE = "Date",
+        CHARACTER_ABL_TYPE = "CHARACTER";
     
     
     /**
@@ -127,7 +129,7 @@ limitations under the License.
             }
 
             if (typeof evt !== 'string') {
-                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
                     "subscribe", progress.data._getMsgText("jsdoMSG039")));
             }
 
@@ -137,16 +139,15 @@ limitations under the License.
 
             try {
                 this.validateSubscribe(arguments, evt, listenerData);
-            }
-            catch (e) {
-                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+            } catch (e) {
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
                                             "subscribe", e.message));
             }
 
             observers = this._events[evt] || [];
 
             // make sure we don't add duplicates
-            observers = _filterObservers(observers, listenerData.fn, 
+            observers = _filterObservers(observers, listenerData.fn,
                 listenerData.scope, listenerData.operation);
             observers.push(listenerData);
             this._events[evt] = observers;
@@ -182,7 +183,7 @@ limitations under the License.
             }
 
             if (typeof evt !== 'string') {
-                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
                     "unsubscribe", progress.data._getMsgText("jsdoMSG037")));
             }
 
@@ -191,16 +192,15 @@ limitations under the License.
             listenerData = {fn: undefined, scope: undefined, operation: undefined};
             try {
                 this.validateSubscribe(arguments, evt, listenerData);
-            }
-            catch (e) {
+            } catch (e) {
             //  throw new Error("Invalid signature for unsubscribe. " + e.message);
-                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), 
+                throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
                                         "unsubscribe", e.message));
             }
 
             observers = this._events[evt] || [];
             if (observers.length > 0) {
-                this._events[evt] = _filterObservers(observers, listenerData.fn, 
+                this._events[evt] = _filterObservers(observers, listenerData.fn,
                     listenerData.scope, listenerData.operation);
             }
 
@@ -236,9 +236,9 @@ limitations under the License.
             if (observers.length > 0) {
                 args = Array.prototype.slice.call(arguments);
 
-                if ((arguments.length >= 2) 
-                    && (typeof evt === 'string') 
-                    && (typeof operation === 'string')) {
+                if ((arguments.length >= 2)
+                        && (typeof evt === 'string')
+                        && (typeof operation === 'string')) {
                     // in alt format the second argument is the event name, 
                     // and the first is the operation name
                     op = operation;
@@ -319,8 +319,7 @@ limitations under the License.
             if (jsonStr !== null) {
                 try {
                     dataObj = JSON.parse(jsonStr);
-                }
-                catch (e) {
+                } catch (e) {
                     dataObj = null;
                 }
             }
@@ -357,7 +356,8 @@ limitations under the License.
             operator,
             value,
             ablType,
-            filters = (filter.filters) ?  filter.filters : [filter],
+            //filters = (filter.filters) ? filter.filters : [filter],
+            filters = filter.filters || [filter],
 			
             whereOperators = {
                 eq: "=",
@@ -366,13 +366,17 @@ limitations under the License.
                 gte: ">=",
                 lt: "<",
                 lte: "<=",
-                contains : "INDEX", 
+                contains : "INDEX",
                 doesnotcontain: "INDEX",
-                endswith: "R-INDEX", 
-                startswith: "BEGINS"
-        };
+                endswith: "R-INDEX",
+                startswith: "BEGINS",
+                isnull: "ISNULL",
+                isnotnull: "ISNOTNULL",
+                isempty: "ISEMPTY",
+                isnotempty: "ISNOTEMPTY"
+            };
         
-        for (idx = 0, length = filters.length; idx < length; idx=idx+1) {
+        for (idx = 0, length = filters.length; idx < length; idx += 1) {
             filter = filters[idx];
             field = filter.field;
             value = filter.value;
@@ -383,7 +387,7 @@ limitations under the License.
                 if (fieldInfo && fieldInfo.origName) {
                     field = fieldInfo.origName;
                 }
-            }            
+            }
 
             if (filter.filters) {
                 filter = progress.util._convertToABLWhereString(tableRef, filter);
@@ -394,6 +398,15 @@ limitations under the License.
                     throw new Error("The operator " + filter.operator + " is not valid.");
                 }
 
+                switch (filter.operator) {
+                case "isnull":
+                case "isnotnull":
+                case "isempty":
+                case "isnotempty":
+                    value = undefined;
+                    break;
+                }
+                
                 if (operator && value !== undefined) {
                     type = progress.util._getObjectType(value);
   
@@ -402,21 +415,17 @@ limitations under the License.
                     if (type === STRING_OBJECT_TYPE) {
                         format = "'{1}'";
                         value = value.replace(/'/g, "~'");
-                    } 
-                    else if (type === DATE_OBJECT_TYPE) {
+                    } else if (type === DATE_OBJECT_TYPE) {
                         ablType = tableRef._getABLType(field);
                         if (ablType === "DATE") {
                             format = "DATE({1:MM, dd, yyyy})";
-                        }
-                        else if (ablType === "DATETIME-TZ") {
+                        } else if (ablType === "DATETIME-TZ") {
                             // zzz here means to translate timezone offset into minutes
                             format = "DATETIME-TZ({1:MM, dd, yyyy, hh, mm, ss, fff, zzz})";
-                        }
-                        else {
+                        } else {
                             format = "DATETIME({1:MM, dd, yyyy, hh, mm, ss, fff})";
                         }
-                    } 
-					else {
+                    } else {
                         format = "{1}";
                     }
                     
@@ -425,26 +434,46 @@ limitations under the License.
                     // Ex. R-INDEX(name, "LTD")
                     if (operator === "INDEX" || operator === "R-INDEX") {
                         if (type !== STRING_OBJECT_TYPE) {
-                            throw new Error("Error parsing filter object. The operator " + filter.operator + 
+                            throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a string value");
                         }
                         if (filter.operator === "doesnotcontain") {
                             format = "{0}(" + "{2}, " + format + ") = 0";
-                        }
-                        else if (filter.operator === "contains") {
+                        } else if (filter.operator === "contains") {
                             format = "{0}(" + "{2}, " + format + ") > 0";
-                        }
-                        // else filter.operator = "endswith"
-                        else  {
+                        } else { // else filter.operator = "endswith"
                             format = "{2} MATCHES '*{1}'";
                         }
-                    }
-                    else {
+                    } else {
                         format = "{2} {0} " + format;
                     }
 
                     filter = progress.util._format(format, operator, value, field);
-                }
+                } else if (operator && value === undefined) {
+                    if (filter.operator === "isempty" || filter.operator === "isnotempty") {
+						ablType = tableRef._getABLType(field);
+                        if (ablType !== CHARACTER_ABL_TYPE) {
+                            throw new Error("Error parsing filter object. The operator " + filter.operator +
+                                            " requires a CHARACTER field");
+                        }
+                        if (filter.operator === "isempty") {
+                            format = "{2} = ''";
+                        } else if (filter.operator === "isnotempty") {
+                            format = "{2} <> ''";
+                        }
+                    } else {
+                        if (filter.operator === "isnull") {
+                            format = "{2} = ?";
+                        } else if (filter.operator === "isnotnull") {
+                            format = "{2} <> ?";
+                        } else {
+                            format = "{2} {0} ?";
+                        }
+                    }
+				
+                    // format, operator {0}, value {1}, field {2}
+                    filter = progress.util._format(format, operator, value, field);
+				}
             }
 
             result.push(filter);
@@ -479,7 +508,7 @@ limitations under the License.
             operator,
             value,
             fieldFormat,
-            filters = (filter.filters) ?  filter.filters : [filter],
+            filters = filter.filters || [filter],
             filterStr,
             usingLike = true,
 			
@@ -490,17 +519,21 @@ limitations under the License.
                 gte: ">=",
                 lt: "<",
                 lte: "<=",
-                contains : "LIKE", 
+                contains : "LIKE",
                 doesnotcontain: "NOT LIKE",
-                endswith: "LIKE", 
-                startswith: "LIKE"
-        };
+                endswith: "LIKE",
+                startswith: "LIKE",
+                isnull: "ISNULL",
+                isnotnull: "ISNOTNULL",
+                isempty: "ISEMPTY",
+                isnotempty: "ISNOTEMPTY"
+            };
         
         if (typeof addSelect === "undefined") {
             addSelect = false;
         }
 
-        for (idx = 0, length = filters.length; idx < length; idx=idx+1) {
+        for (idx = 0, length = filters.length; idx < length; idx += 1) {
             filter = filters[idx];
             field = filter.field;
             value = filter.value;
@@ -514,33 +547,38 @@ limitations under the License.
                     throw new Error("The operator " + filter.operator + " is not valid.");
                 }
                 
+                switch (filter.operator) {
+                case "isnull":
+                case "isnotnull":
+                case "isempty":
+                case "isnotempty":
+                    value = undefined;
+                    break;
+                }
+
                 if (operator && value !== undefined) {
                     type = progress.util._getObjectType(value);
                     
                     if (operator === "LIKE" || operator === "NOT LIKE") {
                         if (type !== STRING_OBJECT_TYPE) {
-                            throw new Error("Error parsing filter object. The operator " + filter.operator + 
+                            throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a string value");
                         }
                     }
                     
-                     if (type === STRING_OBJECT_TYPE) {
+                    if (type === STRING_OBJECT_TYPE) {
                         format = "'{1}'";
                         value = value.replace(/'/g, "''");
-                    } 
-                    else if (type === DATE_OBJECT_TYPE) {
+                    } else if (type === DATE_OBJECT_TYPE) {
                         fieldFormat = tableRef._getFormat(field);
                         if (fieldFormat === "date") {
                             format = "'{1:yyyy-MM-dd}'";
-                        }
-                        else if (fieldFormat === "date-time") {
+                        } else if (fieldFormat === "date-time") {
                             format = "{1:#ISO(iso)}";
-                        }
-                        else if (fieldFormat === "time") {
+                        } else if (fieldFormat === "time") {
                             format = "'{1:FFF}'";
-                        } 
-                    } 
-					else {
+                        }
+                    } else {
                         format = "{1}";
                     }
                     
@@ -548,24 +586,44 @@ limitations under the License.
                     // We'll first add positional info for the value, which is represented by {1}
                     if (filter.operator === "startswith") {
                         format = "'{1}%'";
-                    }
-                    else if (filter.operator === "endswith") { 
+                    } else if (filter.operator === "endswith") {
                         format = "'%{1}'";
-                    }
-                    else if (filter.operator === "contains" || filter.operator === "doesnotcontain") {
+                    } else if (filter.operator === "contains" || filter.operator === "doesnotcontain") {
                         format = "'%{1}%'";
-                    }
-                    else {
-                       usingLike = false;
+                    } else {
+                        usingLike = false;
                     }
                     
                     if (usingLike) {
                         value = value.replace(/%/g, '\\%');
                         value = value.replace(/_/g, '\\_');
                     }
-
                    
                     format = "{2} {0} " + format;
+                    filterStr = progress.util._format(format, operator, value, field);
+                } else if (operator && value === undefined) {
+                    if (filter.operator === "isempty" || filter.operator === "isnotempty") {
+						type = tableRef._fields[field.toLowerCase()].type;
+                        if (type !== STRING_OBJECT_TYPE.toLowerCase()) {
+                            throw new Error("Error parsing filter object. The operator " + filter.operator +
+                                            " requires a string field");
+                        }
+                        if (filter.operator === "isempty") {
+                            format = "{2} = ''";
+                        } else if (filter.operator === "isnotempty") {
+                            format = "{2} != ''";
+                        }
+                    } else {
+                        if (filter.operator === "isnull") {
+                            format = "{2} IS NULL";
+                        } else if (filter.operator === "isnotnull") {
+                            format = "{2} IS NOT NULL";
+                        } else {
+                            format = "{2} {0} NULL";
+                        }
+                    }
+				
+                    // format, operator {0}, value {1}, field {2}					
                     filterStr = progress.util._format(format, operator, value, field);
                 }
             }
@@ -593,7 +651,7 @@ limitations under the License.
      *
      * @param value - the object whose type is returned
      */
-    progress.util._getObjectType = function(value) {    
+    progress.util._getObjectType = function (value) {
         // Returns [object xxx]. Removing [object ]
         return Object.prototype.toString.call(value).slice(8, -1);
     };
@@ -606,13 +664,13 @@ limitations under the License.
      *
      * @returns - formatted string.
      */
-    progress.util._format = function(fmt) {
+    progress.util._format = function (fmt) {
         /*jslint regexp: true*/
         var values = arguments,
             formatRegExp = /\{(\d+)(:[^\}]+)?\}/g;
         /*jslint regexp: false*/
 
-        return fmt.replace(formatRegExp, function(match, index, placeholderFormat) {
+        return fmt.replace(formatRegExp, function (match, index, placeholderFormat) {
             var value = values[parseInt(index, 10) + 1];
 
             return progress.util._toString(value, placeholderFormat ? placeholderFormat.substring(1) : "");
@@ -628,19 +686,18 @@ limitations under the License.
      *
      * @returns - converted string.
      */
-    progress.util._toString = function(value, fmt) {
+    progress.util._toString = function (value, fmt) {
         var str;
                     
         if (fmt) {
             if (progress.util._getObjectType(value) === "Date") {
                 return progress.util._formatDate(value, fmt);
-            } 
+            }
         }
 
         if (typeof value === "number") {
             str =  value.toString();
-        }
-        else {
+        } else {
             str = (value !== undefined ? value : "");
         }
             
@@ -680,7 +737,7 @@ limitations under the License.
      */
     progress.util._formatDate = function (date, format) {
         /*jslint regexp: true*/
-        var dateFormatRegExp = 
+        var dateFormatRegExp =
             /dd|MM|yyyy|hh|mm|fff|FFF|ss|zzz|iso|"[^"]*"|'[^']*'/g;
         /*jslint regexp: false*/
        
@@ -691,37 +748,28 @@ limitations under the License.
 
             if (match === "dd") {
                 result = progress.util._pad(date.getDate());
-            }
-            else if (match === "MM") {
+            } else if (match === "MM") {
                 result = progress.util._pad(date.getMonth() + 1);
-            } 
-            else if (match === "yyyy") {
+            } else if (match === "yyyy") {
                 result = progress.util._pad(date.getFullYear(), 4);
-            } 
-            else if (match === "hh") {
+            } else if (match === "hh") {
                 result = progress.util._pad(date.getHours());
-            } 
-            else if (match === "mm") {
+            } else if (match === "mm") {
                 result = progress.util._pad(date.getMinutes());
-            } 
-            else if (match === "ss") {
+            } else if (match === "ss") {
                 result = progress.util._pad(date.getSeconds());
-            } 
-            else if (match === "fff") {
+            } else if (match === "fff") {
                 result = progress.util._pad(date.getMilliseconds(), 3);
-            } 
-            else if (match === "FFF") {
+            } else if (match === "FFF") {
                 result = String(date.getTime());
-            } 
-            else if (match === "zzz") {
+            } else if (match === "zzz") {
                 // timezone is returned in minutes
                 minutes = date.getTimezoneOffset();
                 sign = minutes < 0;
                 result = (sign ? "+" : "-") + minutes;
-            } 
-            else if (match === "iso") {
+            } else if (match === "iso") {
                 result = date.toISOString();
-            } 
+            }
 
             return result !== undefined ? result : match.slice(1, match.length - 1);
         });
@@ -739,7 +787,4 @@ limitations under the License.
         }
     };
 
-}()); 
-
-
-
+}());
