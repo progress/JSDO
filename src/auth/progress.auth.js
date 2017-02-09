@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.4.0-1
+progress.auth.js    Version: 4.4.0-2
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -212,7 +212,9 @@ limitations under the License.
     // JSDOSESSION code expects it to be present. The point here is that if a developer were to
     // create their own AuthenticationProvider object, it would need to include this method
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr, verb, uri) {
-    
+        var deferred = $.Deferred(),
+            error;
+
         if (this.hasClientCredentials()) {
             xhr.open(verb, uri, true);
 
@@ -223,11 +225,14 @@ limitations under the License.
             // getting back the 401 and the JSON in the body might help us figure out what really
             // wnet wrong
             xhr.setRequestHeader("Accept", "application/json");
+            deferred.resolve({});
         } else {
             // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
-            throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            error = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            deferred.reject({errorObject: error});
         }
         
+        return deferred.promise();
     };
 
 

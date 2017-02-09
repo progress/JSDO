@@ -1,5 +1,5 @@
 /* 
-progress.auth.sso.js    Version: 4.4.0-1
+progress.auth.sso.js    Version: 4.4.0-2
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -34,7 +34,8 @@ limitations under the License.
                 token: ".access_token",
                 refreshToken: ".refresh_token",
                 tokenType: ".token_type",
-                expiration: ".expires_in"
+                expiration: ".expires_in",
+                refreshDeadline: ".refreshDeadline"
             };
         
         // PRIVATE FUNCTIONS
@@ -47,15 +48,26 @@ limitations under the License.
         // a "QuotaExceededError" error if there is insufficient storage space or 
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
         function storeTokenInfo(info) {
+            var date,
+                refreshDeadline;
+
             if (info.access_token.length) {
                 that._storage.setItem(tokenDataKeys.token, JSON.stringify(info.access_token));
             }
             if (info.refresh_token.length) {
                 that._storage.setItem(tokenDataKeys.refreshToken, JSON.stringify(info.refresh_token));
+                // Calculate when we should automatically refresh the token.
+                // We take the current time and add the expires_in value, after reducing the latter as
+                // a rough way to compensate for such things as the fact that the current time is later 
+                // than the time the token was actually issued
+                date = new Date();
+                refreshDeadline = date.getTime() + (info.expires_in * 1000 * 0.75);
+                that._storage.setItem(tokenDataKeys.refreshDeadline, JSON.stringify(refreshDeadline));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
                 // we got a new token via refresh, but now we're not being given any more refresh tokens
                 that._storage.removeItem(tokenDataKeys.refreshToken);
+                that._storage.removeItem(tokenDataKeys.refreshDeadline);
             }
             that._storage.setItem(tokenDataKeys.tokenType, JSON.stringify(info.token_type));
             that._storage.setItem(tokenDataKeys.expiration, JSON.stringify(info.expires_in));
@@ -84,7 +96,10 @@ limitations under the License.
         function retrieveRefreshToken() {
             return retrieveTokenProperty(tokenDataKeys.refreshToken);
         }
-        
+
+        function retrieveRefreshDeadline() {
+            return retrieveTokenProperty(tokenDataKeys.refreshDeadline);
+        }
 
         function retrieveTokenType() {
             return retrieveTokenProperty(tokenDataKeys.tokenType);
@@ -106,6 +121,7 @@ limitations under the License.
             that._storage.removeItem(tokenDataKeys.refreshToken);
             that._storage.removeItem(tokenDataKeys.tokenType);
             that._storage.removeItem(tokenDataKeys.expiration);
+            that._storage.removeItem(tokenDataKeys.refreshDeadline);
         }
         
         // function is SSO specific
@@ -242,16 +258,47 @@ limitations under the License.
 
 
         // Override the protoype's method but call it from within the override. (Define the override 
-        // here in the constructor so it has access to the internal function)
+        // here in the constructor so it has access to the internal function getToken() )
         this._openRequestAndAuthorize =
             function (xhr, verb, uri) {
-            
-                progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
-                    this,
-                    [xhr, verb, uri]
-                );
-            
-                xhr.setRequestHeader('Authorization', "oecp " + getToken());
+                var deferred = $.Deferred(),
+                    that = this,
+                    date;
+
+                function afterRefreshCheck() {
+                    progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
+                        that,
+                        [xhr, verb, uri]
+                    )
+                        .always(function () {
+                            xhr.setRequestHeader('Authorization', "oecp " + getToken());
+                            deferred.resolve();
+                        });
+                }
+
+                if (this.hasClientCredentials()) {
+                    // Make a guess whether the token has expired. If it may have (or if it's getting
+                    // close), refresh it. 
+                    // Note that even if there is no refersh token, or if the refresh attempt fails,
+                    // we make the request anyway. We do that so that the app code gets the error in
+                    // the context of the call that it actually made. We may want to consider whether
+                    // taht's the best approach
+                    date = new Date();
+                    if (date.getTime() > retrieveRefreshDeadline() && this.hasRefreshToken()) {
+                        this.refresh()
+                            .always(function () {
+                                afterRefreshCheck();
+                            });
+                    } else {
+                        afterRefreshCheck();
+                    }
+                } else {
+                    // This message is SSO specific, unless we can come up with a more general message 
+                    // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                    throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                }
+
+                return deferred.promise();
             };
 
         
@@ -314,6 +361,7 @@ limitations under the License.
         tokenDataKeys.refreshToken = this._storageKey + tokenDataKeys.refreshToken;
         tokenDataKeys.tokenType = this._storageKey + tokenDataKeys.tokenType;
         tokenDataKeys.expiration = this._storageKey + tokenDataKeys.expiration;
+        tokenDataKeys.refreshDeadline = this._storageKey + tokenDataKeys.refreshDeadline;
 
         // NOTE: we rely on the prototype's logic to set this._loggedIn. An alternative could be to 
         // use the presence of a token to determine that, but it's conceivable that we could be

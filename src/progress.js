@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.4.0-5
+progress.js    Version: 4.4.0-6
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2461,22 +2461,30 @@ limitations under the License.
             request.jsdo = this;
             request.xhr = xhr;
 
-            this._session._openRequest(xhr, method, url, request.async);
+            // this._session._openRequest(xhr, method, url, request.async);
+            this._session._openRequest(xhr, method, url, request.async)
+            .done(function () {   // make sure _openRequest does not fail, because it never did before?
+                var input = null;
+                if (reqBody) {
+                    xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+                    input = JSON.stringify(reqBody);
+                }
 
-            var input = null;
-            if (reqBody) {
-                xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-                input = JSON.stringify(reqBody);
-            }
-
-            try {
-                xhr.send(input);
-            } catch (e) {
+                try {
+                    xhr.send(input);
+                } catch (e) {
+                    request.success = false;
+                    request.exception = e;
+                    // let Session check for online/offline
+                    xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+                    request.deferred.promise().reject(xhr.jsdo, request.success, request);
+                }
+            })
+            .fail(function () {
                 request.success = false;
-                request.exception = e;
-                // let Session check for online/offline
                 xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
-            }
+                request.deferred.promise().reject(xhr.jsdo, request.success, request);
+            });
 
             return request;
         };

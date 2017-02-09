@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.4.0-1
+progress.session.js    Version: 4.4.0-2
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -1298,13 +1298,38 @@ limitations under the License.
          * there is one
          */
         this._openRequest = function (xhr, verb, url, async) {
+            var deferred = $.Deferred(),
+                urlPlusCCID,
+                that = this;
 
+            function afterOpenRequest(xhr) {
+                // add CCID header
+                if (that.clientContextId && (that.clientContextId !== "0")) {
+                    xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", that.clientContextId);
+                }
+                // set X-CLIENT-PROPS header
+                setRequestHeaderFromContextProps(that, xhr);
+                
+                if (typeof that.onOpenRequest === 'function') {
+                    var params = {
+                        "xhr": xhr,
+                        "verb": verb,
+                        "uri": urlPlusCCID,
+                        "async": async,
+                        "formPreTest": false,
+                        "session": that
+                    };
+                    that.onOpenRequest(params);
+                    // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
+                }
+            }
+             
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                 throw new Error("Attempted to make server request when there is no active session.");
             }
 
             // if resource url is not absolute, add the REST app url to the front
-            var urlPlusCCID = this._prependAppURL(url);
+            urlPlusCCID = this._prependAppURL(url);
 
             // add CCID as JSESSIONID query string to url
             urlPlusCCID = this._addCCIDtoURL(urlPlusCCID);
@@ -1314,40 +1339,27 @@ limitations under the License.
                 urlPlusCCID = progress.data.Session._addTimeStampToURL(urlPlusCCID);
             }
             
-            // should be able to remove this check when we no longer support calling the Session
-            // API directly (need to keep that now becasue tdriver, for one, uses the Session object,
-            // and uses it synchronously
+            // should be able to remove this check and only do what's in the "if" when we no longer 
+            // support calling the Session API directly (need to keep that now because tdriver, for
+            // one, uses the Session object, and uses it synchronously
             if (this._authProvider) {
                 // note: throw an error if we have one of the above but not the other?
-                this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID);
+                this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID)
+                    .always(function () {
+                        afterOpenRequest(xhr);
+                        deferred.resolve();
+                    });
+                    
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                     _addWithCredentialsAndAccept(xhr, "application/json");
                 }
+                afterOpenRequest(xhr);
+                deferred.resolve();
             }
             
-            // add CCID header
-            /* check with Mike -- incorporate this into AuthenticationProvider if we should continue to do it  */
-            if (this.clientContextId && (this.clientContextId !== "0")) {
-                xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", this.clientContextId);
-            }
-            
-            // set X-CLIENT-PROPS header
-            setRequestHeaderFromContextProps(this, xhr);
-            
-            if (typeof this.onOpenRequest === 'function') {
-                var params = {
-                    "xhr": xhr,
-                    "verb": verb,
-                    "uri": urlPlusCCID,
-                    "async": async,
-                    "formPreTest": false,
-                    "session": this
-                };
-                this.onOpenRequest(params);
-                // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
-            }
+            return deferred.promise();
         };
 
         // callback used in login to determine whether ping is available on server
@@ -1400,7 +1412,8 @@ limitations under the License.
         this._connect = function (deferred) {
             var uriForRequest,   // "decorated" version of serviceURI, used to actually send the request
                 xhr,
-                params;
+                params,
+                that = this;
 
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
                     !needsReconnectAfterPageRefresh) {
@@ -1417,35 +1430,36 @@ limitations under the License.
                     uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
                 }
                 
-                this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest);
+                this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest)
+                    .always(function () {
+                        progress.data.Session._setNoCacheHeaders(xhr);
+                        // set X-CLIENT-PROPS header
+                        setRequestHeaderFromContextProps(that, xhr);
 
-                progress.data.Session._setNoCacheHeaders(xhr);
-                // set X-CLIENT-PROPS header
-                setRequestHeaderFromContextProps(this, xhr);
+                        xhr.onreadystatechange = that._onReadyStateChangeGeneric;
+                        xhr.onResponseFn = that._processConnectResult;
+                        xhr.onResponseProcessedFn = that._connectComplete;
+                        xhr._jsdosession = jsdosession;
+                        xhr._deferred = deferred;
 
-                xhr.onreadystatechange = this._onReadyStateChangeGeneric;
-                xhr.onResponseFn = this._processConnectResult;
-                xhr.onResponseProcessedFn = this._connectComplete;
-                xhr._jsdosession = jsdosession;
-                xhr._deferred = deferred;
+                        if (typeof that.onOpenRequest === 'function') {
 
-                if (typeof this.onOpenRequest === 'function') {
-
-                    //  set this here in case onOpenRequest checks it
-                    setLastSessionXHR(xhr, this);
-                    params = {
-                        "xhr": xhr,
-                        "verb": "GET",
-                        "uri": this.serviceURI + this.loginTarget,
-                        "async": true,
-                        "formPreTest": false,
-                        "session": this
-                    };
-                    this.onOpenRequest(params);
-                    xhr = params.xhr; // just in case it has been changed
-                }
-                setLastSessionXHR(xhr, this);
-                xhr.send(null);
+                            //  set this here in case onOpenRequest checks it
+                            setLastSessionXHR(xhr, that);
+                            params = {
+                                "xhr": xhr,
+                                "verb": "GET",
+                                "uri": that.serviceURI + that.loginTarget,
+                                "async": true,
+                                "formPreTest": false,
+                                "session": that
+                            };
+                            that.onOpenRequest(params);
+                            xhr = params.xhr; // just in case it has been changed
+                        }
+                        setLastSessionXHR(xhr, that);
+                        xhr.send(null);
+                    });
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
@@ -2201,7 +2215,7 @@ limitations under the License.
         /* addCatalog
          *
          */
-        this.addCatalog = function () {
+        this.addCatalog = function (arg1, arg2, arg3, arg4) {
             var catalogURI,
                 catalogUserName,
                 catalogPassword,
@@ -2210,74 +2224,133 @@ limitations under the License.
                 deferred,
                 iOSBasicAuthTimeout,
                 catalogIndex,
-                authProvider;
+                authProvider,
+                that = this;
 
+            function afterOpen() {
+                /* This is here as much for CORS situations as the possibility that there might be an 
+                 * out of date cached version of the catalog. The CORS problem happens if you have 
+                 * accessed the catalog locally and then run an app on a different server that requests
+                 * the catalog. Your browser already has the catalog, but the request used to get it was
+                 * a non-CORS request and the browser will raise an error
+                 */
+                progress.data.Session._setNoCacheHeaders(xhr);
+                // set X-CLIENT-PROPS header
+                setRequestHeaderFromContextProps(that, xhr);
+
+                if (isAsync) {
+                    xhr.onreadystatechange = that._onReadyStateChangeGeneric;
+                    xhr.onResponseFn = that._processAddCatalogResult;
+                    xhr.onResponseProcessedFn = that._addCatalogComplete;
+                    
+                    if (that.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC
+                            && isUserAgentiOS
+                            && iOSBasicAuthTimeout) {
+                        xhr._requestTimeout = setTimeout(function () {
+                            clearTimeout(xhr._requestTimeout);
+                            xhr._iosTimeOutExpired = true;
+                            xhr.abort();
+                        },
+                                                    iOSBasicAuthTimeout);
+                    }
+                    
+                    // in case the caller is a JSDOSession
+                    xhr._jsdosession = jsdosession;
+                    xhr._deferred = deferred;
+                    xhr._catalogIndex = catalogIndex;
+                }
+
+                try {
+                    if (typeof that.onOpenRequest === 'function') {
+                        setLastSessionXHR(xhr, that);
+                        var params = {
+                            "xhr": xhr,
+                            "verb": "GET",
+                            "uri": catalogURI,
+                            "async": false,
+                            "formPreTest": false,
+                            "session": that
+                        };
+                        that.onOpenRequest(params);
+                        xhr = params.xhr;
+                    }
+
+                    setLastSessionXHR(xhr, that);
+                    xhr.send(null);
+                } catch (e) {
+                    throw new Error("Error retrieving catalog '" + catalogURI + "'.\n" + e.message);
+                }
+                if (isAsync) {
+                    return progress.data.Session.ASYNC_PENDING;
+                } else {
+                    return that._processAddCatalogResult(xhr);
+                }
+                
+            }
+            
             // check whether the args were passed in a single object. If so, copy them
             // to the named arguments and a variable
             if (arguments.length > 0) {
-                if (typeof(arguments[0]) === 'object') {
+                if (typeof arg1 === 'object') {
                     
                     // check whether OK to get catalog if offline
-                    if ( !arguments[0].offlineAddCatalog) {
-                        if (this.loginResult !== 
-                              progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
+                    if (!arg1.offlineAddCatalog) {
+                        if (this.loginResult !==
+                                progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
                             throw new Error("Attempted to call addCatalog when there is no active session.");
                         }
                     }
                         
-                    catalogURI = arguments[0].catalogURI;
-                    if (!catalogURI || (typeof catalogURI != 'string')) {
-                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
+                    catalogURI = arg1.catalogURI;
+                    if (!catalogURI || (typeof catalogURI !== 'string')) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
                                                     'The catalogURI argument was missing or invalid.'));
                     }
-                    catalogUserName = arguments[0].userName;
-                    if (catalogUserName && (typeof catalogUserName != 'string')) {
-                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
+                    catalogUserName = arg1.userName;
+                    if (catalogUserName && (typeof catalogUserName !== 'string')) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
                             'The catalogUserName argument was invalid.'));
                     }
-                    catalogPassword = arguments[0].password;
-                    if (catalogPassword && (typeof catalogPassword != 'string')) {
-                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
+                    catalogPassword = arg1.password;
+                    if (catalogPassword && (typeof catalogPassword !== 'string')) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
                             'The catalogPassword argument was invalid.'));
                     }
-                    isAsync = arguments[0].async;
-                    if (isAsync && (typeof isAsync != 'boolean')) {
-                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
+                    isAsync = arg1.async;
+                    if (isAsync && (typeof isAsync !== 'boolean')) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
                             'The async argument was invalid.'));
                     }
-                    iOSBasicAuthTimeout = arguments[0].iOSBasicAuthTimeout;
-                    if ( typeof iOSBasicAuthTimeout == 'undefined' ) {
+                    iOSBasicAuthTimeout = arg1.iOSBasicAuthTimeout;
+                    if (typeof iOSBasicAuthTimeout === 'undefined') {
                         iOSBasicAuthTimeout = defaultiOSBasicAuthTimeout;
-                    }
-                    else if (iOSBasicAuthTimeout && (typeof iOSBasicAuthTimeout != 'number')) {
-                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog', 
+                    } else if (iOSBasicAuthTimeout && (typeof iOSBasicAuthTimeout !== 'number')) {
+                        throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
                             'The iOSBasicAuthTimeout argument was invalid.'));
                     }
-                    authProvider = arguments[0].authProvider;
-                    
+                    authProvider = arg1.authProvider;
+
                     /* Special for JSDOSession: if this method was called by a JSDOSession object, it passes
-                        deferred, jsdosession, and catalogIndex and we need to eventually attach them to the 
+                        deferred, jsdosession, and catalogIndex and we need to eventually attach them to the
                         XHR we use so that the promise created by the JSDOSession will work correctly
-                    */ 
-                    deferred = arguments[0].deferred;
-                    catalogIndex = arguments[0].catalogIndex;
+                    */
+                    deferred = arg1.deferred;
+                    catalogIndex = arg1.catalogIndex;
+                } else {
+                    catalogURI = arg1;
+                    if (typeof catalogURI !== 'string') {
+                        throw new Error("First argument to Session.addCatalog must be the URL of the catalog.");
+                    }
+                    catalogUserName = arg2;
+                    if (catalogUserName && (typeof catalogUserName !== 'string')) {
+                        throw new Error("Second argument to Session.addCatalog must be a user name string.");
+                    }
+                    catalogPassword = arg3;
+                    if (catalogPassword && (typeof catalogPassword !== 'string')) {
+                        throw new Error("Third argument to Session.addCatalog must be a password string.");
+                    }
                 }
-                else {
-                    catalogURI = arguments[0];
-                    if (typeof catalogURI != 'string') {
-                      throw new Error("First argument to Session.addCatalog must be the URL of the catalog.");
-                    }
-                    catalogUserName = arguments[1];
-                    if (catalogUserName && (typeof catalogUserName != 'string')) {
-                      throw new Error("Second argument to Session.addCatalog must be a user name string.");
-                    }
-                    catalogPassword = arguments[2];
-                    if (catalogPassword && (typeof catalogPassword != 'string')) {
-                      throw new Error("Third argument to Session.addCatalog must be a password string.");
-                    }
-                }
-            }
-            else {
+            } else {
                 throw new Error("Session.addCatalog is missing its first argument, the URL of the catalog.");
             }
 
@@ -2285,11 +2358,12 @@ limitations under the License.
                 authProvider = this._authProvider;
             }
             
-        // TODO: we expect that there will always be an authImpl if a login has been done. Therefore,
-        // we don't need to set catalogUsername and catalogPassword if they aren't passed in. What we should
-        // do here, when we extend the AuthenticationProvider API for the older auth models, is take
-        // any uname and pw passed in and create an auth provider, log in to the catalogURI with it, 
-        // create an authImpl, and then fetch the catalog.
+            // TODO: we expect that there will always be an authProvider if a login has been done.
+            // Therefore, we don't need to set catalogUsername and catalogPassword if they aren't
+            // passed in. What we should do here, when we extend the AuthenticationProvider API
+            // for the older auth models, is take any uname and pw passed in and create an auth
+            // provider, log in to the catalogURI with it, create an authImpl, and then fetch the
+            // catalog.
             if (!catalogUserName) {
                 catalogUserName = this.userName;
             }
@@ -2317,84 +2391,29 @@ limitations under the License.
                     xhr._deferred = deferred;
                     xhr._catalogIndex = catalogIndex;
                     
-                    setTimeout(this._addCatalogComplete, 10, this, 
-                        progress.data.Session.CATALOG_ALREADY_LOADED, null, xhr );
+                    setTimeout(this._addCatalogComplete, 10, this,
+                        progress.data.Session.CATALOG_ALREADY_LOADED, null, xhr);
                     return progress.data.Session.ASYNC_PENDING;
                 }
                 return progress.data.Session.CATALOG_ALREADY_LOADED;
             }
 
             if (authProvider) {
-                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI);
+                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI)
+                    .always(function () {
+                        afterOpen();
+                    });
+                // existing code in JSDOSession addCatalog expects to get this as a return value,
+                // have to return it now
+                return progress.data.Session.ASYNC_PENDING;
             } else {  // should be able to get rid of this if we do away with synchronous (old Session API) support
                 this._setXHRCredentials(xhr, 'GET', catalogURI, catalogUserName, catalogPassword, isAsync);
-                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                    _addWithCredentialsAndAccept(xhr, "application/json");
-                }
                 // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
                 // be stored with the REST app and even if it is, the AppServer ID shouldn't be relevant
-            }
-            
-            /* This is here as much for CORS situations as the possibility that there might be an out of date
-             * cached version of the catalog. The CORS problem happens if you have accessed the catalog
-             * locally and then run an app on a different server that requests the catalog. 
-             * Your browser already has the catalog,
-             * but the request used to get it was a non-CORS request and the browser will
-             * raise an error
-             */
-            progress.data.Session._setNoCacheHeaders(xhr);
-            // set X-CLIENT-PROPS header
-            setRequestHeaderFromContextProps(this, xhr);
-
-            if (isAsync) {
-                xhr.onreadystatechange = this._onReadyStateChangeGeneric;
-                xhr.onResponseFn = this._processAddCatalogResult;
-                xhr.onResponseProcessedFn = this._addCatalogComplete;
                 
-                if (    this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC
-                     && isUserAgentiOS
-                     && iOSBasicAuthTimeout ) { 
-                    xhr._requestTimeout = setTimeout(  function (){
-                                                    clearTimeout(xhr._requestTimeout);
-                                                    xhr._iosTimeOutExpired = true;
-                                                    xhr.abort();
-                                                }, 
-                                                iOSBasicAuthTimeout);
-                }                
-                
-                // in case the caller is a JSDOSession
-                xhr._jsdosession = jsdosession;
-                xhr._deferred = deferred;  
-                xhr._catalogIndex = catalogIndex;
+                afterOpen();
             }
 
-            try {
-                if (typeof this.onOpenRequest === 'function') {
-                    setLastSessionXHR(xhr, this);
-                    var params = {
-                        "xhr": xhr,
-                        "verb": "GET",
-                        "uri": catalogURI,
-                        "async": false,
-                        "formPreTest": false,
-                        "session": this
-                    };
-                    this.onOpenRequest(params);
-                    xhr = params.xhr;
-                }
-
-                setLastSessionXHR(xhr, this);
-                xhr.send(null);
-            }
-            catch (e) {
-                throw new Error("Error retrieving catalog '" + catalogURI + "'.\n" + e.message);
-            }
-            if (isAsync) {
-                return progress.data.Session.ASYNC_PENDING;
-            }
-            else {
-                return this._processAddCatalogResult(xhr);
-            }
         };
 
         this._processAddCatalogResult = function (xhr) {
@@ -2866,15 +2885,10 @@ limitations under the License.
          *  (deliberately not catching thrown error)
          */
         this._sendPing = function (args) {
-            var xhr = new XMLHttpRequest();
-            try {
-                if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI);
-                } else {
-                    // get rid of this if we do away with synchronous support (i.e., customer use of 
-                    // old Session API)
-                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
-                }
+            var xhr = new XMLHttpRequest(),
+                that = this;
+
+            function afterPingOpen() {
                 if (args.async) {
                     xhr.onreadystatechange = args.onReadyStateFn;
                     xhr.onCompleteFn = args.onCompleteFn;
@@ -2883,17 +2897,29 @@ limitations under the License.
                 }
                 progress.data.Session._setNoCacheHeaders(xhr);
                 // set X-CLIENT-PROPS header
-                setRequestHeaderFromContextProps(this, xhr);
-                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                    _addWithCredentialsAndAccept(xhr, 
+                setRequestHeaderFromContextProps(that, xhr);
+                if (that.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
+                    _addWithCredentialsAndAccept(xhr,
                         "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
                 }
                 xhr.send(null);
             }
-            catch (e) {
+
+            try {
+                if (this._authProvider) {
+                    this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI)
+                        .always(function () {
+                            afterPingOpen();
+                        });
+                } else {
+                    // get rid of this if we do away with synchronous support (i.e., customer use of
+                    // old Session API)
+                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+                }
+            } catch (e) {
                 args.error = e;
             }
-            
+
             args.xhr = xhr;
         };
 
@@ -3706,6 +3732,16 @@ limitations under the License.
                 iOSBasicAuthTimeout,
                 authProvider;
 
+            function callConnect() {
+                that.connect()
+                    .then(function (jsdosession, result, info) {
+                        deferred.resolve(that, result, info);
+                    },
+                        function (jsdosession, result, info) {
+                            deferred.reject(that, result, info);
+                        });                
+            }
+            
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: Called login() when authenticationModel is SSO. Use connect() instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
@@ -3727,18 +3763,21 @@ limitations under the License.
                 });
             }
             
-            _pdsession._authProvider.login(username, password)
-                .then(function () {
-                    return that.connect();
-                })
-                .then(function (jsdosession, result, info) {
-                    deferred.resolve(that, result, info);
-                },
-                    // catches errors on either login or connect
-                    function (provider, result, info) {
-                        deferred.reject(that, result, info);
-                    });
-
+            
+            if (_pdsession._authProvider.hasClientCredentials()) {
+                // the authProvider already has credentials (a page refresh may have happened),
+                // so do not call login
+                callConnect();
+            } else {
+                _pdsession._authProvider.login(username, password)
+                    .then(function () {
+                        callConnect();
+                    },
+                        function (provider, result, info) {
+                            deferred.reject(that, result, info);
+                        });
+            }
+            
             return deferred.promise();
         };
 
@@ -3994,47 +4033,51 @@ limitations under the License.
         this.isAuthorized = function () {
             var deferred = $.Deferred(),
                 xhr = new XMLHttpRequest(),
-                result;
+                result,
+                that = this;
 
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true);
-                xhr.onreadystatechange = function () {
-                    var xhr = this,  // do we need this var? The one declared in isAuthorized seems to be in scope
-                        cbresult,
-                        fakePingArgs,
-                        info;
+                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true)
+                    .always(function () {
+                        xhr.onreadystatechange = function () {
+                            // do we need this xhr var? The one declared in isAuthorized seems to be in scope
+                            var xhr = this,
+                                cbresult,
+                                fakePingArgs,
+                                info;
 
-                    if (xhr.readyState === 4) {
-                        info = {xhr: xhr,
-                                offlineReason: undefined,
-                                fireEventIfOfflineChange: true,
-                                usingOepingFormat: false
-                               };
+                            if (xhr.readyState === 4) {
+                                info = {xhr: xhr,
+                                        offlineReason: undefined,
+                                        fireEventIfOfflineChange: true,
+                                        usingOepingFormat: false
+                                       };
 
-                        // call _processPingResult because it has logic for 
-                        // detecting change in online/offline state
-                        _pdsession._processPingResult(info);
+                                // call _processPingResult because it has logic for 
+                                // detecting change in online/offline state
+                                _pdsession._processPingResult(info);
 
-                        if (xhr.status >= 200 && xhr.status < 300) {
-                            deferred.resolve(that,
-                                             progress.data.Session.SUCCESS,
-                                             info);
-                        } else {
-                            if (xhr.status === 401) {
-                                cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
-                            } else {
-                                cbresult = progress.data.Session.GENERAL_FAILURE;
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                    deferred.resolve(that,
+                                                     progress.data.Session.SUCCESS,
+                                                     info);
+                                } else {
+                                    if (xhr.status === 401) {
+                                        cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                    } else {
+                                        cbresult = progress.data.Session.GENERAL_FAILURE;
+                                    }
+                                    deferred.reject(that, cbresult, info);
+                                }
                             }
-                            deferred.reject(that, cbresult, info);
-                        }
-                    }
-                };
+                        };
 
-                try {
-                    xhr.send();
-                } catch (e) {
-                    throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
-                }
+                        try {
+                            xhr.send();
+                        } catch (e) {
+                            throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
+                        }
+                    });
             } else {
                 // Never logged in (or logged in and logged out). Regardless of what the reason
                 // was that there wasn't a login, the bottom line is that authentication is required
@@ -4044,7 +4087,7 @@ limitations under the License.
 
             return deferred.promise();
         };
-        
+
         /* 
            set the properties that are passed between client and Web application in the 
            X-CLIENT-PROPS header. This sets the complete set of properties all at once;
