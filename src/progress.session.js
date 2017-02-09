@@ -3701,11 +3701,18 @@ limitations under the License.
           // returns the promise from the A-P's login call.
         this.login = function (username, password, options) {
             var deferred = $.Deferred(),
-                loginResult,
-                errorObject,
-                iOSBasicAuthTimeout,
-                authProvider;
+                iOSBasicAuthTimeout;
 
+            function callConnect() {
+                that.connect()
+                    .then(function (jsdosession, result, info) {
+                        deferred.resolve(that, result, info);
+                    },
+                        function (jsdosession, result, info) {
+                            deferred.reject(that, result, info);
+                        });                
+            }
+            
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: Called login() when authenticationModel is SSO. Use connect() instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
@@ -3727,17 +3734,19 @@ limitations under the License.
                 });
             }
             
-            _pdsession._authProvider.login(username, password)
-                .then(function () {
-                    return that.connect();
-                })
-                .then(function (jsdosession, result, info) {
-                    deferred.resolve(that, result, info);
-                },
-                    // catches errors on either login or connect
-                    function (provider, result, info) {
-                        deferred.reject(that, result, info);
-                    });
+            if (_pdsession._authProvider.hasClientCredentials()) {
+                // the authProvider already has credentials (a page refresh may have happened),
+                // so do not call login
+                callConnect();
+            } else {
+                _pdsession._authProvider.login(username, password)
+                    .then(function () {
+                        callConnect();
+                    },
+                        function (provider, result, info) {
+                            deferred.reject(that, result, info);
+                        });
+            }
 
             return deferred.promise();
         };
