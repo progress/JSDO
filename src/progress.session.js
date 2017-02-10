@@ -3707,10 +3707,9 @@ limitations under the License.
                 that.connect()
                     .then(function (jsdosession, result, info) {
                         deferred.resolve(that, result, info);
-                    },
-                        function (jsdosession, result, info) {
-                            deferred.reject(that, result, info);
-                        });                
+                    }, function (jsdosession, result, info) {
+                        deferred.reject(that, result, info);
+                    });
             }
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
