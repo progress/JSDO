@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.4.0-2
+progress.session.js    Version: 4.4.0-3
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -1343,11 +1343,10 @@ limitations under the License.
             // support calling the Session API directly (need to keep that now because tdriver, for
             // one, uses the Session object, and uses it synchronously
             if (this._authProvider) {
-                // note: throw an error if we have one of the above but not the other?
                 this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID)
                     .always(function () {
                         afterOpenRequest(xhr);
-                        deferred.resolve();
+                        deferred.resolve();  // always succeeds because previous implementations did
                     });
                     
             } else {
