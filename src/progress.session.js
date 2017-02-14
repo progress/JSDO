@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.4.0-1
+progress.session.js    Version: 4.4.0-3
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -311,7 +311,9 @@ limitations under the License.
                                                 fn.fnName + "' requires an object as a parameter.");
                                         }
                                         var objParam;
-                                        if (object instanceof XMLHttpRequest) {
+                                        if (object instanceof XMLHttpRequest 
+                                                || (object.constructor 
+                                                    && object.constructor.name === "XMLHttpRequest")) {
                                             jsdo = object.jsdo;
                                             xhr = object;
                                             objParam = xhr.objParam;

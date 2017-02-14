@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.4.0-5
+progress.js    Version: 4.4.0-7
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2861,7 +2861,7 @@ limitations under the License.
             if (this._resource) {
                 if (typeof(this._resource.generic.read) == "function") {
                     xhr.objParam = objParam;
-                    this._resource.generic.read(xhr, this._async);
+                    this._resource.generic.read.call(this, xhr, this._async);
                     if (xhr.request.deferred) {
                         promise = xhr.request.deferred.promise();
                     }
@@ -3748,7 +3748,7 @@ limitations under the License.
                 if (this._resource) {
                     if (typeof(this._resource.generic["delete"]) == "function") {
                         xhr.objParam = requestData;
-                        this._resource.generic["delete"](xhr, this._async);
+                        this._resource.generic["delete"].call(this, xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: DELETE operation is not defined.");
@@ -3812,7 +3812,7 @@ limitations under the License.
                         
                         xhr.objParam = requestData;
                         
-                        this._resource.generic.create(xhr, this._async);
+                        this._resource.generic.create.call(this, xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: CREATE operation is not defined.");
@@ -3897,7 +3897,7 @@ limitations under the License.
                 if (this._resource) {
                     if (typeof(this._resource.generic.update) == "function") {
                         xhr.objParam = requestData;
-                        this._resource.generic.update(xhr, this._async);
+                        this._resource.generic.update.call(this, xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: UPDATE operation is not defined.");
