@@ -37,7 +37,7 @@ limitations under the License.
                 expiration: ".expires_in",
                 refreshDeadline: ".refreshDeadline"
             };
-        
+
         // PRIVATE FUNCTIONS
         // (The constructor uses local variables and functions mainly to try to protect the token
         // information as much as possible. A few could probably be defined as properties/methods, but
@@ -259,47 +259,61 @@ limitations under the License.
 
         // Override the protoype's method but call it from within the override. (Define the override 
         // here in the constructor so it has access to the internal function getToken() )
-        this._openRequestAndAuthorize =
-            function (xhr, verb, uri) {
-                var deferred = $.Deferred(),
-                    that = this,
-                    date;
+        this._openRequestAndAuthorize = function (xhr,
+                                                  verb,
+                                                  uri,
+                                                  callback) {
+            var that = this,
+                date,
+                errorObject;
 
-                function afterRefreshCheck() {
+            function afterRefreshCheck(provider, result, info) {
+                // if refresh failed because of auth failure, we will have gotten rid of the 
+                // token and reset the auth provider
+                if (result === progress.data.Session.AUTHENTICATION_FAILURE) {
+                    callback(new Error(progress.data._getMsgText("jsdoMSG060")));
+                } else {
+                    // We've done the refresh check (and possible refresh) for SSO, now execute
+                    // the base _openRequest... method, which does common things for Form-based
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
-                        [xhr, verb, uri]
-                    )
-                        .always(function () {
-                            xhr.setRequestHeader('Authorization', "oecp " + getToken());
-                            deferred.resolve();
-                        });
+                        [xhr, verb, uri, function (errorObject) {
+                            if (!errorObject) {
+                                xhr.setRequestHeader('Authorization', "oecp " + getToken());
+                            }
+                            callback(errorObject);
+                        }]
+                    );
                 }
+            }
 
-                if (this.hasClientCredentials()) {
-                    // Make a guess whether the token has expired. If it may have (or if it's getting
-                    // close), refresh it. 
-                    // Note that even if there is no refersh token, or if the refresh attempt fails,
-                    // we make the request anyway. We do that so that the app code gets the error in
-                    // the context of the call that it actually made. We may want to consider whether
-                    // taht's the best approach
-                    date = new Date();
-                    if (date.getTime() > retrieveRefreshDeadline() && this.hasRefreshToken()) {
+            if (this.hasClientCredentials()) {
+                // Make a guess whether the token has expired. If it may have (or if it's getting
+                // close), refresh it. 
+                // Note that even if there is no refresh token, or if the refresh attempt fails,
+                // we make the request anyway. We do that so that the app code gets the error in
+                // the context of the call that it actually made. We may want to consider whether
+                // that's the best approach
+                date = new Date();
+                if (date.getTime() > retrieveRefreshDeadline() && this.hasRefreshToken()) {
+                    try {
                         this.refresh()
-                            .always(function () {
-                                afterRefreshCheck();
+                            .always(function (provider, result, info) {
+                                afterRefreshCheck(provider, result, info);
                             });
-                    } else {
-                        afterRefreshCheck();
+                    } catch (e) {
+                        callback(e);
                     }
                 } else {
-                    // This message is SSO specific, unless we can come up with a more general message 
-                    // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
-                    throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                    afterRefreshCheck(this, progress.data.Session.SUCCESS, null);
                 }
-
-                return deferred.promise();
-            };
+            } else {
+                // This message is SSO specific, unless we can come up with a more general message 
+                // JSDOSession: The AuthenticationProvider needs to be managing a valid token.
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                callback(errorObject);
+            }
+        };
 
         
         // API METHODS

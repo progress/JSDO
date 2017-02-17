@@ -1296,13 +1296,16 @@ limitations under the License.
          * calls open() for an xhr -- the assumption is that this is an xhr for a JSDO, and we need to add
          * some session management information for the request, such as user credentials and a session ID if
          * there is one
+         *
+         * The callback parameter is to support async calls --- it's possible that the call in here to
+         * _openRequestAndAuthorize will make an async request (for token refresh), so it's expected that
+         * callers will invoke _openRequest with a callback parameter for async execution
          */
-        this._openRequest = function (xhr, verb, url, async) {
-            var deferred = $.Deferred(),
-                urlPlusCCID,
+        this._openRequest = function (xhr, verb, url, async, callback) {
+            var urlPlusCCID,
                 that = this;
 
-            function afterOpenRequest(xhr) {
+            function afterOpenAndAuthorize(xhr) {
                 // add CCID header
                 if (that.clientContextId && (that.clientContextId !== "0")) {
                     xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", that.clientContextId);
@@ -1321,6 +1324,9 @@ limitations under the License.
                     };
                     that.onOpenRequest(params);
                     // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
+                }
+                if (callback) {
+                    callback();
                 }
             }
              
@@ -1343,22 +1349,15 @@ limitations under the License.
             // support calling the Session API directly (need to keep that now because tdriver, for
             // one, uses the Session object, and uses it synchronously
             if (this._authProvider) {
-                this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID)
-                    .always(function () {
-                        afterOpenRequest(xhr);
-                        deferred.resolve();  // always succeeds because previous implementations did
-                    });
-                    
+                this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID, afterOpenAndAuthorize);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
                     _addWithCredentialsAndAccept(xhr, "application/json");
                 }
-                afterOpenRequest(xhr);
-                deferred.resolve();
+                afterOpenAndAuthorize(xhr);
             }
             
-            return deferred.promise();
         };
 
         // callback used in login to determine whether ping is available on server
@@ -1414,6 +1413,55 @@ limitations under the License.
                 params,
                 that = this;
 
+            function _connectAfterOpen(errorObject) {
+                var result;
+
+                // need these set for _connectComplete even if we call it directly here 
+                // because we were passed an errorObject
+                xhr._jsdosession = jsdosession;
+                xhr._deferred = deferred;
+
+                if (errorObject) {
+                    try {
+                        that._processConnectResult(xhr);
+                    }
+                    catch (e) {
+                        // keep errorObject as it is (error not currently thrown from 
+                        // _processConnectResult anyway)
+                    }
+                    if (!result) {
+                        result = progress.data.Session.GENERAL_FAILURE;
+                    }
+                    that._connectComplete(xhr.pdsession, result, errorObject, xhr);
+                } else {
+                    progress.data.Session._setNoCacheHeaders(xhr);
+                    // set X-CLIENT-PROPS header
+                    setRequestHeaderFromContextProps(that, xhr);
+
+                    xhr.onreadystatechange = that._onReadyStateChangeGeneric;
+                    xhr.onResponseFn = that._processConnectResult;
+                    xhr.onResponseProcessedFn = that._connectComplete;
+
+                    if (typeof that.onOpenRequest === 'function') {
+
+                        //  set this here in case onOpenRequest checks it
+                        setLastSessionXHR(xhr, that);
+                        params = {
+                            "xhr": xhr,
+                            "verb": "GET",
+                            "uri": that.serviceURI + that.loginTarget,
+                            "async": true,
+                            "formPreTest": false,
+                            "session": that
+                        };
+                        that.onOpenRequest(params);
+                        xhr = params.xhr; // just in case it has been changed
+                    }
+                    setLastSessionXHR(xhr, that);
+                    xhr.send(null);
+                }
+            }
+
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
                     !needsReconnectAfterPageRefresh) {
                 // Session: Already connected or logged in.
@@ -1429,36 +1477,7 @@ limitations under the License.
                     uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
                 }
                 
-                this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest)
-                    .always(function () {
-                        progress.data.Session._setNoCacheHeaders(xhr);
-                        // set X-CLIENT-PROPS header
-                        setRequestHeaderFromContextProps(that, xhr);
-
-                        xhr.onreadystatechange = that._onReadyStateChangeGeneric;
-                        xhr.onResponseFn = that._processConnectResult;
-                        xhr.onResponseProcessedFn = that._connectComplete;
-                        xhr._jsdosession = jsdosession;
-                        xhr._deferred = deferred;
-
-                        if (typeof that.onOpenRequest === 'function') {
-
-                            //  set this here in case onOpenRequest checks it
-                            setLastSessionXHR(xhr, that);
-                            params = {
-                                "xhr": xhr,
-                                "verb": "GET",
-                                "uri": that.serviceURI + that.loginTarget,
-                                "async": true,
-                                "formPreTest": false,
-                                "session": that
-                            };
-                            that.onOpenRequest(params);
-                            xhr = params.xhr; // just in case it has been changed
-                        }
-                        setLastSessionXHR(xhr, that);
-                        xhr.send(null);
-                    });
+                this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest, _connectAfterOpen);
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
@@ -2226,7 +2245,7 @@ limitations under the License.
                 authProvider,
                 that = this;
 
-            function afterOpen() {
+            function addCatalogAfterOpen() {
                 /* This is here as much for CORS situations as the possibility that there might be an 
                  * out of date cached version of the catalog. The CORS problem happens if you have 
                  * accessed the catalog locally and then run an app on a different server that requests
@@ -2398,10 +2417,7 @@ limitations under the License.
             }
 
             if (authProvider) {
-                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI)
-                    .always(function () {
-                        afterOpen();
-                    });
+                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, addCatalogAfterOpen);
                 // existing code in JSDOSession addCatalog expects to get this as a return value,
                 // have to return it now
                 return progress.data.Session.ASYNC_PENDING;
@@ -2410,7 +2426,7 @@ limitations under the License.
                 // Note that we are not adding the CCID to the URL or as a header, because the catalog may not
                 // be stored with the REST app and even if it is, the AppServer ID shouldn't be relevant
                 
-                afterOpen();
+                return addCatalogAfterOpen();
             }
 
         };
@@ -2887,7 +2903,7 @@ limitations under the License.
             var xhr = new XMLHttpRequest(),
                 that = this;
 
-            function afterPingOpen() {
+            function sendPingAfterOpen() {
                 if (args.async) {
                     xhr.onreadystatechange = args.onReadyStateFn;
                     xhr.onCompleteFn = args.onCompleteFn;
@@ -2906,10 +2922,7 @@ limitations under the License.
 
             try {
                 if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI)
-                        .always(function () {
-                            afterPingOpen();
-                        });
+                    this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI, sendPingAfterOpen);
                 } else {
                     // get rid of this if we do away with synchronous support (i.e., customer use of
                     // old Session API)
@@ -4036,8 +4049,8 @@ limitations under the License.
                 that = this;
 
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true)
-                    .always(function () {
+                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true,
+                    function () {
                         xhr.onreadystatechange = function () {
                             // do we need this xhr var? The one declared in isAuthorized seems to be in scope
                             var xhr = this,
@@ -4076,7 +4089,8 @@ limitations under the License.
                         } catch (e) {
                             throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
                         }
-                    });
+                    }
+                    );
             } else {
                 // Never logged in (or logged in and logged out). Regardless of what the reason
                 // was that there wasn't a login, the bottom line is that authentication is required

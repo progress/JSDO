@@ -174,19 +174,21 @@ limitations under the License.
     // to do it this way)
     fn = progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize;
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize =
-        function (xhr, verb, uri) {
-            var deferred = $.Deferred();
+        function (xhr, verb, uri, callback) {
 
-            progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
-                this,
-                [xhr, verb, uri]
-            )
-                .always(function () {
-                    xhr.withCredentials = true;
-                    deferred.resolve({});
-                });
-
-            return deferred.promise();
+            function afterSuper(errorObject) {
+                xhr.withCredentials = true;
+                callback(errorObject);
+            }
+            
+            try {
+                progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
+                    this,
+                    [xhr, verb, uri, afterSuper]
+                );
+            } catch (e) {
+                callback(e);
+            }
         };
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super = fn;
 

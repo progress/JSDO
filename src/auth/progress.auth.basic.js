@@ -117,10 +117,9 @@ limitations under the License.
         
         // Override the protoype's method (this method does not invoke the prototype's copy)
         // (Define the override here in the constructor so it has access to instance variables)
-        this._openRequestAndAuthorize = function (xhr, verb, uri) {
+        this._openRequestAndAuthorize = function (xhr, verb, uri, callback) {
             var auth,
-                deferred = $.Deferred(),
-                error;
+                errorObject;
 
             if (this.hasClientCredentials()) {
 
@@ -149,17 +148,13 @@ limitations under the License.
 
                 progress.data.Session._setNoCacheHeaders(xhr);
             //  ?? setRequestHeaderFromContextProps(this, xhr);
-            
-                deferred.resolve({});
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
-                error = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-                deferred.reject({errorObject: error});
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
             }
 
-            return deferred.promise();
+            callback(errorObject);
         };
-        
     };
 
     
