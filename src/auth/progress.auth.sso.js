@@ -24,11 +24,14 @@ limitations under the License.
     /*global progress : true*/
     /*global $ : false */
 
+    var fn;
+    
 // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
     progress.data.AuthenticationProviderSSO = function (uri) {
         var that = this,
-            fn,
             // SSO specific
+            _automaticTokenRefresh,
+            temp,
             ssoTokenInfo = null,
             tokenDataKeys = {    // SSO specific 
                 token: ".access_token",
@@ -115,7 +118,7 @@ limitations under the License.
         function retrieveExpiration() {
             return retrieveTokenProperty(tokenDataKeys.expiration);
         }
-
+        
         function clearTokenInfo(info) {
             that._storage.removeItem(tokenDataKeys.token);
             that._storage.removeItem(tokenDataKeys.refreshToken);
@@ -295,7 +298,9 @@ limitations under the License.
                 // the context of the call that it actually made. We may want to consider whether
                 // that's the best approach
                 date = new Date();
-                if (date.getTime() > retrieveRefreshDeadline() && this.hasRefreshToken()) {
+                if (this.automaticTokenRefresh &&
+                        date.getTime() > retrieveRefreshDeadline() &&
+                        this.hasRefreshToken()) {
                     try {
                         this.refresh()
                             .always(function (provider, result, info) {
@@ -368,6 +373,34 @@ limitations under the License.
                           "_refreshURI": progress.data.AuthenticationProvider._springFormTokenRefreshURIBase
                          });
         
+        // in addition to the standard AuthenticationProvider properties, an SSO provider also has a property
+        // to control automatic token refresh (it's enabled by default on the assumption that developers
+        // will usually want this)
+        _automaticTokenRefresh = true;
+        Object.defineProperty(this, 'automaticTokenRefresh',
+            {
+                get: function () {
+                    return _automaticTokenRefresh;
+                },
+                set: function (value) {
+                    if (value === true || value === false) {
+                        _automaticTokenRefresh = value;
+                    } else {
+                        throw new Error(progress.data._getMsgText("jsdoMSG061",
+                                                                  "AuthenticationProvider",
+                                                                  "automaticTokenRefresh"));
+                    }
+                },
+                enumerable: true
+            });
+
+        // add the automaticTokenRefresh key to the base class's list of data keys
+        this._dataKeys.automaticTokenRefresh = this._storageKey + ".automaticTokenRefresh";
+        // set it from storage, if it's in storage
+        temp = this._retrieveInfoItem(this._dataKeys.automaticTokenRefresh);
+        if (temp === false) {
+            _automaticTokenRefresh = false;
+        }
 
         // We're currently storing the token in storage with the 
         // uri as the key. This is subject to change later.
@@ -384,6 +417,7 @@ limitations under the License.
         if (retrieveToken()) {
             this._loggedIn = true;
         }
+        
       // END OF CONSTRUCTOR PROCESSING
         
     };
@@ -402,6 +436,27 @@ limitations under the License.
     progress.data.AuthenticationProviderSSO.prototype.constructor =
         progress.data.AuthenticationProviderSSO;
 
+    // override the base AuthenticationProvider _storeInfo and _clearinfo, but keep refs so they
+    // can be invoked within the overrides
+    fn = progress.data.AuthenticationProviderForm.prototype._storeInfo;
+    progress.data.AuthenticationProviderForm.prototype._storeInfo =
+        function () {
+            progress.data.AuthenticationProviderForm.prototype._storeInfo._super.apply(this);
+            this._storage.setItem(this._dataKeys.automaticTokenRefresh,
+                                  JSON.stringify(this._automaticTokenRefresh));
+        };
+    progress.data.AuthenticationProviderForm.prototype._storeInfo._super = fn;
+
+    fn = progress.data.AuthenticationProviderForm.prototype._clearInfo;
+    progress.data.AuthenticationProviderForm.prototype._clearInfo =
+        function () {
+            progress.data.AuthenticationProviderForm.prototype._clearInfo._super.apply(this);
+            this._storage.removeItem(this._dataKeys.automaticTokenRefresh);
+        };
+    progress.data.AuthenticationProviderForm.prototype._clearInfo._super = fn;
+
+        
+        
     // NOTE: There are no overrides of the following methods (either here or in the constructor).
     //       This object uses these methods from the original prototype(i.e., the implementations from the
     //       Auth...Form object) because for an OE SSO token server, the login/logout model is Form (the 

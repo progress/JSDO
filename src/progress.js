@@ -115,6 +115,7 @@ limitations under the License.
         "AuthenticationProvider ({3}) and the JSDOSession ({4}) were not compatible.";
     msg.msgs.jsdoMSG060 = "AuthenticationProvider: AuthenticationProvider is no longer logged in. " +
         "Tried to refresh SSO token but failed due to authentication error at token server.";
+    msg.msgs.jsdoMSG061 = "{1}: Attempted to set {2} property to an invalid value.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";

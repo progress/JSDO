@@ -316,7 +316,7 @@ limitations under the License.
     // option for the developer to specify the key)
     // a "QuotaExceededError" error if there is insufficient storage space or 
     // "the user has disabled storage for the site" (Web storage spec at WHATWG)
-    progress.data.AuthenticationProvider.prototype._storeInfo = function (info) {
+    progress.data.AuthenticationProvider.prototype._storeInfo = function () {
         this._storage.setItem(this._dataKeys.uri, JSON.stringify(this._uri));
         this._storage.setItem(this._dataKeys.loggedIn, JSON.stringify(this._loggedIn));
     };
