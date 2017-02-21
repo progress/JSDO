@@ -38,7 +38,7 @@ limitations under the License.
                 refreshToken: ".refresh_token",
                 tokenType: ".token_type",
                 expiration: ".expires_in",
-                refreshDeadline: ".refreshDeadline"
+                accessTokenExpiration: ".accessTokenExpiration"
             };
 
         // PRIVATE FUNCTIONS
@@ -52,7 +52,7 @@ limitations under the License.
         // "the user has disabled storage for the site" (Web storage spec at WHATWG)
         function storeTokenInfo(info) {
             var date,
-                refreshDeadline;
+                accessTokenExpiration;
 
             if (info.access_token.length) {
                 that._storage.setItem(tokenDataKeys.token, JSON.stringify(info.access_token));
@@ -64,13 +64,13 @@ limitations under the License.
                 // a rough way to compensate for such things as the fact that the current time is later 
                 // than the time the token was actually issued
                 date = new Date();
-                refreshDeadline = date.getTime() + (info.expires_in * 1000 * 0.75);
-                that._storage.setItem(tokenDataKeys.refreshDeadline, JSON.stringify(refreshDeadline));
+                accessTokenExpiration = date.getTime() + (info.expires_in * 1000 * 0.75);
+                that._storage.setItem(tokenDataKeys.accessTokenExpiration, JSON.stringify(accessTokenExpiration));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
                 // we got a new token via refresh, but now we're not being given any more refresh tokens
                 that._storage.removeItem(tokenDataKeys.refreshToken);
-                that._storage.removeItem(tokenDataKeys.refreshDeadline);
+                that._storage.removeItem(tokenDataKeys.accessTokenExpiration);
             }
             that._storage.setItem(tokenDataKeys.tokenType, JSON.stringify(info.token_type));
             that._storage.setItem(tokenDataKeys.expiration, JSON.stringify(info.expires_in));
@@ -100,8 +100,8 @@ limitations under the License.
             return retrieveTokenProperty(tokenDataKeys.refreshToken);
         }
 
-        function retrieveRefreshDeadline() {
-            return retrieveTokenProperty(tokenDataKeys.refreshDeadline);
+        function retrieveAccessTokenExpiration() {
+            return retrieveTokenProperty(tokenDataKeys.accessTokenExpiration);
         }
 
         function retrieveTokenType() {
@@ -124,7 +124,7 @@ limitations under the License.
             that._storage.removeItem(tokenDataKeys.refreshToken);
             that._storage.removeItem(tokenDataKeys.tokenType);
             that._storage.removeItem(tokenDataKeys.expiration);
-            that._storage.removeItem(tokenDataKeys.refreshDeadline);
+            that._storage.removeItem(tokenDataKeys.accessTokenExpiration);
         }
         
         // function is SSO specific
@@ -265,6 +265,7 @@ limitations under the License.
         this._openRequestAndAuthorize = function (xhr,
                                                   verb,
                                                   uri,
+                                                  async,
                                                   callback) {
             var that = this,
                 date,
@@ -280,7 +281,7 @@ limitations under the License.
                     // the base _openRequest... method, which does common things for Form-based
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
-                        [xhr, verb, uri, function (errorObject) {
+                        [xhr, verb, uri, async, function (errorObject) {
                             if (!errorObject) {
                                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
                             }
@@ -299,7 +300,7 @@ limitations under the License.
                 // that's the best approach
                 date = new Date();
                 if (this.automaticTokenRefresh &&
-                        date.getTime() > retrieveRefreshDeadline() &&
+                        date.getTime() > retrieveAccessTokenExpiration() &&
                         this.hasRefreshToken()) {
                     try {
                         this.refresh()
@@ -408,7 +409,7 @@ limitations under the License.
         tokenDataKeys.refreshToken = this._storageKey + tokenDataKeys.refreshToken;
         tokenDataKeys.tokenType = this._storageKey + tokenDataKeys.tokenType;
         tokenDataKeys.expiration = this._storageKey + tokenDataKeys.expiration;
-        tokenDataKeys.refreshDeadline = this._storageKey + tokenDataKeys.refreshDeadline;
+        tokenDataKeys.accessTokenExpiration = this._storageKey + tokenDataKeys.accessTokenExpiration;
 
         // NOTE: we rely on the prototype's logic to set this._loggedIn. An alternative could be to 
         // use the presence of a token to determine that, but it's conceivable that we could be

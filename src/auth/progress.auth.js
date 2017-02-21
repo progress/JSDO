@@ -214,11 +214,12 @@ limitations under the License.
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr,
                                                                                         verb,
                                                                                         uri,
+                                                                                        async,
                                                                                         callback) {
         var errorObject;
         
         if (this.hasClientCredentials()) {
-            xhr.open(verb, uri, true);
+            xhr.open(verb, uri, async);
 
             // We specify application/json for the response so that, if a bad token is sent, an 
             // OE Web application that's based on Form auth will directly send back a 401 with

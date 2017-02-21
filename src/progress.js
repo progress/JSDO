@@ -2422,7 +2422,7 @@ limitations under the License.
          */
         this._httpRequest = function (xhr, method, url, reqBody, request) {
             
-            function afterOpenRequest() {   // make sure _openRequest does not fail, because it never did before?
+            function afterOpenRequest() {
                 var input = null;
                 if (reqBody) {
                     xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
@@ -2481,11 +2481,8 @@ limitations under the License.
             request.jsdo = this;
             request.xhr = xhr;
 
-            // if (request.async) {
-                this._session._openRequest(xhr, method, url, request.async, afterOpenRequest);
-            // } else {
-                // afterOpenRequest();
-            // }
+            this._session._openRequest(xhr, method, url, request.async, afterOpenRequest);
+
             return request;  // Note: for the async case, this does not give us exactly the same behavior
                              // as when afterOpenRequest is called synchronously, because this returns
                              // request before its xhr has had its open() called

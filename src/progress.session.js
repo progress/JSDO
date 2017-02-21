@@ -1349,7 +1349,11 @@ limitations under the License.
             // support calling the Session API directly (need to keep that now because tdriver, for
             // one, uses the Session object, and uses it synchronously
             if (this._authProvider) {
-                this._authProvider._openRequestAndAuthorize(xhr, verb, urlPlusCCID, afterOpenAndAuthorize);
+                this._authProvider._openRequestAndAuthorize(xhr, 
+                                                            verb, 
+                                                            urlPlusCCID, 
+                                                            async, 
+                                                            afterOpenAndAuthorize);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
@@ -1477,7 +1481,11 @@ limitations under the License.
                     uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
                 }
                 
-                this._authProvider._openRequestAndAuthorize(xhr, 'GET', uriForRequest, _connectAfterOpen);
+                this._authProvider._openRequestAndAuthorize(xhr,
+                                                            'GET',
+                                                            uriForRequest,
+                                                            true,  // async
+                                                            _connectAfterOpen);
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
@@ -2417,7 +2425,7 @@ limitations under the License.
             }
 
             if (authProvider) {
-                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, addCatalogAfterOpen);
+                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, isAsync, addCatalogAfterOpen);
                 // existing code in JSDOSession addCatalog expects to get this as a return value,
                 // have to return it now
                 return progress.data.Session.ASYNC_PENDING;
@@ -2922,7 +2930,11 @@ limitations under the License.
 
             try {
                 if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(xhr, 'GET', args.pingURI, sendPingAfterOpen);
+                    this._authProvider._openRequestAndAuthorize(xhr,
+                                                                'GET',
+                                                                args.pingURI,
+                                                                args.async,
+                                                                sendPingAfterOpen);
                 } else {
                     // get rid of this if we do away with synchronous support (i.e., customer use of
                     // old Session API)

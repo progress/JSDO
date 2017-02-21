@@ -117,13 +117,13 @@ limitations under the License.
         
         // Override the protoype's method (this method does not invoke the prototype's copy)
         // (Define the override here in the constructor so it has access to instance variables)
-        this._openRequestAndAuthorize = function (xhr, verb, uri, callback) {
+        this._openRequestAndAuthorize = function (xhr, verb, uri, async, callback) {
             var auth,
                 errorObject;
 
             if (this.hasClientCredentials()) {
 
-                xhr.open(verb, uri, true);  // but see comments below inside the "if userName"
+                xhr.open(verb, uri, async);  // but see comments below inside the "if userName"
                                             // may have to go with that approach
 
                 if (userName) {
