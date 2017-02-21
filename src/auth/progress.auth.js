@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.4.0-1
+progress.auth.js    Version: 4.4.0-2
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -211,8 +211,12 @@ limitations under the License.
     // program against, but it gets used in a validation check by the JSDOSESSION, because the
     // JSDOSESSION code expects it to be present. The point here is that if a developer were to
     // create their own AuthenticationProvider object, it would need to include this method
-    progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr, verb, uri) {
-    
+    progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr,
+                                                                                        verb,
+                                                                                        uri,
+                                                                                        callback) {
+        var errorObject;
+        
         if (this.hasClientCredentials()) {
             xhr.open(verb, uri, true);
 
@@ -221,13 +225,14 @@ limitations under the License.
             // error info in the body as JSON. So we're stting the accept header to application/json
             // even though we're supposedly doing Anonymous --- if the back end is actually using Form,
             // getting back the 401 and the JSON in the body might help us figure out what really
-            // wnet wrong
+            // went wrong
             xhr.setRequestHeader("Accept", "application/json");
         } else {
             // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
-            throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
         }
         
+        callback(errorObject);
     };
 
 
@@ -311,7 +316,7 @@ limitations under the License.
     // option for the developer to specify the key)
     // a "QuotaExceededError" error if there is insufficient storage space or 
     // "the user has disabled storage for the site" (Web storage spec at WHATWG)
-    progress.data.AuthenticationProvider.prototype._storeInfo = function (info) {
+    progress.data.AuthenticationProvider.prototype._storeInfo = function () {
         this._storage.setItem(this._dataKeys.uri, JSON.stringify(this._uri));
         this._storage.setItem(this._dataKeys.loggedIn, JSON.stringify(this._loggedIn));
     };

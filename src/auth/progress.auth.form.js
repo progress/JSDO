@@ -1,5 +1,5 @@
 /* 
-progress.auth.form.js    Version: 4.4.0-1
+progress.auth.form.js    Version: 4.4.0-2
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -174,13 +174,21 @@ limitations under the License.
     // to do it this way)
     fn = progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize;
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize =
-        function (xhr, verb, uri) {
+        function (xhr, verb, uri, callback) {
 
-            progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
-                this,
-                [xhr, verb, uri]
-            );
-            xhr.withCredentials = true;
+            function afterSuper(errorObject) {
+                xhr.withCredentials = true;
+                callback(errorObject);
+            }
+            
+            try {
+                progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
+                    this,
+                    [xhr, verb, uri, afterSuper]
+                );
+            } catch (e) {
+                callback(e);
+            }
         };
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super = fn;
 
