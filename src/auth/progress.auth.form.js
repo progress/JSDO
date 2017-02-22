@@ -174,7 +174,7 @@ limitations under the License.
     // to do it this way)
     fn = progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize;
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize =
-        function (xhr, verb, uri, async, callback) {
+        function (xhr, verb, uri, callback) {
 
             function afterSuper(errorObject) {
                 xhr.withCredentials = true;
@@ -184,7 +184,7 @@ limitations under the License.
             try {
                 progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
                     this,
-                    [xhr, verb, uri, async, afterSuper]
+                    [xhr, verb, uri, afterSuper]
                 );
             } catch (e) {
                 callback(e);

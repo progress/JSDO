@@ -1354,7 +1354,6 @@ limitations under the License.
                 this._authProvider._openRequestAndAuthorize(xhr, 
                                                             verb, 
                                                             urlPlusCCID, 
-                                                            async, 
                                                             afterOpenAndAuthorize);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
@@ -1486,7 +1485,6 @@ limitations under the License.
                 this._authProvider._openRequestAndAuthorize(xhr,
                                                             'GET',
                                                             uriForRequest,
-                                                            true,  // async
                                                             _connectAfterOpen);
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
@@ -2427,7 +2425,7 @@ limitations under the License.
             }
 
             if (authProvider) {
-                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, isAsync, addCatalogAfterOpen);
+                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, addCatalogAfterOpen);
                 // existing code in JSDOSession addCatalog expects to get this as a return value,
                 // have to return it now
                 return progress.data.Session.ASYNC_PENDING;
@@ -2935,7 +2933,6 @@ limitations under the License.
                     this._authProvider._openRequestAndAuthorize(xhr,
                                                                 'GET',
                                                                 args.pingURI,
-                                                                args.async,
                                                                 sendPingAfterOpen);
                 } else {
                     // get rid of this if we do away with synchronous support (i.e., customer use of

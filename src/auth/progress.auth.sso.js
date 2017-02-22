@@ -265,7 +265,6 @@ limitations under the License.
         this._openRequestAndAuthorize = function (xhr,
                                                   verb,
                                                   uri,
-                                                  async,
                                                   callback) {
             var that = this,
                 date,
@@ -281,7 +280,7 @@ limitations under the License.
                     // the base _openRequest... method, which does common things for Form-based
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
-                        [xhr, verb, uri, async, function (errorObject) {
+                        [xhr, verb, uri, function (errorObject) {
                             if (!errorObject) {
                                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
                             }
