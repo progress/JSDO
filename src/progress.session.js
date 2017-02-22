@@ -311,7 +311,9 @@ limitations under the License.
                                                 fn.fnName + "' requires an object as a parameter.");
                                         }
                                         var objParam;
-                                        if (object instanceof XMLHttpRequest) {
+                                        if (object instanceof XMLHttpRequest 
+                                                || (object.constructor 
+                                                    && object.constructor.name === "XMLHttpRequest")) {
                                             jsdo = object.jsdo;
                                             xhr = object;
                                             objParam = xhr.objParam;
@@ -3751,19 +3753,15 @@ limitations under the License.
           // returns the promise from the A-P's login call.
         this.login = function (username, password, options) {
             var deferred = $.Deferred(),
-                loginResult,
-                errorObject,
-                iOSBasicAuthTimeout,
-                authProvider;
+                iOSBasicAuthTimeout;
 
             function callConnect() {
                 that.connect()
                     .then(function (jsdosession, result, info) {
                         deferred.resolve(that, result, info);
-                    },
-                        function (jsdosession, result, info) {
-                            deferred.reject(that, result, info);
-                        });                
+                    }, function (jsdosession, result, info) {
+                        deferred.reject(that, result, info);
+                    });
             }
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
@@ -3787,7 +3785,6 @@ limitations under the License.
                 });
             }
             
-            
             if (_pdsession._authProvider.hasClientCredentials()) {
                 // the authProvider already has credentials (a page refresh may have happened),
                 // so do not call login
@@ -3801,7 +3798,7 @@ limitations under the License.
                             deferred.reject(that, result, info);
                         });
             }
-            
+
             return deferred.promise();
         };
 
