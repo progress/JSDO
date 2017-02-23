@@ -1,5 +1,5 @@
 /* 
-progress.auth.form.js    Version: 4.4.0-1
+progress.auth.form.js    Version: 4.4.0-2
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -172,15 +172,25 @@ limitations under the License.
     // AuthenticationProviderForm from, we would need to remember to change that here.
     // The use of the _super property will handle that automatically, plus it was more fun
     // to do it this way)
+    // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
+    // it to use promises
     fn = progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize;
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize =
-        function (xhr, verb, uri) {
+        function (xhr, verb, uri, callback) {
 
-            progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
-                this,
-                [xhr, verb, uri]
-            );
-            xhr.withCredentials = true;
+            function afterSuper(errorObject) {
+                xhr.withCredentials = true;
+                callback(errorObject);
+            }
+            
+            try {
+                progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super.apply(
+                    this,
+                    [xhr, verb, uri, afterSuper]
+                );
+            } catch (e) {
+                callback(e);
+            }
         };
     progress.data.AuthenticationProviderForm.prototype._openRequestAndAuthorize._super = fn;
 

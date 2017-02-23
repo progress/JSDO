@@ -1,5 +1,5 @@
 /* 
-progress.auth.basic.js    Version: 4.4.0-1
+progress.auth.basic.js    Version: 4.4.0-2
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -117,8 +117,11 @@ limitations under the License.
         
         // Override the protoype's method (this method does not invoke the prototype's copy)
         // (Define the override here in the constructor so it has access to instance variables)
-        this._openRequestAndAuthorize = function (xhr, verb, uri) {
-            var auth;
+        // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
+        // it to use promises
+        this._openRequestAndAuthorize = function (xhr, verb, uri, callback) {
+            var auth,
+                errorObject;
 
             if (this.hasClientCredentials()) {
 
@@ -147,14 +150,13 @@ limitations under the License.
 
                 progress.data.Session._setNoCacheHeaders(xhr);
             //  ?? setRequestHeaderFromContextProps(this, xhr);
-
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
-                throw new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
             }
 
+            callback(errorObject);
         };
-        
     };
 
     

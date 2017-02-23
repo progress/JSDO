@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.4.0-7
+progress.js    Version: 4.4.0-8
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -113,6 +113,9 @@ limitations under the License.
         "is sso. Pass an AuthenticationProvider instead.";
     msg.msgs.jsdoMSG059 = "{1}: Error in constructor. The authenticationModels of the " +
         "AuthenticationProvider ({3}) and the JSDOSession ({4}) were not compatible.";
+    msg.msgs.jsdoMSG060 = "AuthenticationProvider: AuthenticationProvider is no longer logged in. " +
+        "Tried to refresh SSO token but failed due to authentication error at token server.";
+    msg.msgs.jsdoMSG061 = "{1}: Attempted to set {2} property to an invalid value.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -2418,6 +2421,23 @@ limitations under the License.
          * 
          */
         this._httpRequest = function (xhr, method, url, reqBody, request) {
+            
+            function afterOpenRequest() {
+                var input = null;
+                if (reqBody) {
+                    xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+                    input = JSON.stringify(reqBody);
+                }
+
+                try {
+                    xhr.send(input);
+                } catch (e) {
+                    request.success = false;
+                    request.exception = e;
+                    // let Session check for online/offline
+                    xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+                }
+            }
 
             // if xhr wasn't passed we'll create our own since this is an invoke operation
             // if xhr is passed, then it is probably a CRUD operation which is setup with XHR
@@ -2461,24 +2481,11 @@ limitations under the License.
             request.jsdo = this;
             request.xhr = xhr;
 
-            this._session._openRequest(xhr, method, url, request.async);
+            this._session._openRequest(xhr, method, url, request.async, afterOpenRequest);
 
-            var input = null;
-            if (reqBody) {
-                xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-                input = JSON.stringify(reqBody);
-            }
-
-            try {
-                xhr.send(input);
-            } catch (e) {
-                request.success = false;
-                request.exception = e;
-                // let Session check for online/offline
-                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
-            }
-
-            return request;
+            return request;  // Note: for the async case, this does not give us exactly the same behavior
+                             // as when afterOpenRequest is called synchronously, because this returns
+                             // request before its xhr has had its open() called
         };
 
 
@@ -2861,7 +2868,7 @@ limitations under the License.
             if (this._resource) {
                 if (typeof(this._resource.generic.read) == "function") {
                     xhr.objParam = objParam;
-                    this._resource.generic.read.call(this, xhr, this._async);
+                    this._resource.generic.read(xhr, this._async);
                     if (xhr.request.deferred) {
                         promise = xhr.request.deferred.promise();
                     }
@@ -3748,7 +3755,7 @@ limitations under the License.
                 if (this._resource) {
                     if (typeof(this._resource.generic["delete"]) == "function") {
                         xhr.objParam = requestData;
-                        this._resource.generic["delete"].call(this, xhr, this._async);
+                        this._resource.generic["delete"](xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: DELETE operation is not defined.");
@@ -3812,7 +3819,7 @@ limitations under the License.
                         
                         xhr.objParam = requestData;
                         
-                        this._resource.generic.create.call(this, xhr, this._async);
+                        this._resource.generic.create(xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: CREATE operation is not defined.");
@@ -3897,7 +3904,7 @@ limitations under the License.
                 if (this._resource) {
                     if (typeof(this._resource.generic.update) == "function") {
                         xhr.objParam = requestData;
-                        this._resource.generic.update.call(this, xhr, this._async);
+                        this._resource.generic.update(xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: UPDATE operation is not defined.");
