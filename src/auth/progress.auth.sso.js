@@ -262,6 +262,8 @@ limitations under the License.
 
         // Override the protoype's method but call it from within the override. (Define the override 
         // here in the constructor so it has access to the internal function getToken() )
+        // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
+        // it to use promises
         this._openRequestAndAuthorize = function (xhr,
                                                   verb,
                                                   uri,

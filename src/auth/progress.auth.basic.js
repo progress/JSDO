@@ -117,6 +117,8 @@ limitations under the License.
         
         // Override the protoype's method (this method does not invoke the prototype's copy)
         // (Define the override here in the constructor so it has access to instance variables)
+        // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
+        // it to use promises
         this._openRequestAndAuthorize = function (xhr, verb, uri, callback) {
             var auth,
                 errorObject;

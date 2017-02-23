@@ -211,6 +211,8 @@ limitations under the License.
     // program against, but it gets used in a validation check by the JSDOSESSION, because the
     // JSDOSESSION code expects it to be present. The point here is that if a developer were to
     // create their own AuthenticationProvider object, it would need to include this method
+    // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
+    // it to use promises
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr,
                                                                                         verb,
                                                                                         uri,
