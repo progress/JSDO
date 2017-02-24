@@ -1,5 +1,5 @@
 /* 
-progress.auth.basic.js    Version: 4.4.0-2
+progress.auth.basic.js    Version: 4.4.0-3
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -119,13 +119,13 @@ limitations under the License.
         // (Define the override here in the constructor so it has access to instance variables)
         // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
         // it to use promises
-        this._openRequestAndAuthorize = function (xhr, verb, uri, callback) {
+        this._openRequestAndAuthorize = function (xhr, verb, uri, async, callback) {
             var auth,
                 errorObject;
 
             if (this.hasClientCredentials()) {
 
-                xhr.open(verb, uri, true);  // but see comments below inside the "if userName"
+                xhr.open(verb, uri, async);  // but see comments below inside the "if userName"
                                             // may have to go with that approach
 
                 if (userName) {

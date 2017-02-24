@@ -1,5 +1,5 @@
 /* 
-progress.auth.sso.js    Version: 4.4.0-2
+progress.auth.sso.js    Version: 4.4.0-3
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -267,6 +267,7 @@ limitations under the License.
         this._openRequestAndAuthorize = function (xhr,
                                                   verb,
                                                   uri,
+                                                  async,
                                                   callback) {
             var that = this,
                 date,
@@ -282,7 +283,7 @@ limitations under the License.
                     // the base _openRequest... method, which does common things for Form-based
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
-                        [xhr, verb, uri, function (errorObject) {
+                        [xhr, verb, uri, async, function (errorObject) {
                             if (!errorObject) {
                                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
                             }
