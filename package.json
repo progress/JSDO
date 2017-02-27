@@ -1,0 +1,28 @@
+{
+    "name": "jsdo",
+    "version": "4.3.12",
+    "description": "Progress JSDO",
+    "main": "lib/progress.jsdo.js",
+    "browser": "lib/progress.jsdo.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "JSDO",
+        "Kendo UI Datasource"
+    ],
+    "author": "Progress Software Corporation http://www.progress.com",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/CloudDataObject/JSDO#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/CloudDataObject/JSDO"
+    },
+    "typings": "typings/progress.all",
+    "bugs": {
+        "url": "https://github.com/CloudDataObject/JSDO/issues"
+    },
+    "dependencies": {
+        "jquery": "^3.1.1"
+    }
+}
