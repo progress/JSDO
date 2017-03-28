@@ -5,16 +5,10 @@ The JSDO is a free and open-source full-featured implementation that can be used
 ###Documentation
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
 
-### OpenEdge and Rollbase compatibility
-| JSDO version | OpenEdge version | Rollbase version |
-|----|----|----|
-| 4.3.1 | 11.4.0, 11.5.1, 11.6.x | 4.0.x |
-| 4.3 | 11.4.0, 11.5.1, 11.6.x | 4.0.x |
-| 4.2 | 11.4.0, 11.5.1, 11.6.x | 4.0.x |
-| 4.1 | 11.4.x, 11.5.x | 4.0.x |
-| 4.0 | 11.4.x, 11.5.x | 4.0.x |
-
-Note: 11.6.x corresponds to the latest version/service pack of OpenEdge 11.6.
+### JSDO and OpenEdge compatibility
+| JSDO version | OpenEdge version |
+|----|----|
+| 4.3.1 | 11.4.0, 11.5.1, 11.6.3, 11.7.0 |
 
 ###Download<a name="download"></a>
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
