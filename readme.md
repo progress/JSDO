@@ -2,7 +2,7 @@
 The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.
 The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps. 
 
-###Documentation
+### Documentation
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
 
 ### JSDO and OpenEdge compatibility
@@ -10,7 +10,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 |----|----|
 | 4.3.1 | 11.4.0, 11.5.1, 11.6.3, 11.7.0 |
 
-###Download<a name="download"></a>
+### Download<a name="download"></a>
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
 <!-- [![Build Status](https://travis-ci.org/telerik/kendo-ui-core.svg?branch=master)](https://travis-ci.org/telerik/kendo-ui-core) -->
 
@@ -32,7 +32,7 @@ You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">downloa
 
 The JSDO can be used by hybrid mobile apps, mobile web apps and web browser apps to access OpenEdge and Rollbase servers. Other implementations include a client in a mobile Hybrid App (a variation of the browser client), a Telerik® NativeScript client, a Node.js server, and a Java server. The JSDO has successfully been used with servers other than OpenEdge such as Node.js to export data created / aggregated in Modulus™ to a Progress® Rollbase Application.
 
-###License
+### License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
