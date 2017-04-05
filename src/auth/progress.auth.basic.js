@@ -24,7 +24,6 @@ limitations under the License.
     /*global progress : true*/
     /*global $ : false, storage, XMLHttpRequest, msg, btoa*/
 
-
     progress.data.AuthenticationProviderBasic = function (uri) {
         var defaultiOSBasicAuthTimeout, // TO DO: need to implement the use of this
             userName = null,
@@ -33,11 +32,9 @@ limitations under the License.
 
         // process constructor arguments, etc.
         this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
-                                 {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
-    
+                         {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
 
         // PRIVATE FUNCTIONS
-
 
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
         function make_basic_auth_header(user, pw) {
@@ -46,7 +43,6 @@ limitations under the License.
             return "Basic " + hash;
         }
 
-            
         // "INTERNAL" METHODS
         // Override the protoype's method but call it from within the override
         // (Define the override here in the constructor so it has access to instance variables)
@@ -55,7 +51,6 @@ limitations under the License.
             password = null;
             progress.data.AuthenticationProviderBasic.prototype._reset.apply(this);
         };
-
 
         // Override the protoype's method (this method does not invoke the prototype's copy)
         // (Define the override here in the constructor so it has access to instance variables)
@@ -66,24 +61,12 @@ limitations under the License.
                                          // may have to go with that approach
             
             if (userName) {
-
-                // See the comment at the definition of the canPassCredentialsToOpen() function
-                // for why we pass credentials to open() in some cases but not others. (If we're not using
-                // Basic auth, we never pass credentials)
-                // if (canPassCredentialsToOpen()) {
-                    // xhr.open(verb, uri, async, userName, password);
-                // }
-                // else {
-                    // xhr.open("GET", loginURI, true);
-                // }
                 
                 // set Authorization header
                 auth = make_basic_auth_header(userName, password);
                 xhr.setRequestHeader('Authorization', auth);
             }
-            // else {
-                // xhr.open(verb, uri, async);
-            // }
+
             progress.data.Session._setNoCacheHeaders(xhr);
         };
 
@@ -100,7 +83,6 @@ limitations under the License.
                 password = null;
             }
         };
-
         
         // Override the protoype's method (this method does not invoke the prototype's copy, but
         // calls a prototype general-purpose login method)
@@ -130,26 +112,12 @@ limitations under the License.
 
                 if (userName) {
 
-                    // See the comment at the definition of the canPassCredentialsToOpen() function
-                    // for why we pass credentials to open() in some cases but not others. (If we're 
-                    // not using Basic auth, we never pass credentials)
-                    // if (canPassCredentialsToOpen()) {
-                        // xhr.open(verb, uri, async, userName, password);
-                    // }
-                    // else {
-                        // xhr.open("GET", loginURI, true);
-                    // }
-
                     // set Authorization header
                     auth = make_basic_auth_header(userName, password);
                     xhr.setRequestHeader('Authorization', auth);
                 }
-                // else {
-                    // xhr.open(verb, uri, async);
-                // }
 
                 progress.data.Session._setNoCacheHeaders(xhr);
-            //  ?? setRequestHeaderFromContextProps(this, xhr);
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));

@@ -140,8 +140,15 @@ limitations under the License.
 
             this._openLoginRequest(xhr, uriForRequest);
 
-           //  ?? setRequestHeaderFromContextProps(this, xhr);
-
+            // We specify application/json for the response so that, if a bad request is sent, an 
+            // OE Web application will directly send back a 401 with error info in the body as JSON. 
+            // So we force the accept header to application/json because if we make an anonymous
+            // request to a FORM/BASIC backend, it might redirect us to a login page since we have
+            // no credentials. And since we can technically access JUST the login page, the XHR
+            // will identify it as SUCCESS. If we specify "application/json", no redirects will
+            // happen, just a plain old "401 GET OUTTA HERE" code.
+            xhr.setRequestHeader("Accept", "application/json");
+        
             xhr.send(sendParam);
             return deferred.promise();
         };
@@ -191,7 +198,6 @@ limitations under the License.
         deferred.resolve(this, progress.data.Session.SUCCESS, {});
         return deferred.promise();
     };
-
     
     // hasClientCredentials API METHOD -- PROBABLY ONLY OVERRIDDEN BY SSO
     progress.data.AuthenticationProvider.prototype.hasClientCredentials = function () {
@@ -222,12 +228,7 @@ limitations under the License.
         if (this.hasClientCredentials()) {
             xhr.open(verb, uri, true);
 
-            // We specify application/json for the response so that, if a bad token is sent, an 
-            // OE Web application that's based on Form auth will directly send back a 401 with
-            // error info in the body as JSON. So we're stting the accept header to application/json
-            // even though we're supposedly doing Anonymous --- if the back end is actually using Form,
-            // getting back the 401 and the JSON in the body might help us figure out what really
-            // went wrong
+            // Check out why we do this in _loginProto
             xhr.setRequestHeader("Accept", "application/json");
         } else {
             // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
@@ -237,10 +238,8 @@ limitations under the License.
         callback(errorObject);
     };
 
-
     // GENERAL PURPOSE "INTERNAL" METHODS, NOT RELATED TO SPECIFIC API ELEMENTS
     // (not documented, intended for use only within the JSDO library)
-
 
     // General purpose method for initializing an object
     progress.data.AuthenticationProvider.prototype._initialize = function (uriParam,

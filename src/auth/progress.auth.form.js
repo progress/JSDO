@@ -92,7 +92,6 @@ limitations under the License.
         xhr.setRequestHeader("Cache-Control", "max-age=0");
         xhr.setRequestHeader("Pragma", "no-cache");
         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.setRequestHeader("Accept", "application/json");
 
         xhr.withCredentials = true;
 
