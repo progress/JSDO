@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.4.0-4
+progress.session.js    Version: 4.4.0-6
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -1354,6 +1354,7 @@ limitations under the License.
                 this._authProvider._openRequestAndAuthorize(xhr, 
                                                             verb, 
                                                             urlPlusCCID, 
+                                                            async, 
                                                             afterOpenAndAuthorize);
             } else {
                 this._setXHRCredentials(xhr, verb, urlPlusCCID, this.userName, _password, async);
@@ -1476,6 +1477,10 @@ limitations under the License.
             xhr = new XMLHttpRequest();
             xhr.pdsession = this;
 
+            if (typeof this._authProvider === "undefined") {
+                throw new Error(progress.data._getMsgText("jsdoMSG510"));
+            }
+              
             try {
                 uriForRequest = this.serviceURI + this.loginTarget;
                 if (progress.data.Session._useTimeStamp) {
@@ -1485,6 +1490,7 @@ limitations under the License.
                 this._authProvider._openRequestAndAuthorize(xhr,
                                                             'GET',
                                                             uriForRequest,
+                                                            true,  // async
                                                             _connectAfterOpen);
             } catch (e) {
                 setLoginHttpStatus(xhr.status, this);
@@ -2425,7 +2431,7 @@ limitations under the License.
             }
 
             if (authProvider) {
-                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, addCatalogAfterOpen);
+                authProvider._openRequestAndAuthorize(xhr, 'GET', catalogURI, isAsync, addCatalogAfterOpen);
                 // existing code in JSDOSession addCatalog expects to get this as a return value,
                 // have to return it now
                 return progress.data.Session.ASYNC_PENDING;
@@ -2933,11 +2939,17 @@ limitations under the License.
                     this._authProvider._openRequestAndAuthorize(xhr,
                                                                 'GET',
                                                                 args.pingURI,
+                                                                args.async,
                                                                 sendPingAfterOpen);
                 } else {
                     // get rid of this if we do away with synchronous support (i.e., customer use of
                     // old Session API)
                     this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+
+					// Sending the XHR request after opening the channel
+						if (xhr.readyState === 1) {
+								sendPingAfterOpen();
+						 }
                 }
             } catch (e) {
                 args.error = e;

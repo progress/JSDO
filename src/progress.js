@@ -160,7 +160,7 @@ limitations under the License.
         "the options object passed to its constructor must include an authProvider property.";
     msg.msgs.jsdoMSG509 = "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as the authenticationModel, " +
         "it must also be passed an authProvider and an authProviderAuthenticationModel.";
-
+    
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
     msg.getMsgText = function (n, args) {
