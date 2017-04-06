@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 4.4.0-2
+progress.auth.js    Version: 4.4.0-3
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -222,11 +222,12 @@ limitations under the License.
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr,
                                                                                         verb,
                                                                                         uri,
+                                                                                        async,
                                                                                         callback) {
         var errorObject;
         
         if (this.hasClientCredentials()) {
-            xhr.open(verb, uri, true);
+            xhr.open(verb, uri, async);
 
             // Check out why we do this in _loginProto
             xhr.setRequestHeader("Accept", "application/json");
