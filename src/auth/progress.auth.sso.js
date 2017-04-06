@@ -1,5 +1,5 @@
 /* 
-progress.auth.sso.js    Version: 4.4.0-2
+progress.auth.sso.js    Version: 4.4.0-3
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -267,6 +267,7 @@ limitations under the License.
         this._openRequestAndAuthorize = function (xhr,
                                                   verb,
                                                   uri,
+                                                  async,
                                                   callback) {
             var that = this,
                 date,
@@ -282,7 +283,7 @@ limitations under the License.
                     // the base _openRequest... method, which does common things for Form-based
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
-                        [xhr, verb, uri, function (errorObject) {
+                        [xhr, verb, uri, async, function (errorObject) {
                             if (!errorObject) {
                                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
                             }
@@ -444,8 +445,8 @@ limitations under the License.
     progress.data.AuthenticationProviderForm.prototype._storeInfo =
         function () {
             progress.data.AuthenticationProviderForm.prototype._storeInfo._super.apply(this);
-            this._storage.setItem(this._dataKeys.automaticTokenRefresh,
-                                  JSON.stringify(this._automaticTokenRefresh));
+            // this._storage.setItem(this._dataKeys.automaticTokenRefresh,
+            //                      JSON.stringify(this._automaticTokenRefresh));
         };
     progress.data.AuthenticationProviderForm.prototype._storeInfo._super = fn;
 
@@ -453,7 +454,7 @@ limitations under the License.
     progress.data.AuthenticationProviderForm.prototype._clearInfo =
         function () {
             progress.data.AuthenticationProviderForm.prototype._clearInfo._super.apply(this);
-            this._storage.removeItem(this._dataKeys.automaticTokenRefresh);
+            //this._storage.removeItem(this._dataKeys.automaticTokenRefresh);
         };
     progress.data.AuthenticationProviderForm.prototype._clearInfo._super = fn;
 
