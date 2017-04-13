@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.4.0-6
+progress.session.js    Version: 4.4.0-8
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3879,7 +3879,7 @@ limitations under the License.
                 catalogURIs = catalogURI;
             } else {
                 throw new Error(progress.data._getMsgText("jsdoMSG033", "JSDOSession", "addCatalog",
-                       "The catalogURI parameter must be a string or an array of strings."));
+                       "The first argument must be a string or an array of strings specifying the URI of the catalog."));
             }
 
             // type check the 2nd param if it exists
