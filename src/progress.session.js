@@ -1232,7 +1232,8 @@ limitations under the License.
         }
 
         function setAuthProvider(value) {
-            _authProvider = value;
+			// Do this to preserve authprovider's null-ness.
+            _authProvider = value ? value : null;
         }
 
         function setRestApplicationIsOnline(value) {
@@ -1477,7 +1478,7 @@ limitations under the License.
             xhr = new XMLHttpRequest();
             xhr.pdsession = this;
 
-            if (typeof this._authProvider === "undefined") {
+            if (!this._authProvider) {
                 throw new Error(progress.data._getMsgText("jsdoMSG510"));
             }
               
@@ -3533,7 +3534,7 @@ limitations under the License.
         Object.defineProperty(this, 'authProvider',
             {
                 get: function () {
-                    return _pdsession ? _pdsession._authProvider : undefined;
+                    return _pdsession ? _pdsession._authProvider : null;
                 },
                 enumerable: true
             });
