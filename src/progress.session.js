@@ -1,6 +1,6 @@
 
 /* 
-progress.session.js    Version: 4.4.0-6
+progress.session.js    Version: 4.4.0-7
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
