@@ -1,6 +1,6 @@
 
 /* 
-progress.js    Version: 4.4.0-8
+progress.js    Version: 4.4.0-9
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2804,7 +2804,17 @@ limitations under the License.
                 if (typeof(arguments[0]) == 'function') {
                     throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "fill() or read()"));                
                 }
+
+                properties = this.getMethodProperties("read");
                 
+                // Get plugin if mappingType is not undefined, null, or ""
+                if (properties && properties.mappingType) {
+                    mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
+                    if (!mapping) {
+                        throw new Error(msg.getMsgText("jsdoMSG118", properties.mappingType));		
+                    }
+                }
+
                 // fill( string);
                 var filter;
                 if (arguments[0] === null || arguments[0] === undefined) {
@@ -2818,14 +2828,8 @@ limitations under the License.
                     // options 
                     // ablFilter, id, top, skip, sort
 					
-					properties = this.getMethodProperties("read");
-					
                     // Use plugin if mappingType is not undefined, null, or ""
-					if (properties && properties.mappingType) {
-						mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
-						if (!mapping) {
-							throw new Error(msg.getMsgText("jsdoMSG118", properties.mappingType));		
-						}
+					if (mapping) {
 						if (typeof(mapping.requestMapping) === "function") {
 							objParam = mapping.requestMapping(this, arguments[0], { operation: "read" });
 						}
