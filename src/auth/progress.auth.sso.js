@@ -426,7 +426,7 @@ limitations under the License.
     };
    // END OF AuthenticationProviderSSO CONSTRUCTOR
 
-    
+    // NOTE: This is used only for the SSO authentication.
     // Define the prototype as an instance of an AuthenticationProviderForm object
     function SSOProxy() {}
     SSOProxy.prototype = progress.data.AuthenticationProviderForm.prototype;
