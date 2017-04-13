@@ -442,7 +442,7 @@ limitations under the License.
     // override the base AuthenticationProvider _storeInfo and _clearinfo, but keep refs so they
     // can be invoked within the overrides
     fn = progress.data.AuthenticationProviderSSO.prototype._storeInfo;
-    progress.data.AuthenticationProviderForm.prototype._storeInfo =
+    progress.data.AuthenticationProviderSSO.prototype._storeInfo =
         function () {
             progress.data.AuthenticationProviderSSO.prototype._storeInfo._super.apply(this);
             this._storage.setItem(this._dataKeys.automaticTokenRefresh,
