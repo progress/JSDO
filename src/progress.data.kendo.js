@@ -1,6 +1,6 @@
 
 /* 
-progress.data.kendo.js    Version: 4.3.0-10
+progress.data.kendo.js    Version: 4.3.0-11
 
 Copyright (c) 2015-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -545,10 +545,7 @@ limitations under the License.
                             options.success(data);
                         }
                     } else {
-                        exception = request.exception;
-                        if (!exception) {
-                            exception = new Error("Error while reading records.");
-                        }
+                        exception = new Error("Error while reading records.");
                         options.error(request.xhr, request.xhr.status, exception);
                     }
                 };
@@ -666,22 +663,11 @@ limitations under the License.
                                 && request.batch.operations.length === 1) {
                             xhr = request.batch.operations[0].xhr;
                             status = request.batch.operations[0].xhr.status;
-                            if (status === 500) {
-                                exception = request.batch.operations[0].exception;
-                            } else {
-                                jsrecord = jsdo[transport.tableRef].findById(options.data._id);
-                                if (jsrecord) {
-                                    exception = new Error(jsrecord.getErrorString());
-                                }
-                            }
                         } else if (request.jsrecords) {
                             xhr = request.xhr;
                             status = request.xhr.status;
-                            // Use "default" exception text
                         }
-                        if (!exception) {
-                            exception = new Error("Error while saving changes.");
-                        }
+                        exception = new Error("Error while saving changes.");
                         options.error(xhr, status, exception);
                     }
                 };
