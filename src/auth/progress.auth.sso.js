@@ -426,7 +426,7 @@ limitations under the License.
     };
    // END OF AuthenticationProviderSSO CONSTRUCTOR
 
-    
+    // NOTE: This is used only for the SSO authentication.
     // Define the prototype as an instance of an AuthenticationProviderForm object
     function SSOProxy() {}
     SSOProxy.prototype = progress.data.AuthenticationProviderForm.prototype;
@@ -442,7 +442,7 @@ limitations under the License.
     // override the base AuthenticationProvider _storeInfo and _clearinfo, but keep refs so they
     // can be invoked within the overrides
     fn = progress.data.AuthenticationProviderSSO.prototype._storeInfo;
-    progress.data.AuthenticationProviderForm.prototype._storeInfo =
+    progress.data.AuthenticationProviderSSO.prototype._storeInfo =
         function () {
             progress.data.AuthenticationProviderSSO.prototype._storeInfo._super.apply(this);
             this._storage.setItem(this._dataKeys.automaticTokenRefresh,
