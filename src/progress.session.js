@@ -3872,7 +3872,8 @@ limitations under the License.
                 iOSBasicAuthTimeout,
                 username,
                 options,
-                authProvider;
+                authProvider,
+                customAuthProvider = false;
 
             // check whether 1st param is a string or an array
             if (typeof catalogURI === "string") {
@@ -3912,9 +3913,15 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
                 if (options.authProvider) {
                     authProvider = options.authProvider;
+                    customAuthProvider = true; 
                 } else if (this.authProvider) {
                     authProvider = this.authProvider;
                 }
+            }
+            
+            // Error out if we are not connected and no customAuthProvider was given
+            if (!this.connected && !customAuthProvider) {
+                throw new Error(progress.data._getMsgText("jsdoMSG511"));
             }
             
             /* When we're done processing all catalogs, we pass an array of results to resolve() or
