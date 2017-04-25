@@ -112,7 +112,7 @@ limitations under the License.
     msg.msgs.jsdoMSG058 = "{1}: Cannot pass username and password to addCatalog when authenticationModel " +
         "is sso. Pass an AuthenticationProvider instead.";
     msg.msgs.jsdoMSG059 = "{1}: Error in constructor. The authenticationModels of the " +
-        "AuthenticationProvider ({3}) and the JSDOSession ({4}) were not compatible.";
+        "AuthenticationProvider ({2}) and the JSDOSession ({3}) were not compatible.";
     msg.msgs.jsdoMSG060 = "AuthenticationProvider: AuthenticationProvider is no longer logged in. " +
         "Tried to refresh SSO token but failed due to authentication error at token server.";
     msg.msgs.jsdoMSG061 = "{1}: Attempted to set {2} property to an invalid value.";

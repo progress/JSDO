@@ -4212,10 +4212,10 @@ limitations under the License.
                     ));
                 }
                 
-                if (options.authProvider.authenticationModel !== options.authenticationModel &&
-                        (options.authProvider.authenticationModel !== progress.data.Session.AUTH_TYPE_FORM_SSO
-                          && options.authenticationModel !== progress.data.Session.AUTH_TYPE_SSO)
-                ) {
+                if ((options.authProvider.authenticationModel !== progress.data.Session.AUTH_TYPE_FORM_SSO 
+                     && options.authProvider.authenticationModel !== options.authenticationModel) ||    
+                    (options.authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_FORM_SSO     
+                     && options.authenticationModel !== progress.data.Session.AUTH_TYPE_SSO)) {
                     // JSDOSession: Error in constructor. The authenticationModels of the " +
                     // AuthenticationProvider ({2}) and the JSDOSession ({3}) were not compatible.";
                     throw new Error(progress.data._getMsgText("jsdoMSG059", "JSDOSession",
