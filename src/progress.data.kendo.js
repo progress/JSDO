@@ -1,6 +1,6 @@
 
 /* 
-progress.data.kendo.js    Version: 4.3.0-11
+progress.data.kendo.js    Version: 4.4.0-01
 
 Copyright (c) 2015-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -771,10 +771,6 @@ limitations under the License.
                 jsrecord,
                 saveUseRelationships = jsdo.useRelationships;
             
-            if (!this.jsdo._hasSubmitOperation) {
-                options.error(null, null, new Error("Submit operation is required for batching support."));
-                return;
-            }
             options.batch = true;
             try {
                 jsdo.useRelationships = false;
