@@ -3919,8 +3919,8 @@ limitations under the License.
                 }
             }
             
-            // Error out if we are not connected and no customAuthProvider was given
-            if (!this.connected && !customAuthProvider) {
+            // Error out if we are not connected and no customAuthProvider or username was given
+            if (!this.connected && !customAuthProvider && !username) {
                 throw new Error(progress.data._getMsgText("jsdoMSG511"));
             }
             
