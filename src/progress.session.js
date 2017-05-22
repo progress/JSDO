@@ -1,6 +1,5 @@
 
 /* 
-
 progress.session.js    Version: 4.4.0-9
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
