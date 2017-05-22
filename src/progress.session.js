@@ -1,6 +1,5 @@
 
 /* 
-
 progress.session.js    Version: 4.4.0-9
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
@@ -3919,8 +3918,8 @@ limitations under the License.
                 }
             }
             
-            // Error out if we are not connected and no customAuthProvider was given
-            if (!this.connected && !customAuthProvider) {
+            // Error out if we are not connected and no customAuthProvider or username was given
+            if (!this.connected && !customAuthProvider && !username) {
                 throw new Error(progress.data._getMsgText("jsdoMSG511"));
             }
             

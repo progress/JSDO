@@ -59,12 +59,10 @@ limitations under the License.
             }
             if (info.refresh_token.length) {
                 that._storage.setItem(tokenDataKeys.refreshToken, JSON.stringify(info.refresh_token));
-                // Calculate when we should automatically refresh the token.
-                // We take the current time and add the expires_in value, after reducing the latter as
-                // a rough way to compensate for such things as the fact that the current time is later 
-                // than the time the token was actually issued
+                // The time given for the access token's expiration is in seconds. We transform it
+                // into milliseconds and add it to date.getTime() for a more standard format.
                 date = new Date();
-                accessTokenExpiration = date.getTime() + (info.expires_in * 1000 * 0.75);
+                accessTokenExpiration = date.getTime() + (info.expires_in * 1000);
                 that._storage.setItem(tokenDataKeys.accessTokenExpiration, JSON.stringify(accessTokenExpiration));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
@@ -102,6 +100,10 @@ limitations under the License.
 
         function retrieveAccessTokenExpiration() {
             return retrieveTokenProperty(tokenDataKeys.accessTokenExpiration);
+        }
+        
+        function retrieveAccessTokenRefreshThreshold() {
+            return retrieveAccessTokenExpiration() * 0.75;
         }
 
         function retrieveTokenType() {
@@ -294,16 +296,14 @@ limitations under the License.
             }
 
             if (this.hasClientCredentials()) {
-                // Make a guess whether the token has expired. If it may have (or if it's getting
-                // close), refresh it. 
-                // Note that even if there is no refresh token, or if the refresh attempt fails,
-                // we make the request anyway. We do that so that the app code gets the error in
-                // the context of the call that it actually made. We may want to consider whether
-                // that's the best approach
+                // Every token given has an expiration "hint". If the token's lifespan
+                // is close to or past that limit, then a refresh is done.
+                // No matter what the outcome of the refresh, keep in mind we always 
+                // send the original request.
                 date = new Date();
                 if (this.automaticTokenRefresh &&
-                        date.getTime() > retrieveAccessTokenExpiration() &&
-                        this.hasRefreshToken()) {
+                    this.hasRefreshToken() &&    
+                    date.getTime() > retrieveAccessTokenRefreshThreshold()) {
                     try {
                         this.refresh()
                             .always(function (provider, result, info) {

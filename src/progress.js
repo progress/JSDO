@@ -1,4 +1,3 @@
-
 /* 
 progress.js    Version: 4.4.0-9
 
