@@ -142,7 +142,8 @@ limitations under the License.
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
     msg.msgs.jsdoMSG125 = "{1}: The AuthenticationProvider is not managing valid credentials.";
     msg.msgs.jsdoMSG126 = "{1}: No support for {2}.";
-    
+    msg.msgs.jsdoMSG127 = "JSDO: acceptRowChanges() cannot be called for record with _rejected === true.";
+
     //                    500 - 998 are for generic errors
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
     msg.msgs.jsdoMSG501 = "{1}: '{2}' in '{3}' function cannot be an empty string.";
@@ -520,7 +521,7 @@ limitations under the License.
             }
             else {
                 // Creates a copy of the data if sort and top are specified
-                // so that the sorting does not happen in the JSDO memory but 
+                // so that the sorting does not happen in the JSDO memory but
                 // in a copy of the records
                 if (params && (params.sort || params.top)) {
                     newDataArray = [];
@@ -1484,7 +1485,7 @@ limitations under the License.
                 result.push(item);
             }
             return result;
-        };
+        };        
 
         /*
          * Private method to apply changes for the specified table reference.
@@ -1497,7 +1498,8 @@ limitations under the License.
                 if (this._beforeImage[id] === null) {
                     var jsrecord = this._findById(id, false);
                     if (jsrecord !== null) {
-                        if (jsrecord.data._errorString !== undefined) {
+                        if (jsrecord.data._rejected
+                            || (jsrecord.data._errorString !== undefined)) {
                             this._jsdo._undoCreate(this, id);
                         }
                         else {
@@ -1523,7 +1525,8 @@ limitations under the License.
                     var jsrecord = this._findById(id, false);
                     if (jsrecord !== null) {
                         // Record found in JSDO memory
-                        if (jsrecord.data._errorString !== undefined) {
+                        if (jsrecord.data._rejected
+                            || (jsrecord.data._errorString !== undefined)) {
                             this._jsdo._undoUpdate(this, id);
                         }
                         else {
@@ -1533,7 +1536,8 @@ limitations under the License.
                     else {
                         // Record not present in JSDO memory
                         // Delete after Update
-                        if (this._beforeImage[id]._errorString !== undefined) {
+                        if (this._beforeImage[id]._rejected
+                            || (this._beforeImage[id]._errorString !== undefined)) {
                             this._jsdo._undoDelete(this, id);
                         }
                         else {
@@ -1551,7 +1555,8 @@ limitations under the License.
                 }
                 // Delete
                 else {
-                    if (this._beforeImage[id]._errorString !== undefined) {
+                    if (this._beforeImage[id]._rejected
+                        || (this._beforeImage[id]._errorString !== undefined)) {
                         this._jsdo._undoDelete(this, id);
                     }
                 }
@@ -1818,6 +1823,9 @@ limitations under the License.
         this.acceptRowChanges = function () {
             var id = this.data._id;
             if (this._tableRef._beforeImage[id] !== undefined) {
+                if (this.data._rejected) {
+                    throw new Error(msg.getMsgText("jsdoMSG127"));
+                }
                 if (this._tableRef._beforeImage[id] === null) {
                     // Accept create				
                     // Remove element from _added
@@ -2788,6 +2796,101 @@ limitations under the License.
 			}
 		};
 
+        /**
+         * setAllRecordsRejected
+         * 
+         * Sets _allRecordsRejected flag to indicate whether all records have been rejected
+         * in a saveChanges() call.
+         * If changes are specified as an array, the changes are used to calculate the flag.
+         * 
+         * @param {*} param - Array with changes or boolean with value
+         */
+		this._setAllRecordsRejected = function (param) {
+            var changes,
+                hasErrors,
+                hasRejected,
+                hasCommittedRecords,
+                i;
+
+            // Note: This function is a single one-stop convenient function to set             
+            // _allRecordsRejected and _someRecordsRejected.
+            // This logic can be optimized by setting the flags while processing the response.
+            if (param instanceof Object) {
+                if (param instanceof Array) {
+                    changes = param;
+                    hasErrors = false;
+
+                    this._allRecordsRejected = false;
+                    this._someRecordsRejected = false;
+
+                    for (var buf in this._buffers) {
+                        if (this._buffers[buf]._lastErrors.length > 0) {
+                            hasErrors = true;
+                        }
+                    }
+                    if (hasErrors) {
+                        this._allRecordsRejected = true;
+                        this._someRecordsRejected = true;
+
+                        for (i = 0; i < changes.length; i += 1) {
+                            if (changes[i].record && !changes[i].record.data._rejected) {
+                                this._allRecordsRejected = false;
+                                return;
+                            }
+                        }
+                    } else if (changes.length > 0) {
+                        this._allRecordsRejected = true;
+                        this._someRecordsRejected = false;
+                        hasCommittedRecords = false;
+
+                        for (i = 0; i < changes.length; i += 1) {
+                            if (changes[i].record) {
+                                if (changes[i].record.data._rejected) {
+                                    this._someRecordsRejected = true;
+                                } else {
+                                    hasCommittedRecords = true;
+                                }
+                            }
+                        }
+                        if (hasCommittedRecords && !this._someRecordsRejected) {
+                            this._allRecordsRejected = false;
+                        }
+                    }
+                } else {
+                    if (param.operations instanceof Array) {
+                        if (param.operations.length > 0
+                            && !param.operations[0].success) {
+                            // First operation failed
+                            this._allRecordsRejected = true;
+                            this._someRecordsRejected = true;
+
+                            for (i = 0; i < param.operations.length; i += 1) {
+                                if (param.operations[i].success) {
+                                    this._allRecordsRejected = false;
+                                    return;
+                                }
+                            }
+                        } else {
+                            // Not all operations were rejected
+                            this._allRecordsRejected = false;
+                            this._someRecordsRejected = false;                            
+
+                            for (i = 0; i < param.operations.length; i += 1) {
+                                if (!param.operations[i].success) {
+                                    this._someRecordsRejected = true;
+                                    return;
+                                }
+                            }                            
+                        }
+                    }
+                }
+            } else {
+                // Possible values: true, false, undefined
+                this._allRecordsRejected = param;
+                this._someRecordsRejected = param;
+            }
+		};
+
         /*
          * Loads data from the HTTP resource.
          */
@@ -2796,8 +2899,12 @@ limitations under the License.
                 promise,
 				properties,
 				mapping;
-                
+
+            // Clear errors before sending request                
 			this._clearErrors();
+
+            // Reset _allRecordsRejected
+            this._setAllRecordsRejected(undefined);
 
             // Process parameters
             if (arguments.length !== 0) {
@@ -3158,6 +3265,9 @@ limitations under the License.
             
             // Clear errors before sending request
 			this._clearErrors();
+
+            // Reset _allRecordsRejected
+            this._setAllRecordsRejected(undefined);
 
             request = {
                 jsdo: this
@@ -3635,6 +3745,7 @@ limitations under the License.
                     if (!success && batch.operations) {
                         this._updateLastErrors(this, batch, null);
                     }
+                    this._setAllRecordsRejected(batch);
                         
                     this._fireAfterSaveChanges(success, request);
                 }
@@ -4548,6 +4659,8 @@ limitations under the License.
                 delete record["prods:id"];
                 delete record["prods:hasErrors"];
                 delete record["prods:clientId"];
+                delete record["prods:rejected"];
+                delete record._rejected;               
 
                 if (deleteRowState) {
                     delete record["prods:rowState"];
@@ -5059,6 +5172,15 @@ limitations under the License.
                         if (errorString)
                             this._setErrorString(tableRef, recordId, errorString, false);
 
+                        // Set _rejected property
+                        if (tableJsonObject[i]["prods:rejected"]
+                            || errorString) {
+                            record._rejected = true;
+                            if (errorString === "REJECTED") {
+                                delete record._errorString;
+                            }
+                        }                            
+
                         xhr.request.jsrecord = new progress.data.JSRecord(tableRef, record);
                     }
                 }
@@ -5181,8 +5303,18 @@ limitations under the License.
                                 this._getErrorStringFromJsonObject(dataSetJsonObject, tableRef, prods_id);
                         }
                         var record = this._mergeUpdateRecord(tableRef, recordId, tableJsonObject[i]);
-                        if (errorString)
+                        if (errorString) {
                             this._setErrorString(tableRef, recordId, errorString, false);
+                        }
+
+                        // Set _rejected property so it can be checked in applyChanges()
+                        if (tableJsonObject[i]["prods:rejected"]
+                            || errorString) {
+                            record._rejected = true;
+                            if (errorString === "REJECTED") {
+                                delete record._errorString;
+                            }
+                        }
 
                         // Now need to update jsrecords. 
                         // We use this data when we fire create, update and delete events.
@@ -5205,6 +5337,7 @@ limitations under the License.
                 for (var buf in this._buffers) {
                     var tableRef = this._buffers[buf];
                     var beforeTableJsonObject = beforeJsonObject[tableRef._name];
+                    var errorString;
 
                     if (beforeTableJsonObject instanceof Array) {
                         for (var i = 0; i < beforeTableJsonObject.length; i++) {
@@ -5215,12 +5348,24 @@ limitations under the License.
                                     throw new Error(msg.getMsgText("jsdoMSG035", "_mergeUpdateForSubmit()"));
                                 }
 
+                                errorString = undefined;
                                 // If row was returned with error string, just copy that over to jsdo record
                                 if (beforeTableJsonObject[i]["prods:hasErrors"]) {
                                     var prods_id = beforeTableJsonObject[i]["prods:id"];
-                                    var errorString = this._getErrorStringFromJsonObject(dataSetJsonObject, 
+                                    
+                                    errorString = this._getErrorStringFromJsonObject(dataSetJsonObject, 
                                         tableRef, prods_id);
                                     this._setErrorString(tableRef, recordId, errorString, true);
+                                }
+
+                                // Set _rejected property so it can be checked in applyChanges()
+                                if ((beforeTableJsonObject[i]["prods:rejected"]
+                                    || errorString)
+                                    && tableRef._beforeImage[recordId]) {
+                                    tableRef._beforeImage[recordId]._rejected = true;
+                                    if (errorString === "REJECTED") {
+                                        delete tableRef._beforeImage[recordId]._errorString;
+                                    }
                                 }
                             }
                         }
@@ -5532,8 +5677,9 @@ limitations under the License.
             var xhr = request.xhr;
             var hasError = jsdo._mergeUpdateForCUD(request.response, xhr);
 
-            if (hasError)
+            if (hasError) {
                 request.success = false;
+            }
 
             if (jsdo.autoApplyChanges) {
                 if (!hasError) {
@@ -5566,6 +5712,8 @@ limitations under the License.
             var changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
 
+			jsdo._setAllRecordsRejected(changes);            
+
             if (jsdo.autoApplyChanges) {
                 jsdo._applyChanges();
             }
@@ -5573,9 +5721,10 @@ limitations under the License.
 
 
         this._saveChangesError = function (jsdo, success, request) {
+			jsdo._setAllRecordsRejected(true);
             if (jsdo.autoApplyChanges) {
                 jsdo.rejectChanges();
-            }
+            }            
             jsdo._updateLastErrors(jsdo, null, null, request);
         };
 
@@ -5587,6 +5736,8 @@ limitations under the License.
             that were returned form the data service, but that would invalidate the _id's that
             the Kendo datasource depends on. The application programmmer must do the merging in
             the afterSaveChanges handler
+
+            *** Submit(temp-table) is not supported. This method will be removed in a future version. ***
          */         
         this._saveChangesSuccessTT = function (jsdo, success, request) {
             var changes;
@@ -5595,11 +5746,13 @@ limitations under the License.
             jsdo._clearErrors();
             changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
+            jsdo._setAllRecordsRejected(false);
         };
 
         this._saveChangesComplete = function (jsdo, success, request) {
             // Success with errors
-            if ((request.xhr.status >= 200 && request.xhr.status < 300) && jsdo._lastErrors.length > 0) {
+            if ((request.xhr.status >= 200 && request.xhr.status < 300)
+                && (jsdo._lastErrors.length > 0 || jsdo._someRecordsRejected)) {
                 request.success = false;
             }
 
@@ -5845,6 +5998,8 @@ limitations under the License.
                         if (!success && batch.operations) {
                             jsdo._updateLastErrors(jsdo, batch, null);
                         }
+                        this._setAllRecordsRejected(batch);
+
                         jsdo._fireAfterSaveChanges(success, request);
                     }
                 }
@@ -5855,7 +6010,7 @@ limitations under the License.
         /*
          * determine if a batch of XHR requests has completed in which all requests are successful
          */
-        this._isBatchSuccess = function (batch) {
+        this._isBatchSuccess = function (batch) {            
             if (batch.operations) {
                 for (var i = 0; i < batch.operations.length; i++) {
                     if (!batch.operations[i].success) {
