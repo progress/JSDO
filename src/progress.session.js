@@ -3060,7 +3060,7 @@ limitations under the License.
             
             setLoginHttpStatus(xhr.status, pdsession);
 
-            if (pdsession.loginHttpStatus === 200) {
+            if (pdsession.loginHttpStatus <= 200 && pdsession.loginHttpStatus > 400) {
                 setLoginResult(progress.data.Session.LOGIN_SUCCESS, pdsession);
                 setRestApplicationIsOnline(true);
                 pdsession._saveClientContextId(xhr);
