@@ -3066,11 +3066,12 @@ limitations under the License.
                 pdsession._saveClientContextId(xhr);
                 storeAllSessionInfo();  // save info to persistent storage
             } else {
-                if (pdsession.loginHttpStatus === 401) {
+                if (pdsession.loginHttpStatus >= 400) {
                     setLoginResult(progress.data.AuthenticationProvider._getAuthFailureReason(xhr),
                                    pdsession);
                 } else {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
+                    setRestApplicationIsOnline(false);
                 }
             }
             setLastSessionXHR(xhr, pdsession);
@@ -3623,7 +3624,7 @@ limitations under the License.
             var deferred = $.Deferred(),
                 iOSBasicAuthTimeout;
 
-            console.warn("JSDOSession: As of 4.4, login() has been deprecated. Please use " 
+            console.warn("JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use " 
                          + "the AuthenticationProvider API instead.");
             
             function callIsAuthorized() {
