@@ -1,6 +1,5 @@
-
 /* 
-progress.session.js    Version: 4.4.0-9
+progress.session.js    Version: 4.4.0-10
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -714,7 +713,6 @@ limitations under the License.
             oepingAvailable = false,
             defaultPartialPingURI = "/rest/_oeping",
             partialPingURI = defaultPartialPingURI,
-            needsReconnectAfterPageRefresh = false,
             _storageKey,
             _authProvider = null,
 
@@ -1179,7 +1177,6 @@ limitations under the License.
                 sessionObject.loginResult = result;
             }
 
-            
             if (result === progress.data.Session.LOGIN_SUCCESS) {
                 storeSessionInfo("loginResult", result);
             } else {
@@ -1405,149 +1402,6 @@ limitations under the License.
                 }
             }
         };
-
-        
-        // Intended only for internal use by the JSDO library
-        // Confirm that the JSDOSession has access to the Web application at the specified serviceURI.
-        // The method does this by doing a GET of a specific resource (<serviceURI>/static/home.html by
-        // default, using the AuthenticationProvider passed in )
-        // Parameters:
-        //      authProvider  AuthenticationProvider; will be kept by the Session if _connect suceeds 
-        //      deferred      Deferred object created by caller, just attached to the xhr here
-        this._connect = function (deferred) {
-            var uriForRequest,   // "decorated" version of serviceURI, used to actually send the request
-                xhr,
-                params,
-                that = this;
-
-            function _connectAfterOpen(errorObject) {
-                var result;
-
-                // need these set for _connectComplete even if we call it directly here 
-                // because we were passed an errorObject
-                xhr._jsdosession = jsdosession;
-                xhr._deferred = deferred;
-
-                if (errorObject) {
-                    try {
-                        that._processConnectResult(xhr);
-                    }
-                    catch (e) {
-                        // keep errorObject as it is (error not currently thrown from 
-                        // _processConnectResult anyway)
-                    }
-                    if (!result) {
-                        result = progress.data.Session.GENERAL_FAILURE;
-                    }
-                    that._connectComplete(xhr.pdsession, result, errorObject, xhr);
-                } else {
-                    progress.data.Session._setNoCacheHeaders(xhr);
-                    // set X-CLIENT-PROPS header
-                    setRequestHeaderFromContextProps(that, xhr);
-
-                    xhr.onreadystatechange = that._onReadyStateChangeGeneric;
-                    xhr.onResponseFn = that._processConnectResult;
-                    xhr.onResponseProcessedFn = that._connectComplete;
-
-                    if (typeof that.onOpenRequest === 'function') {
-
-                        //  set this here in case onOpenRequest checks it
-                        setLastSessionXHR(xhr, that);
-                        params = {
-                            "xhr": xhr,
-                            "verb": "GET",
-                            "uri": that.serviceURI + that.loginTarget,
-                            "async": true,
-                            "formPreTest": false,
-                            "session": that
-                        };
-                        that.onOpenRequest(params);
-                        xhr = params.xhr; // just in case it has been changed
-                    }
-                    setLastSessionXHR(xhr, that);
-                    xhr.send(null);
-                }
-            }
-
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS &&
-                    !needsReconnectAfterPageRefresh) {
-                // Session: Already connected or logged in.
-                throw new Error(progress.data._getMsgText("jsdoMSG056", "progress.data.Session"));
-            }
-            
-            xhr = new XMLHttpRequest();
-            xhr.pdsession = this;
-
-            if (!this._authProvider) {
-                throw new Error(progress.data._getMsgText("jsdoMSG510"));
-            }
-              
-            try {
-                uriForRequest = this.serviceURI + this.loginTarget;
-                if (progress.data.Session._useTimeStamp) {
-                    uriForRequest = progress.data.Session._addTimeStampToURL(uriForRequest);
-                }
-                
-                this._authProvider._openRequestAndAuthorize(xhr,
-                                                            'GET',
-                                                            uriForRequest,
-                                                            true,  // async
-                                                            _connectAfterOpen);
-            } catch (e) {
-                setLoginHttpStatus(xhr.status, this);
-                setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, this);
-                throw e;
-            }
-
-            // Note: although login returns ASYNC_PENDING, there is currently no need for connect
-            // to return anything. It either throws an error or eventually _processConnectResult will fire
-            // the "afterConnect" event. (In fact, the only reason login even returns ASYNC_PENDING when it is 
-            // invoked async is because it's documented as returning a result (and that's because login was 
-            // originally spec'ed to be called synchronously)
-        };
-        
-
-        this._processConnectResult = function (xhr) {
-            var pdsession = xhr.pdsession,
-                contentType,
-                jsonObject,
-                pingTestArgs = {
-                    pingURI: null,
-                    async: true,
-                    onCompleteFn: null,
-                    fireEventIfOfflineChange: true,
-                    onReadyStateFn: pdsession._pingtestOnReadyStateChange
-                };
-            
-            setLoginHttpStatus(xhr.status, xhr.pdsession);
-
-            if (pdsession.loginHttpStatus === 200) {
-                setLoginResult(progress.data.Session.LOGIN_SUCCESS, pdsession);
-                setRestApplicationIsOnline(true);
-                pdsession._saveClientContextId(xhr);
-                storeAllSessionInfo();  // save info to persistent storage 
-                needsReconnectAfterPageRefresh = false;
-                
-                pingTestArgs.pingURI = pdsession._makePingURI();
-                pdsession._sendPing(pingTestArgs);  // see whether the ping feature is available
-            } else {
-                if (pdsession.loginHttpStatus === 401) {
-                    setLoginResult(progress.data.AuthenticationProvider._getAuthFailureReason(xhr),
-                                   pdsession);
-                } else {
-                    setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
-                }
-            }
-            setLastSessionXHR(xhr, pdsession);
-            updateContextPropsFromResponse(pdsession, xhr);
-
-            return pdsession.loginResult;
-        };
-
-
-        this._connectComplete = function (pdsession, result, errObj, xhr) {
-            pdsession.trigger("afterConnect", pdsession, result, errObj, xhr);
-        };
         
         // Intended only for internal use by the JSDO library
         // NOTE: disconnect does not currently send a request to the Web application for the Anonymous or 
@@ -1579,7 +1433,6 @@ limitations under the License.
             this._reinitializeAfterLogout(this, progress.data.Session.SUCCESS);
             this._disconnectComplete(this, progress.data.Session.SUCCESS, null, null, deferred);
         };
-
 
         this._disconnectComplete = function (pdsession, result, errObj, xhr, deferred) {
             pdsession.trigger("afterDisconnect", pdsession, result, errObj, xhr, deferred);
@@ -2058,9 +1911,6 @@ limitations under the License.
         // GET RID OF progress.data.Session logout CODE (AND RELATED) IF WE DROP SUPPORT FOR USING
         // THE OLD progress.data.Session API DIRECTLY (mainly a problem for existing code (tdriver),
         // or anyone who wants to call methods synchronously, which should be no one)
-        /* logout
-         *
-         */
         this.logout = function (args) {
             var isAsync = false,
                 errorObject = null,
@@ -2325,15 +2175,6 @@ limitations under the License.
             // to the named arguments and a variable
             if (arguments.length > 0) {
                 if (typeof arg1 === 'object') {
-                    
-                    // check whether OK to get catalog if offline
-                    if (!arg1.offlineAddCatalog) {
-                        if (this.loginResult !==
-                                progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
-                            throw new Error("Attempted to call addCatalog when there is no active session.");
-                        }
-                    }
-                        
                     catalogURI = arg1.catalogURI;
                     if (!catalogURI || (typeof catalogURI !== 'string')) {
                         throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
@@ -2453,9 +2294,8 @@ limitations under the License.
             var catalogURI = xhr._catalogURI,
                 serviceURL;
 
-            setLastSessionXHR(xhr, theSession);
-            updateContextPropsFromResponse(theSession, xhr);
-            
+            toggleOnlineState(xhr);
+                        
             if ((_catalogHttpStatus == 200) || (_catalogHttpStatus === 0) && xhr.responseText) {
                 servicedata = theSession._parseCatalog(xhr);
                 try {
@@ -2547,10 +2387,6 @@ limitations under the License.
                 fireEventIfOfflineChange: true, onReadyStateFn: this._onReadyStateChangePing,
                 offlineReason: null
             };
-
-            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS) {
-                throw new Error("Attempted to call ping when not logged in.");
-            }
             
             if (args) {
                 if (args.async !== undefined) {
@@ -2764,7 +2600,6 @@ limitations under the License.
                 assumeOepingFormat = oepingAvailable;
             }
 
-
             /* first determine whether the Web server and the Mobile Web Application (MWA)
              * are available
              */
@@ -2785,7 +2620,7 @@ limitations under the License.
                         console.error("Unable to parse ping response.");
                     }
                 }
-                setRestApplicationIsOnline(true);
+                toggleOnlineState(xhr);
             }
             else {
                 if (deviceIsOnline) {
@@ -3219,7 +3054,31 @@ limitations under the License.
                 xhr.setRequestHeader("X-CLIENT-PROPS", session._contextProperties.contextHeader);
             }
         }
-        
+
+        function toggleOnlineState(xhr) {
+            var pdsession = xhr.pdsession;
+            
+            setLoginHttpStatus(xhr.status, pdsession);
+
+            if (pdsession.loginHttpStatus === 200) {
+                setLoginResult(progress.data.Session.LOGIN_SUCCESS, pdsession);
+                setRestApplicationIsOnline(true);
+                pdsession._saveClientContextId(xhr);
+                storeAllSessionInfo();  // save info to persistent storage
+            } else {
+                if (pdsession.loginHttpStatus === 401) {
+                    setLoginResult(progress.data.AuthenticationProvider._getAuthFailureReason(xhr),
+                                   pdsession);
+                } else {
+                    setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
+                }
+            }
+            setLastSessionXHR(xhr, pdsession);
+            updateContextPropsFromResponse(pdsession, xhr);
+
+            return pdsession.loginResult;
+        };
+
         function updateContextPropsFromResponse(session, xhr) {
             /* determine whether the response contains an X-CLIENT_PROPS header and, if so, 
                set the Session's context
@@ -3249,7 +3108,7 @@ limitations under the License.
                 }
                 // if header is absent (getResponseHeader will return null), don't change _contextProperties
             }
-        }        
+        }
 
         
         // process constructor options and do other initialization
@@ -3285,7 +3144,6 @@ limitations under the License.
                          // setSessionInfoFromStorage that re-creates an AuthenticationProvider
                          // after page refresh only gets used if the app is using the old JSDOSession.login)
                         setSessionInfoFromStorage(_storageKey);
-                        needsReconnectAfterPageRefresh = true;
                         stateWasReadFromStorage = true;
                     }
                 }
@@ -3497,7 +3355,7 @@ limitations under the License.
     }
     // events supported by Session
     progress.data.Session.prototype._eventNames = 
-        ["offline", "online", "afterLogin", "afterAddCatalog", "afterLogout", "afterConnect", "afterDisconnect"];  
+        ["offline", "online", "afterLogin", "afterAddCatalog", "afterLogout", "afterDisconnect"];  
     // callback to validate subscribe and unsubscribe
     progress.data.Session.prototype.validateSubscribe = validateSessionSubscribe;
     progress.data.Session.prototype.toString = function (radix) {
@@ -3514,7 +3372,7 @@ limitations under the License.
             of the JSDOSession object -- i.e., even after logout and subsequent login, the pdsession
             is re-used rather than re-created.
     */
-    progress.data.JSDOSession = function JSDOSession( options ){
+    progress.data.JSDOSession = function JSDOSession(options) {
         var _pdsession,
             _serviceURI,
             that = this,
@@ -3812,26 +3670,6 @@ limitations under the License.
             return deferred.promise();
         };
 
-        this.connect = function () {
-            var deferred = $.Deferred(),
-                errorObject;
-            
-            try {
-                _pdsession.subscribe('afterConnect', genericSessionEventHandler, this);
-                
-                _pdsession._connect(deferred);
-            } catch (e) {
-                // JSDOSession: Unexpected error calling connect: {e.message}
-                errorObject = new Error(progress.data._getMsgText("jsdoMSG049", "JSDOSession", "connect", e.message));
-            }
-       
-            if (errorObject) {
-                throw errorObject;
-            } else {
-                return deferred.promise();
-            }
-        };
-
         // This method terminates the JSDOSession's ability to send requests to its serviceURI. 
         // Remove the reference to the AuthenticationProvider that was passed to connect(). 
         // Will be a no-op if connect() has not yet been called successfully.
@@ -4064,10 +3902,10 @@ limitations under the License.
         };
     
         // Determine whether the JSDOSession can currently access its web application.
-         // The use expected for this method is to determine whether a JSDOSession that has
-         // previously authenticated to its web application still has authorization.
-         // For example, if the JSDOSession is using Form authentication, is the server
-         // session still valid or did it expire? 
+        // The use expected for this method is to determine whether a JSDOSession that has
+        // previously authenticated to its web application still has authorization.
+        // For example, if the JSDOSession is using Form authentication, is the server
+        // session still valid or did it expire? 
         this.isAuthorized = function () {
             var deferred = $.Deferred(),
                 xhr = new XMLHttpRequest(),
