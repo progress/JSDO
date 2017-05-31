@@ -3056,7 +3056,7 @@ limitations under the License.
         }
 
         function toggleOnlineState(xhr) {
-            var pdsession = xhr.pdsession;
+            var pdsession = that;
             
             setLoginHttpStatus(xhr.status, pdsession);
 
@@ -3616,15 +3616,18 @@ limitations under the License.
         // METHODS
         
         // login()
-          // Creates an AuthenticationProvider and calls its login() method. Any errors thrown by the 
-          // Auth Provider's constructor or login will bubble up to the caller, otherwise this method
-          // returns the promise from the A-P's login call.
+        // Creates an AuthenticationProvider and calls its login() method. Any errors thrown by the 
+        // Auth Provider's constructor or login will bubble up to the caller, otherwise this method
+        // returns the promise from the A-P's login call.
         this.login = function (username, password, options) {
             var deferred = $.Deferred(),
                 iOSBasicAuthTimeout;
 
-            function callConnect() {
-                that.connect()
+            console.warn("JSDOSession: As of 4.4, login() has been deprecated. Please use " 
+                         + "the AuthenticationProvider API instead.");
+            
+            function callIsAuthorized() {
+                that.isAuthorized()
                     .then(function (jsdosession, result, info) {
                         deferred.resolve(that, result, info);
                     }, function (jsdosession, result, info) {
@@ -3656,15 +3659,14 @@ limitations under the License.
             if (_pdsession._authProvider.hasClientCredentials()) {
                 // the authProvider already has credentials (a page refresh may have happened),
                 // so do not call login
-                callConnect();
+                callIsAuthorized();
             } else {
                 _pdsession._authProvider.login(username, password)
                     .then(function () {
-                        callConnect();
-                    },
-                        function (provider, result, info) {
-                            deferred.reject(that, result, info);
-                        });
+                        callIsAuthorized();
+                    }, function (provider, result, info) {
+                            deferred.reject(that, result, info); 
+                    });
             }
 
             return deferred.promise();
@@ -3709,9 +3711,8 @@ limitations under the License.
                 iOSBasicAuthTimeout,
                 username,
                 options,
-                authProvider,
-                customAuthProvider = false;
-
+                authProvider;
+            
             // check whether 1st param is a string or an array
             if (typeof catalogURI === "string") {
                 catalogURIs = [catalogURI];
@@ -3750,14 +3751,13 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
                 if (options.authProvider) {
                     authProvider = options.authProvider;
-                    customAuthProvider = true; 
                 } else if (this.authProvider) {
                     authProvider = this.authProvider;
                 }
             }
             
-            // Error out if we are not connected and no customAuthProvider or username was given
-            if (!this.connected && !customAuthProvider && !username) {
+            // Error out if no authProvider or username was given
+            if (!authProvider && !this.authProvider && !username) {
                 throw new Error(progress.data._getMsgText("jsdoMSG511"));
             }
             
@@ -3862,6 +3862,10 @@ limitations under the License.
             var deferred = $.Deferred(),
                 authProv = this.authProvider;
 
+                
+            console.warn("JSDOSession: As of 4.4, logout() has been deprecated. Please use " 
+                         + "the AuthenticationProvider API instead.");
+            
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: Called logout() when authenticationModel is SSO. Use disconnect() instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
@@ -4185,19 +4189,16 @@ limitations under the License.
 
             try {
                 jsdosession = new progress.data.JSDOSession(options);
-                jsdosession.connect()
-                    .then(function () {
-                        try {
-                            jsdosession.addCatalog(options.catalogURI)
-                                .then(function (jsdosession, result, info) {
-                                    deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
-                                }, sessionRejectHandler);
-                        } catch (e) {
-                            sessionRejectHandler(jsdosession,
-                                                 progress.data.Session.GENERAL_FAILURE,
-                                                 {errorObject: e});
-                        }
-                    }, sessionRejectHandler);
+                try {
+                    jsdosession.addCatalog(options.catalogURI)
+                        .then(function (jsdosession, result, info) {
+                            deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+                        }, sessionRejectHandler);
+                } catch (e) {
+                    sessionRejectHandler(jsdosession,
+                                         progress.data.Session.GENERAL_FAILURE,
+                                         {errorObject: e});
+                }   
             } catch (e) {
                 sessionRejectHandler(jsdosession,
                                      progress.data.Session.GENERAL_FAILURE,
@@ -4213,6 +4214,7 @@ limitations under the License.
             var errorObject;
             
             // Use the login callback if we are passed one 
+            // NOTE: Do we even use logincallback? Remove this???
             if (typeof options.loginCallback !== 'undefined') {
                 options.loginCallback()
                     .then(function (result) {
