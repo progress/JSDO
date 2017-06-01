@@ -3523,8 +3523,7 @@ limitations under the License.
         var _pdsession,
             _serviceURI,
             that = this,
-            _name,
-            warn;
+            _name;
 
         // PROPERTIES
         // Approach: Use the properties of the underlying progress.data.Session object whenever
