@@ -725,7 +725,10 @@ limitations under the License.
             newURI,
             stateWasReadFromStorage = false;
 
-        console.warn("Session: As of JSDO 4.4, the Session object has been deprecated. Please use the JSDOSession object instead.");
+        // This is a hidden argument to suppress this warning and be re-used for future warnings
+        if (options._silent !== true) {
+            console.warn("Session: As of JSDO 4.4, the Session object has been deprecated. Please use the JSDOSession object instead.");
+        }
         
         if (typeof navigator  !== "undefined") {
             if (typeof navigator.userAgent !== "undefined") {
@@ -4250,17 +4253,12 @@ limitations under the License.
         
         _name = options.name;
         
-        // Turn off the warning temporarily 
-        warn = console.warn;
-        console.warn = function() {};
-        
         _pdsession = new progress.data.Session({_storageKey: _name,
+                                                _silent: true,
                                                 authenticationModel: options.authenticationModel,
                                                 serviceURI: options.serviceURI,
                                                 jsdosession: this,
                                                 authProvider: options.authProvider});
-        // Restore warnings
-        console.warn = warn;
         
         try {
             if (options.context) {
