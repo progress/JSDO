@@ -726,7 +726,7 @@ limitations under the License.
             stateWasReadFromStorage = false;
 
         // This is a hidden argument to suppress this warning and be re-used for future warnings
-        if (options._silent !== true) {
+        if (!options || options._silent !== true) {
             console.warn("Session: As of JSDO 4.4, the Session object has been deprecated. Please use the JSDOSession object instead.");
         }
         
