@@ -715,6 +715,7 @@ limitations under the License.
             partialPingURI = defaultPartialPingURI,
             _storageKey,
             _authProvider = null,
+            customCredentials = false,
 
             // Note: the variables above here are used during the lifetime of the object; the ones below
             // are only used while the constructor is executing
@@ -832,7 +833,7 @@ limitations under the License.
                     enumerable: true
                 });
 
-            var _loginResult = null;
+            var _loginResult = 1;
             Object.defineProperty(this, 'loginResult',
                 {
                     get: function () {
@@ -2171,6 +2172,9 @@ limitations under the License.
                 
             }
             
+            // Assume we're using a custom username/pw/authprovider
+            customCredentials = true;
+            
             // check whether the args were passed in a single object. If so, copy them
             // to the named arguments and a variable
             if (arguments.length > 0) {
@@ -2230,6 +2234,9 @@ limitations under the License.
 
             if (!authProvider) {
                 authProvider = this._authProvider;
+                
+                // Guess we're using the default credentials passed earlier
+                customCredentials = false;
             }
             
             // TODO: we expect that there will always be an authProvider if a login has been done.
@@ -2294,7 +2301,10 @@ limitations under the License.
             var catalogURI = xhr._catalogURI,
                 serviceURL;
 
-            toggleOnlineState(xhr);
+            // Only change the Session's state if the default AuthProv is being used
+            if (!customCredentials) {
+                toggleOnlineState(xhr);
+            }
                         
             if ((_catalogHttpStatus == 200) || (_catalogHttpStatus === 0) && xhr.responseText) {
                 servicedata = theSession._parseCatalog(xhr);
@@ -3060,20 +3070,29 @@ limitations under the License.
             
             setLoginHttpStatus(xhr.status, pdsession);
 
-            if (pdsession.loginHttpStatus <= 200 && pdsession.loginHttpStatus > 400) {
+            if (pdsession.loginHttpStatus >= 200 && pdsession.loginHttpStatus < 400) {
                 setLoginResult(progress.data.Session.LOGIN_SUCCESS, pdsession);
                 setRestApplicationIsOnline(true);
                 pdsession._saveClientContextId(xhr);
                 storeAllSessionInfo();  // save info to persistent storage
             } else {
-                if (pdsession.loginHttpStatus >= 400) {
+                // Taking a page from _processPingResult where we set the rest application as offline if it's one of
+                // these error codes
+                if (pdsession.loginHttpStatus === 0 || pdsession.loginHttpStatus === 400 || pdsession.loginHttpStatus === 410) {
+                    setRestApplicationIsOnline(false);
                     setLoginResult(progress.data.AuthenticationProvider._getAuthFailureReason(xhr),
                                    pdsession);
-                } else {
+                } 
+                // Otherwise if it's probably an internal error or auth problem. Either way, we know it's still online.
+                else {
+                    
+                    setRestApplicationIsOnline(true);
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, pdsession);
-                    setRestApplicationIsOnline(false);
                 }
+                
+                
             }
+            
             setLastSessionXHR(xhr, pdsession);
             updateContextPropsFromResponse(pdsession, xhr);
 
@@ -3657,18 +3676,16 @@ limitations under the License.
                 });
             }
             
-            if (_pdsession._authProvider.hasClientCredentials()) {
-                // the authProvider already has credentials (a page refresh may have happened),
-                // so do not call login
-                callIsAuthorized();
-            } else {
-                _pdsession._authProvider.login(username, password)
-                    .then(function () {
-                        callIsAuthorized();
-                    }, function (provider, result, info) {
-                            deferred.reject(that, result, info); 
-                    });
-            }
+
+            _pdsession._authProvider.logout()
+                .then( function () {
+                    return _pdsession._authProvider.login(username, password);
+                })            
+                .then(function () {
+                    callIsAuthorized();
+                }, function (provider, result, info) {
+                    deferred.reject(that, result, info); 
+                });
 
             return deferred.promise();
         };
@@ -3859,6 +3876,8 @@ limitations under the License.
         //    - app created an AuthenticationProvider and passed it to connect, but now for some reason has
         //          called logout (this is actually a nice shortcut for someone who has used getSession)
         //          (NB: we should not allow this for SSO, tho)
+        // 
+        // Note that we also don't support login/logout on the JSDOSession for page refresh
         this.logout = function(){
             var deferred = $.Deferred(),
                 authProv = this.authProvider;
@@ -3874,9 +3893,9 @@ limitations under the License.
                                                           'logout()',
                                                           "disconnect()"));
             }
-
+            
             this.disconnect()
-            .then(function () {
+                .then(function () {
                     return authProv.logout();
                 })
                 .then(function (jsdosession, result, info) {

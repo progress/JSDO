@@ -62,7 +62,8 @@ limitations under the License.
                 // The time given for the access token's expiration is in seconds. We transform it
                 // into milliseconds and add it to date.getTime() for a more standard format.
                 date = new Date();
-                accessTokenExpiration = date.getTime() + (info.expires_in * 1000);
+                // This should probably be renamed accessTokenRefreshThreshold
+                accessTokenExpiration = date.getTime() + (info.expires_in * 1000 * 0.75);
                 that._storage.setItem(tokenDataKeys.accessTokenExpiration, JSON.stringify(accessTokenExpiration));
             } else {
                 // if there is no refresh token, remove any existing one. This handles the case where
@@ -100,10 +101,6 @@ limitations under the License.
 
         function retrieveAccessTokenExpiration() {
             return retrieveTokenProperty(tokenDataKeys.accessTokenExpiration);
-        }
-        
-        function retrieveAccessTokenRefreshThreshold() {
-            return retrieveAccessTokenExpiration() * 0.75;
         }
 
         function retrieveTokenType() {
@@ -303,7 +300,7 @@ limitations under the License.
                 date = new Date();
                 if (this.automaticTokenRefresh &&
                     this.hasRefreshToken() &&    
-                    date.getTime() > retrieveAccessTokenRefreshThreshold()) {
+                    date.getTime() > retrieveAccessTokenExpiration()) {
                     try {
                         this.refresh()
                             .always(function (provider, result, info) {
