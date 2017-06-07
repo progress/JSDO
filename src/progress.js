@@ -106,7 +106,7 @@ limitations under the License.
     msg.msgs.jsdoMSG053 = "{1}: {2} was not executed because the AuthenticationProvider is not logged in.";
     msg.msgs.jsdoMSG054 = "{1}: Token refresh was not executed because the AuthenticationProvider does not have a refresh token.";
     msg.msgs.jsdoMSG055 = "{1}: Token refresh was not executed  because the authentication model is not sso.";
-    msg.msgs.jsdoMSG056 = "{1}: Already connected or logged in.";
+    msg.msgs.jsdoMSG056 = "{1}: Already logged in.";
     msg.msgs.jsdoMSG057 = "{1}: Called {2} when authenticationModel is sso. Use {3} instead.";
     msg.msgs.jsdoMSG058 = "{1}: Cannot pass username and password to addCatalog when authenticationModel " +
         "is sso. Pass an AuthenticationProvider instead.";
@@ -160,7 +160,7 @@ limitations under the License.
         "the options object passed to its constructor must include an authProvider property.";
     msg.msgs.jsdoMSG509 = "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as the authenticationModel, " +
         "it must also be passed an authProvider and an authProviderAuthenticationModel.";
-    msg.msgs.jsdoMSG510 = "JSDOSession: connect() can only be called if an AuthenticationProvider was passed to the JSDOSession's constructor.";
+    msg.msgs.jsdoMSG510 = "*** deprecated message, please re-use ***";
     msg.msgs.jsdoMSG511 = "JSDOSession: addCatalog() can only be called if an AuthenticationProvider was passed as an argument or " +
         "connect() has been successfully called.";
     
