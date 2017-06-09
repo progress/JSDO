@@ -838,7 +838,7 @@ limitations under the License.
                     enumerable: true
                 });
 
-            var _loginResult = 1;
+            var _loginResult = null;
             Object.defineProperty(this, 'loginResult',
                 {
                     get: function () {
@@ -3135,7 +3135,6 @@ limitations under the License.
             }
         }
 
-        
         // process constructor options and do other initialization
         
         // If a storage key (name property of a JSDOSession) was passed to the constructor, 
@@ -3147,6 +3146,10 @@ limitations under the License.
             jsdosession = options.jsdosession;
             newURI = options.serviceURI;
             setAuthProvider(options.authProvider);  // do this BEFORE calling setSessionInfoFromStorage
+            
+            if (options.authProvider && options.authProvider.hasClientCredentials()) {
+                _loginResult = progress.data.Session.LOGIN_SUCCESS;
+            }
             
             // get rid of trailing '/' because appending service url that starts with '/'
             // will cause request failures
@@ -4068,7 +4071,7 @@ limitations under the License.
             if (options.authProvider) {
                 if (typeof options.authProvider !== 'object') {
                     // JSDOSession: The 'options' parameter passed to the 'constructor' function
-                    //                          has an invalid value for the 'authProvider' property.
+                    //              has an invalid value for the 'authProvider' property.
                     throw new Error(progress.data._getMsgText(
                         "jsdoMSG502",
                         "JSDOSession",
