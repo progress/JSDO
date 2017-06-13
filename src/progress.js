@@ -160,7 +160,7 @@ limitations under the License.
         "the options object passed to its constructor must include an authProvider property.";
     msg.msgs.jsdoMSG509 = "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as the authenticationModel, " +
         "it must also be passed an authProvider and an authProviderAuthenticationModel.";
-    msg.msgs.jsdoMSG510 = "JSDOSession: connect() can only be called if an AuthenticationProvider was passed to the JSDOSession's constructor.";
+    msg.msgs.jsdoMSG510 = "*** deprecated message, please re-use ***";
     msg.msgs.jsdoMSG511 = "JSDOSession: addCatalog() can only be called if an AuthenticationProvider was passed as an argument or " +
         "connect() has been successfully called.";
     
