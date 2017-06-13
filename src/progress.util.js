@@ -1,5 +1,5 @@
 /* 
-progress.util.js    Version: 4.4.0-5
+progress.util.js    Version: 4.4.0-7
 
 Copyright (c) 2014-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -381,17 +381,17 @@ limitations under the License.
             field = filter.field;
             value = filter.value;
 
-            if (tableRef._name) {
-                // Use original field name instead of serialized name
-                fieldInfo = tableRef._jsdo[tableRef._name]._fields[field.toLowerCase()];
-                if (fieldInfo && fieldInfo.origName) {
-                    field = fieldInfo.origName;
-                }
-            }
-
             if (filter.filters) {
                 filter = progress.util._convertToABLWhereString(tableRef, filter);
             } else {
+                // Use original field name instead of serialized name
+                if (field && tableRef._name) {
+                    fieldInfo = tableRef._jsdo[tableRef._name]._fields[field.toLowerCase()];
+                    if (fieldInfo && fieldInfo.origName) {
+                        field = fieldInfo.origName;
+                    }
+                }
+
                 operator = whereOperators[filter.operator];
                 
                 if (operator === undefined) {

@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 4.4.0-9
+progress.js    Version: 4.4.0-16
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -106,7 +106,7 @@ limitations under the License.
     msg.msgs.jsdoMSG053 = "{1}: {2} was not executed because the AuthenticationProvider is not logged in.";
     msg.msgs.jsdoMSG054 = "{1}: Token refresh was not executed because the AuthenticationProvider does not have a refresh token.";
     msg.msgs.jsdoMSG055 = "{1}: Token refresh was not executed  because the authentication model is not sso.";
-    msg.msgs.jsdoMSG056 = "{1}: Already connected or logged in.";
+    msg.msgs.jsdoMSG056 = "{1}: Already logged in.";
     msg.msgs.jsdoMSG057 = "{1}: Called {2} when authenticationModel is sso. Use {3} instead.";
     msg.msgs.jsdoMSG058 = "{1}: Cannot pass username and password to addCatalog when authenticationModel " +
         "is sso. Pass an AuthenticationProvider instead.";
@@ -2304,7 +2304,10 @@ limitations under the License.
             for (var i = 0; i < this._resource.relations.length; i++) {
                 var relationship = this._resource.relations[i];
 
-                if (relationship.childName && relationship.parentName) {
+                // Set relationship information ignoring self-referencing (recursive) relationships
+                if (relationship.childName
+                    && relationship.parentName
+                    && (relationship.childName !== relationship.parentName)) {
                     // Set casing of fields in relationFields to be the same as in the schema
                     if (relationship.relationFields instanceof Array) {
                         for (var j = 0; j < relationship.relationFields.length; j++) {
