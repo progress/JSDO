@@ -3944,52 +3944,60 @@ limitations under the License.
                 result,
                 that = this;
 
-            _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true,
-                function () {
-                    xhr.onreadystatechange = function () {
-                        // do we need this xhr var? The one declared in isAuthorized seems to be in scope
-                        var xhr = this,
-                            cbresult,
-                            fakePingArgs,
-                            info;
+            // If we logged in successfuly using login() or if we have an AuthProvider, make the call
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this.authProvider) {
+                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true,
+                    function () {
+                        xhr.onreadystatechange = function () {
+                            // do we need this xhr var? The one declared in isAuthorized seems to be in scope
+                            var xhr = this,
+                                cbresult,
+                                fakePingArgs,
+                                info;
 
-                        if (xhr.readyState === 4) {
-                            info = {xhr: xhr,
-                                    offlineReason: undefined,
-                                    fireEventIfOfflineChange: true,
-                                    usingOepingFormat: false
-                                   };
+                            if (xhr.readyState === 4) {
+                                info = {xhr: xhr,
+                                        offlineReason: undefined,
+                                        fireEventIfOfflineChange: true,
+                                        usingOepingFormat: false
+                                       };
 
-                            // call _processPingResult because it has logic for 
-                            // detecting change in online/offline state
-                            _pdsession._processPingResult(info);
+                                // call _processPingResult because it has logic for 
+                                // detecting change in online/offline state
+                                _pdsession._processPingResult(info);
 
-                            if (xhr.status >= 200 && xhr.status < 300) {
-                                deferred.resolve(that,
-                                                 progress.data.Session.SUCCESS,
-                                                 info);
-                            } else {
-                                if (xhr.status === 401) {
-                                    cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                if (xhr.status >= 200 && xhr.status < 300) {
+                                    deferred.resolve(that,
+                                                     progress.data.Session.SUCCESS,
+                                                     info);
                                 } else {
-                                    cbresult = progress.data.Session.GENERAL_FAILURE;
+                                    if (xhr.status === 401) {
+                                        cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                    } else {
+                                        cbresult = progress.data.Session.GENERAL_FAILURE;
+                                    }
+                                    deferred.reject(that, cbresult, info);
                                 }
-                                deferred.reject(that, cbresult, info);
                             }
-                        }
-                    };
+                        };
 
-                    try {
-                        xhr.send();
-                    } catch (e) {
-                        throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
+                        try {
+                            xhr.send();
+                        } catch (e) {
+                            throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
+                        }
                     }
-                }
-                );
+                    );
+            } else {
+                // Never logged in (or logged in and logged out). Regardless of what the reason
+                // was that there wasn't a login, the bottom line is that authentication is required
+                result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
+                deferred.reject(that, result, {xhr: xhr});
+            }
 
             return deferred.promise();
         };
-
+        
         /* 
            set the properties that are passed between client and Web application in the 
            X-CLIENT-PROPS header. This sets the complete set of properties all at once;
