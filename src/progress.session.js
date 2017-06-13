@@ -1336,7 +1336,7 @@ limitations under the License.
                 }
             }
              
-            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
+            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this._authProvider && this.authenticationModel) {
                 throw new Error("Attempted to make server request when there is no active session.");
             }
 
@@ -1795,7 +1795,7 @@ limitations under the License.
                     }
 
                     // j_username=username&j_password=password&submit=Submit
-                    xhr.send("j_username=" + args.uname + "&j_password=" + args.pw + "&submit=Submit");
+                    xhr.send("j_username=" + encodeURIComponent(args.uname) + "&j_password=" + encodeURIComponent(args.pw) + "&submit=Submit");
                 }
                 catch (e) {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, theSession);
@@ -3944,55 +3944,48 @@ limitations under the License.
                 result,
                 that = this;
 
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
-                _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true,
-                    function () {
-                        xhr.onreadystatechange = function () {
-                            // do we need this xhr var? The one declared in isAuthorized seems to be in scope
-                            var xhr = this,
-                                cbresult,
-                                fakePingArgs,
-                                info;
+            _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true,
+                function () {
+                    xhr.onreadystatechange = function () {
+                        // do we need this xhr var? The one declared in isAuthorized seems to be in scope
+                        var xhr = this,
+                            cbresult,
+                            fakePingArgs,
+                            info;
 
-                            if (xhr.readyState === 4) {
-                                info = {xhr: xhr,
-                                        offlineReason: undefined,
-                                        fireEventIfOfflineChange: true,
-                                        usingOepingFormat: false
-                                       };
+                        if (xhr.readyState === 4) {
+                            info = {xhr: xhr,
+                                    offlineReason: undefined,
+                                    fireEventIfOfflineChange: true,
+                                    usingOepingFormat: false
+                                   };
 
-                                // call _processPingResult because it has logic for 
-                                // detecting change in online/offline state
-                                _pdsession._processPingResult(info);
+                            // call _processPingResult because it has logic for 
+                            // detecting change in online/offline state
+                            _pdsession._processPingResult(info);
 
-                                if (xhr.status >= 200 && xhr.status < 300) {
-                                    deferred.resolve(that,
-                                                     progress.data.Session.SUCCESS,
-                                                     info);
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                deferred.resolve(that,
+                                                 progress.data.Session.SUCCESS,
+                                                 info);
+                            } else {
+                                if (xhr.status === 401) {
+                                    cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
                                 } else {
-                                    if (xhr.status === 401) {
-                                        cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
-                                    } else {
-                                        cbresult = progress.data.Session.GENERAL_FAILURE;
-                                    }
-                                    deferred.reject(that, cbresult, info);
+                                    cbresult = progress.data.Session.GENERAL_FAILURE;
                                 }
+                                deferred.reject(that, cbresult, info);
                             }
-                        };
-
-                        try {
-                            xhr.send();
-                        } catch (e) {
-                            throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
                         }
+                    };
+
+                    try {
+                        xhr.send();
+                    } catch (e) {
+                        throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
                     }
-                    );
-            } else {
-                // Never logged in (or logged in and logged out). Regardless of what the reason
-                // was that there wasn't a login, the bottom line is that authentication is required
-                result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
-                deferred.reject(that, result, {xhr: xhr});
-            }
+                }
+                );
 
             return deferred.promise();
         };
