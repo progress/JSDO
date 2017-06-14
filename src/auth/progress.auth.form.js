@@ -77,8 +77,8 @@ limitations under the License.
         this._checkStringArg("login", userNameParam, 1, "userName");
         this._checkStringArg("login", passwordParam, 2, "password");
 
-        return this._loginProto("j_username=" + userNameParam +
-                                "&j_password=" + passwordParam + "&submit=Submit");
+        return this._loginProto("j_username=" + encodeURIComponent(userNameParam) +
+                                "&j_password=" + encodeURIComponent(passwordParam) + "&submit=Submit");
     };
     
     // login helper

@@ -1336,7 +1336,7 @@ limitations under the License.
                 }
             }
              
-            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
+            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this._authProvider && this.authenticationModel) {
                 throw new Error("Attempted to make server request when there is no active session.");
             }
 
@@ -1795,7 +1795,7 @@ limitations under the License.
                     }
 
                     // j_username=username&j_password=password&submit=Submit
-                    xhr.send("j_username=" + args.uname + "&j_password=" + args.pw + "&submit=Submit");
+                    xhr.send("j_username=" + encodeURIComponent(args.uname) + "&j_password=" + encodeURIComponent(args.pw) + "&submit=Submit");
                 }
                 catch (e) {
                     setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, theSession);
@@ -3944,7 +3944,8 @@ limitations under the License.
                 result,
                 that = this;
 
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
+            // If we logged in successfuly using login() or if we have an AuthProvider, make the call
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this.authProvider) {
                 _pdsession._openRequest(xhr, "GET", _pdsession.loginTarget, true,
                     function () {
                         xhr.onreadystatechange = function () {
@@ -3996,7 +3997,7 @@ limitations under the License.
 
             return deferred.promise();
         };
-
+        
         /* 
            set the properties that are passed between client and Web application in the 
            X-CLIENT-PROPS header. This sets the complete set of properties all at once;
