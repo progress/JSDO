@@ -1482,7 +1482,7 @@ limitations under the License.
                 throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'login()', "connect()")); 
             }
             
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS) {
+            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this._authProvider) {
                 throw new Error("Attempted to call login() on a Session object that is already logged in.");
             }
 
@@ -1925,8 +1925,8 @@ limitations under the License.
                 params;
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // Session: Called logout() when authenticationModel is SSO. Use disconnect() instead.
-                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'logout()', "disconnect()")); 
+                // Session: Called logout() when authenticationModel is SSO.
+                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'logout()'); 
             }
             
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
@@ -2184,6 +2184,15 @@ limitations under the License.
             // to the named arguments and a variable
             if (arguments.length > 0) {
                 if (typeof arg1 === 'object') {
+                    // check whether it's OK to add a catalog whilst offline
+                    if (!arguments[0].offlineAddCatalog) {
+                        if ((this.loginResult !==  progress.data.Session.LOGIN_SUCCESS
+                             && !this._authProvider) 
+                            && this.authenticationModel) {
+                            throw new Error("Attempted to call addCatalog when there is no active session.");
+                        }
+                    }
+                    
                     catalogURI = arg1.catalogURI;
                     if (!catalogURI || (typeof catalogURI !== 'string')) {
                         throw new Error(progress.data._getMsgText("jsdoMSG033", 'Session', 'addCatalog',
@@ -3664,11 +3673,10 @@ limitations under the License.
             }
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // JSDOSession: Called login() when authenticationModel is SSO. Use connect() instead.
+                // JSDOSession: Cannot call login() when authenticationModel is SSO. Please use the AuthenticationProvider object instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
                                                           'JSDOSession',
-                                                          'login()',
-                                                          "connect()"));
+                                                          'login()');
             }
 
             if (typeof options === 'object') {
@@ -3895,7 +3903,7 @@ limitations under the License.
                          + "the AuthenticationProvider API instead.");
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // JSDOSession: Called logout() when authenticationModel is SSO. Use disconnect() instead.
+                // JSDOSession: Cannot call logout() when authenticationModel is SSO. Please use the AuthenticationProvider object instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
                                                           'JSDOSession',
                                                           'logout()',
@@ -4321,7 +4329,7 @@ limitations under the License.
             if (options.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 if (!options.authenticationURI || !options.authProviderAuthenticationModel) {
                     // "progress.data.getSession: If the getSession method is passed AUTH_TYPE_SSO as
-                    // the authenticationModel, it must also be passed an authProvider and an 
+                    // the authenticationModel, it must also be passed an authenticationURI and an 
                     // authProviderAuthenticationModel."
                     throw new Error(progress.data._getMsgText("jsdoMSG509"));
                 }
