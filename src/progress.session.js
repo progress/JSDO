@@ -2184,6 +2184,8 @@ limitations under the License.
             // to the named arguments and a variable
             if (arguments.length > 0) {
                 if (typeof arg1 === 'object') {
+                    // check whether it's OK to add a catalog whilst offline
+                    if (!arguments[0].offlineAddCatalog) {
                         if ((this.loginResult !==  progress.data.Session.LOGIN_SUCCESS
                              && !this._authProvider) 
                             && this.authenticationModel) {
