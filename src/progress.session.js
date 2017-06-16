@@ -3580,7 +3580,13 @@ limitations under the License.
         function onAfterAddCatalog( pdsession, result, errorObject, xhr ) {
             var deferred,
                 fulfill = false,
+                settleResult;
+            
+            if (result === progress.data.Session.EXPIRED_TOKEN) {
+                settleResult = progress.data.Session.EXPIRED_TOKEN;
+            } else {
                 settleResult = progress.data.Session.GENERAL_FAILURE;
+            }
             
             if (xhr && xhr._deferred) {           
                 deferred  = xhr._deferred;
