@@ -1478,8 +1478,9 @@ limitations under the License.
             }
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // Session: Called login() when authenticationModel is SSO. Use connect() instead.
-                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'login()', "connect()")); 
+                // Session: Cannot call login() when authenticationModel is SSO. 
+                // Please use the AuthenticationProvider object instead.
+                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'login()')); 
             }
             
             if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this._authProvider) {
@@ -1925,8 +1926,9 @@ limitations under the License.
                 params;
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // Session: Called logout() when authenticationModel is SSO.
-                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'logout()'); 
+                // Session: Cannot call logout() when authenticationModel is SSO. 
+                // Please use the AuthenticationProvider object instead.
+                throw new Error(progress.data._getMsgText("jsdoMSG057", 'Session', 'logout()')); 
             }
             
             if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && this.authenticationModel) {
@@ -3673,10 +3675,11 @@ limitations under the License.
             }
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // JSDOSession: Cannot call login() when authenticationModel is SSO. Please use the AuthenticationProvider object instead.
+                // JSDOSession: Cannot call login() when authenticationModel is SSO. 
+                // Please use the AuthenticationProvider object instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
                                                           'JSDOSession',
-                                                          'login()');
+                                                          'login()'));
             }
 
             if (typeof options === 'object') {
@@ -3903,11 +3906,11 @@ limitations under the License.
                          + "the AuthenticationProvider API instead.");
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // JSDOSession: Cannot call logout() when authenticationModel is SSO. Please use the AuthenticationProvider object instead.
+                // JSDOSession: Cannot call logout() when authenticationModel is SSO. 
+                // Please use the AuthenticationProvider object instead.
                 throw new Error(progress.data._getMsgText("jsdoMSG057",
                                                           'JSDOSession',
-                                                          'logout()',
-                                                          "disconnect()"));
+                                                          'logout()'));
             }
             
             this.disconnect()
