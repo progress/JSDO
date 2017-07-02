@@ -8,11 +8,10 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 ### JSDO and OpenEdge compatibility
 | JSDO version | OpenEdge version |
 |----|----|
-| 4.3.1 | 11.4.0, 11.5.1, 11.6.3, 11.7.0 |
+| 4.4.0 | 11.6.3, 11.7.x |
 
 ### Download<a name="download"></a>
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
-<!-- [![Build Status](https://travis-ci.org/telerik/kendo-ui-core.svg?branch=master)](https://travis-ci.org/telerik/kendo-ui-core) -->
 
 
 | Source File| Purpose | 
@@ -21,6 +20,10 @@ You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">downloa
 | [progress.session.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.session.js) | JSDO session management |
 | [progress.util.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.util.js) | Helper classes for the JSDO |
 | [progress.data.kendo.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.kendo.js) | Kendo UI DataSource for the JSDO |
+| [auth/progress.auth.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.js) | JSDO authentication provider |
+| [auth/progress.auth.basic.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.basic.js) | JSDO authentication provider (BASIC auth) |
+| [auth/progress.auth.basic.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.form.js) | JSDO authentication provider (FORM-based auth) |
+| [auth/progress.auth.basic.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.sso.js) | JSDO authentication provider (SSO auth) |
 
 
 | Lib File| Purpose | 
