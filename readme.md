@@ -22,8 +22,8 @@ You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">downloa
 | [progress.data.kendo.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.kendo.js) | Kendo UI DataSource for the JSDO |
 | [auth/progress.auth.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.js) | JSDO authentication provider |
 | [auth/progress.auth.basic.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.basic.js) | JSDO authentication provider (BASIC auth) |
-| [auth/progress.auth.basic.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.form.js) | JSDO authentication provider (FORM-based auth) |
-| [auth/progress.auth.basic.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.sso.js) | JSDO authentication provider (SSO auth) |
+| [auth/progress.auth.form.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.form.js) | JSDO authentication provider (FORM-based auth) |
+| [auth/progress.auth.sso.js](https://github.com/CloudDataObject/JSDO/blob/master/src/auth/progress.auth.sso.js) | JSDO authentication provider (SSO auth) |
 
 
 | Lib File| Purpose | 
