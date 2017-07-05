@@ -1,8 +1,7 @@
-
 /* 
-progress.js    Version: 4.3.1-27
+progress.js    Version: 4.4.0-16
 
-Copyright (c) 2012-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,10 +99,22 @@ limitations under the License.
     msg.msgs.jsdoMSG046 = "JSDO: {1} operation is not defined.";
     msg.msgs.jsdoMSG047 = "{1} timeout expired.";
     msg.msgs.jsdoMSG048 = "{1}: {2} method has argument '{3}' that is missing property '{4}'.";
-    msg.msgs.jsdoMSG049 = "{1}: Unexpected error authenticating: {2}";
+    msg.msgs.jsdoMSG049 = "{1}: Unexpected error calling {2}: {3}";
     msg.msgs.jsdoMSG050 = "No token returned from server";
-    msg.msgs.jsdoMSG051 = "{1} authenticate() failed because the AuthenticationProvider is already managing a successful authentication.";
-    msg.msgs.jsdoMSG052 = "{1}: Login was not attempted because no credentials were supplied.";
+    msg.msgs.jsdoMSG051 = "{1} The login method was not executed because the AuthenticationProvider is already logged in.";
+    msg.msgs.jsdoMSG052 = "{1}: The login method was not executed because no credentials were supplied.";
+    msg.msgs.jsdoMSG053 = "{1}: {2} was not executed because the AuthenticationProvider is not logged in.";
+    msg.msgs.jsdoMSG054 = "{1}: Token refresh was not executed because the AuthenticationProvider does not have a refresh token.";
+    msg.msgs.jsdoMSG055 = "{1}: Token refresh was not executed  because the authentication model is not sso.";
+    msg.msgs.jsdoMSG056 = "{1}: Already logged in.";
+    msg.msgs.jsdoMSG057 = "{1}: Cannot call {2} when authenticationModel is SSO. Please use the AuthenticationProvider object instead.";
+    msg.msgs.jsdoMSG058 = "{1}: Cannot pass username and password to addCatalog when authenticationModel " +
+        "is sso. Pass an AuthenticationProvider instead.";
+    msg.msgs.jsdoMSG059 = "{1}: Error in constructor. The authenticationModels of the " +
+        "AuthenticationProvider ({2}) and the JSDOSession ({3}) were not compatible.";
+    msg.msgs.jsdoMSG060 = "AuthenticationProvider: AuthenticationProvider is no longer logged in. " +
+        "Tried to refresh SSO token but failed due to authentication error at token server.";
+    msg.msgs.jsdoMSG061 = "{1}: Attempted to set {2} property to an invalid value.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -129,15 +140,30 @@ limitations under the License.
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
     msg.msgs.jsdoMSG124 = "JSDO: autoApplyChanges is not supported for saveChanges(true) " + 
                             "with a temp-table. Use jsdo.autoApplyChanges = false.";
-    msg.msgs.jsdoMSG125 = "JSDOSession: The AuthenticationProvider needs to be managing a valid token.";
-    
+    msg.msgs.jsdoMSG125 = "{1}: The AuthenticationProvider is not managing valid credentials.";
+    msg.msgs.jsdoMSG126 = "{1}: No support for {2}.";
+    msg.msgs.jsdoMSG127 = "JSDO: acceptRowChanges() cannot be called for record with _rejected === true.";
+
     //                    500 - 998 are for generic errors
     msg.msgs.jsdoMSG500 = "{1}: '{2}' objects must contain a '{3}' property.";
-    msg.msgs.jsdoMSG501 = "{1}: '{2}' cannot be an empty string.";
-    msg.msgs.jsdoMSG502 = "{1}: The object '{2}' has an invalid value in the '{3}' property.";
-    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'";
-    msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";    
-
+    msg.msgs.jsdoMSG501 = "{1}: '{2}' in '{3}' function cannot be an empty string.";
+    msg.msgs.jsdoMSG502 = "{1}: The '{2}' parameter passed to the '{3}' function has an invalid value for " +
+        "its '{4}' property.";
+    msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'.";
+    msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";
+    msg.msgs.jsdoMSG505 = "{1}: '{2}' objects must have a '{3}' method.";
+                // use message below if invalid parameter value is an object    
+    msg.msgs.jsdoMSG506 = "{1}: Invalid argument for the {2} parameter in {3} call.";
+                // use message below if invalid parameter value is a primitive
+    msg.msgs.jsdoMSG507 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
+    msg.msgs.jsdoMSG508 = "JSDOSession: If a JSDOSession object is using the SSO authentication model, " +
+        "the options object passed to its constructor must include an authProvider property.";
+    msg.msgs.jsdoMSG509 = "progress.data.getSession: If the authenticationModel is AUTH_TYPE_SSO, " +
+        "authenticationURI and authProviderAuthenticationModel are required parameters.";
+    msg.msgs.jsdoMSG510 = "*** deprecated message, please re-use ***";
+    msg.msgs.jsdoMSG511 = "JSDOSession: addCatalog() can only be called if an AuthenticationProvider was passed as an argument or " +
+        "connect() has been successfully called.";
+    
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
     msg.getMsgText = function (n, args) {
@@ -495,7 +521,7 @@ limitations under the License.
             }
             else {
                 // Creates a copy of the data if sort and top are specified
-                // so that the sorting does not happen in the JSDO memory but 
+                // so that the sorting does not happen in the JSDO memory but
                 // in a copy of the records
                 if (params && (params.sort || params.top)) {
                     newDataArray = [];
@@ -1459,7 +1485,7 @@ limitations under the License.
                 result.push(item);
             }
             return result;
-        };
+        };        
 
         /*
          * Private method to apply changes for the specified table reference.
@@ -1472,7 +1498,8 @@ limitations under the License.
                 if (this._beforeImage[id] === null) {
                     var jsrecord = this._findById(id, false);
                     if (jsrecord !== null) {
-                        if (jsrecord.data._errorString !== undefined) {
+                        if (jsrecord.data._rejected
+                            || (jsrecord.data._errorString !== undefined)) {
                             this._jsdo._undoCreate(this, id);
                         }
                         else {
@@ -1498,7 +1525,8 @@ limitations under the License.
                     var jsrecord = this._findById(id, false);
                     if (jsrecord !== null) {
                         // Record found in JSDO memory
-                        if (jsrecord.data._errorString !== undefined) {
+                        if (jsrecord.data._rejected
+                            || (jsrecord.data._errorString !== undefined)) {
                             this._jsdo._undoUpdate(this, id);
                         }
                         else {
@@ -1508,7 +1536,8 @@ limitations under the License.
                     else {
                         // Record not present in JSDO memory
                         // Delete after Update
-                        if (this._beforeImage[id]._errorString !== undefined) {
+                        if (this._beforeImage[id]._rejected
+                            || (this._beforeImage[id]._errorString !== undefined)) {
                             this._jsdo._undoDelete(this, id);
                         }
                         else {
@@ -1526,7 +1555,8 @@ limitations under the License.
                 }
                 // Delete
                 else {
-                    if (this._beforeImage[id]._errorString !== undefined) {
+                    if (this._beforeImage[id]._rejected
+                        || (this._beforeImage[id]._errorString !== undefined)) {
                         this._jsdo._undoDelete(this, id);
                     }
                 }
@@ -1793,6 +1823,9 @@ limitations under the License.
         this.acceptRowChanges = function () {
             var id = this.data._id;
             if (this._tableRef._beforeImage[id] !== undefined) {
+                if (this.data._rejected) {
+                    throw new Error(msg.getMsgText("jsdoMSG127"));
+                }
                 if (this._tableRef._beforeImage[id] === null) {
                     // Accept create				
                     // Remove element from _added
@@ -2271,7 +2304,10 @@ limitations under the License.
             for (var i = 0; i < this._resource.relations.length; i++) {
                 var relationship = this._resource.relations[i];
 
-                if (relationship.childName && relationship.parentName) {
+                // Set relationship information ignoring self-referencing (recursive) relationships
+                if (relationship.childName
+                    && relationship.parentName
+                    && (relationship.childName !== relationship.parentName)) {
                     // Set casing of fields in relationFields to be the same as in the schema
                     if (relationship.relationFields instanceof Array) {
                         for (var j = 0; j < relationship.relationFields.length; j++) {
@@ -2398,6 +2434,23 @@ limitations under the License.
          * 
          */
         this._httpRequest = function (xhr, method, url, reqBody, request) {
+            
+            function afterOpenRequest() {
+                var input = null;
+                if (reqBody) {
+                    xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+                    input = JSON.stringify(reqBody);
+                }
+
+                try {
+                    xhr.send(input);
+                } catch (e) {
+                    request.success = false;
+                    request.exception = e;
+                    // let Session check for online/offline
+                    xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+                }
+            }
 
             // if xhr wasn't passed we'll create our own since this is an invoke operation
             // if xhr is passed, then it is probably a CRUD operation which is setup with XHR
@@ -2441,24 +2494,11 @@ limitations under the License.
             request.jsdo = this;
             request.xhr = xhr;
 
-            this._session._openRequest(xhr, method, url, request.async);
+            this._session._openRequest(xhr, method, url, request.async, afterOpenRequest);
 
-            var input = null;
-            if (reqBody) {
-                xhr.setRequestHeader("Content-Type", "application/json; charset=utf-8");
-                input = JSON.stringify(reqBody);
-            }
-
-            try {
-                xhr.send(input);
-            } catch (e) {
-                request.success = false;
-                request.exception = e;
-                // let Session check for online/offline
-                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
-            }
-
-            return request;
+            return request;  // Note: for the async case, this does not give us exactly the same behavior
+                             // as when afterOpenRequest is called synchronously, because this returns
+                             // request before its xhr has had its open() called
         };
 
 
@@ -2759,6 +2799,101 @@ limitations under the License.
 			}
 		};
 
+        /**
+         * setAllRecordsRejected
+         * 
+         * Sets _allRecordsRejected flag to indicate whether all records have been rejected
+         * in a saveChanges() call.
+         * If changes are specified as an array, the changes are used to calculate the flag.
+         * 
+         * @param {*} param - Array with changes or boolean with value
+         */
+		this._setAllRecordsRejected = function (param) {
+            var changes,
+                hasErrors,
+                hasRejected,
+                hasCommittedRecords,
+                i;
+
+            // Note: This function is a single one-stop convenient function to set             
+            // _allRecordsRejected and _someRecordsRejected.
+            // This logic can be optimized by setting the flags while processing the response.
+            if (param instanceof Object) {
+                if (param instanceof Array) {
+                    changes = param;
+                    hasErrors = false;
+
+                    this._allRecordsRejected = false;
+                    this._someRecordsRejected = false;
+
+                    for (var buf in this._buffers) {
+                        if (this._buffers[buf]._lastErrors.length > 0) {
+                            hasErrors = true;
+                        }
+                    }
+                    if (hasErrors) {
+                        this._allRecordsRejected = true;
+                        this._someRecordsRejected = true;
+
+                        for (i = 0; i < changes.length; i += 1) {
+                            if (changes[i].record && !changes[i].record.data._rejected) {
+                                this._allRecordsRejected = false;
+                                return;
+                            }
+                        }
+                    } else if (changes.length > 0) {
+                        this._allRecordsRejected = true;
+                        this._someRecordsRejected = false;
+                        hasCommittedRecords = false;
+
+                        for (i = 0; i < changes.length; i += 1) {
+                            if (changes[i].record) {
+                                if (changes[i].record.data._rejected) {
+                                    this._someRecordsRejected = true;
+                                } else {
+                                    hasCommittedRecords = true;
+                                }
+                            }
+                        }
+                        if (hasCommittedRecords && !this._someRecordsRejected) {
+                            this._allRecordsRejected = false;
+                        }
+                    }
+                } else {
+                    if (param.operations instanceof Array) {
+                        if (param.operations.length > 0
+                            && !param.operations[0].success) {
+                            // First operation failed
+                            this._allRecordsRejected = true;
+                            this._someRecordsRejected = true;
+
+                            for (i = 0; i < param.operations.length; i += 1) {
+                                if (param.operations[i].success) {
+                                    this._allRecordsRejected = false;
+                                    return;
+                                }
+                            }
+                        } else {
+                            // Not all operations were rejected
+                            this._allRecordsRejected = false;
+                            this._someRecordsRejected = false;                            
+
+                            for (i = 0; i < param.operations.length; i += 1) {
+                                if (!param.operations[i].success) {
+                                    this._someRecordsRejected = true;
+                                    return;
+                                }
+                            }                            
+                        }
+                    }
+                }
+            } else {
+                // Possible values: true, false, undefined
+                this._allRecordsRejected = param;
+                this._someRecordsRejected = param;
+            }
+		};
+
         /*
          * Loads data from the HTTP resource.
          */
@@ -2767,8 +2902,12 @@ limitations under the License.
                 promise,
 				properties,
 				mapping;
-                
+
+            // Clear errors before sending request                
 			this._clearErrors();
+
+            // Reset _allRecordsRejected
+            this._setAllRecordsRejected(undefined);
 
             // Process parameters
             if (arguments.length !== 0) {
@@ -2776,7 +2915,17 @@ limitations under the License.
                 if (typeof(arguments[0]) == 'function') {
                     throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "fill() or read()"));                
                 }
+
+                properties = this.getMethodProperties("read");
                 
+                // Get plugin if mappingType is not undefined, null, or ""
+                if (properties && properties.mappingType) {
+                    mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
+                    if (!mapping) {
+                        throw new Error(msg.getMsgText("jsdoMSG118", properties.mappingType));		
+                    }
+                }
+
                 // fill( string);
                 var filter;
                 if (arguments[0] === null || arguments[0] === undefined) {
@@ -2790,14 +2939,8 @@ limitations under the License.
                     // options 
                     // ablFilter, id, top, skip, sort
 					
-					properties = this.getMethodProperties("read");
-					
                     // Use plugin if mappingType is not undefined, null, or ""
-					if (properties && properties.mappingType) {
-						mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
-						if (!mapping) {
-							throw new Error(msg.getMsgText("jsdoMSG118", properties.mappingType));		
-						}
+					if (mapping) {
 						if (typeof(mapping.requestMapping) === "function") {
 							objParam = mapping.requestMapping(this, arguments[0], { operation: "read" });
 						}
@@ -2841,7 +2984,7 @@ limitations under the License.
             if (this._resource) {
                 if (typeof(this._resource.generic.read) == "function") {
                     xhr.objParam = objParam;
-                    this._resource.generic.read(xhr, this._async);
+                    this._resource.generic.read.call(this, xhr, this._async);
                     if (xhr.request.deferred) {
                         promise = xhr.request.deferred.promise();
                     }
@@ -3125,6 +3268,9 @@ limitations under the License.
             
             // Clear errors before sending request
 			this._clearErrors();
+
+            // Reset _allRecordsRejected
+            this._setAllRecordsRejected(undefined);
 
             request = {
                 jsdo: this
@@ -3602,6 +3748,7 @@ limitations under the License.
                     if (!success && batch.operations) {
                         this._updateLastErrors(this, batch, null);
                     }
+                    this._setAllRecordsRejected(batch);
                         
                     this._fireAfterSaveChanges(success, request);
                 }
@@ -3728,7 +3875,7 @@ limitations under the License.
                 if (this._resource) {
                     if (typeof(this._resource.generic["delete"]) == "function") {
                         xhr.objParam = requestData;
-                        this._resource.generic["delete"](xhr, this._async);
+                        this._resource.generic["delete"].call(this, xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: DELETE operation is not defined.");
@@ -3792,7 +3939,7 @@ limitations under the License.
                         
                         xhr.objParam = requestData;
                         
-                        this._resource.generic.create(xhr, this._async);
+                        this._resource.generic.create.call(this, xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: CREATE operation is not defined.");
@@ -3877,7 +4024,7 @@ limitations under the License.
                 if (this._resource) {
                     if (typeof(this._resource.generic.update) == "function") {
                         xhr.objParam = requestData;
-                        this._resource.generic.update(xhr, this._async);
+                        this._resource.generic.update.call(this, xhr, this._async);
                     }
                     else {
                         throw new Error("JSDO: UPDATE operation is not defined.");
@@ -4515,6 +4662,8 @@ limitations under the License.
                 delete record["prods:id"];
                 delete record["prods:hasErrors"];
                 delete record["prods:clientId"];
+                delete record["prods:rejected"];
+                delete record._rejected;               
 
                 if (deleteRowState) {
                     delete record["prods:rowState"];
@@ -5026,6 +5175,15 @@ limitations under the License.
                         if (errorString)
                             this._setErrorString(tableRef, recordId, errorString, false);
 
+                        // Set _rejected property
+                        if (tableJsonObject[i]["prods:rejected"]
+                            || errorString) {
+                            record._rejected = true;
+                            if (errorString === "REJECTED") {
+                                delete record._errorString;
+                            }
+                        }                            
+
                         xhr.request.jsrecord = new progress.data.JSRecord(tableRef, record);
                     }
                 }
@@ -5148,8 +5306,18 @@ limitations under the License.
                                 this._getErrorStringFromJsonObject(dataSetJsonObject, tableRef, prods_id);
                         }
                         var record = this._mergeUpdateRecord(tableRef, recordId, tableJsonObject[i]);
-                        if (errorString)
+                        if (errorString) {
                             this._setErrorString(tableRef, recordId, errorString, false);
+                        }
+
+                        // Set _rejected property so it can be checked in applyChanges()
+                        if (tableJsonObject[i]["prods:rejected"]
+                            || errorString) {
+                            record._rejected = true;
+                            if (errorString === "REJECTED") {
+                                delete record._errorString;
+                            }
+                        }
 
                         // Now need to update jsrecords. 
                         // We use this data when we fire create, update and delete events.
@@ -5172,6 +5340,7 @@ limitations under the License.
                 for (var buf in this._buffers) {
                     var tableRef = this._buffers[buf];
                     var beforeTableJsonObject = beforeJsonObject[tableRef._name];
+                    var errorString;
 
                     if (beforeTableJsonObject instanceof Array) {
                         for (var i = 0; i < beforeTableJsonObject.length; i++) {
@@ -5182,12 +5351,24 @@ limitations under the License.
                                     throw new Error(msg.getMsgText("jsdoMSG035", "_mergeUpdateForSubmit()"));
                                 }
 
+                                errorString = undefined;
                                 // If row was returned with error string, just copy that over to jsdo record
                                 if (beforeTableJsonObject[i]["prods:hasErrors"]) {
                                     var prods_id = beforeTableJsonObject[i]["prods:id"];
-                                    var errorString = this._getErrorStringFromJsonObject(dataSetJsonObject, 
+                                    
+                                    errorString = this._getErrorStringFromJsonObject(dataSetJsonObject, 
                                         tableRef, prods_id);
                                     this._setErrorString(tableRef, recordId, errorString, true);
+                                }
+
+                                // Set _rejected property so it can be checked in applyChanges()
+                                if ((beforeTableJsonObject[i]["prods:rejected"]
+                                    || errorString)
+                                    && tableRef._beforeImage[recordId]) {
+                                    tableRef._beforeImage[recordId]._rejected = true;
+                                    if (errorString === "REJECTED") {
+                                        delete tableRef._beforeImage[recordId]._errorString;
+                                    }
                                 }
                             }
                         }
@@ -5499,8 +5680,9 @@ limitations under the License.
             var xhr = request.xhr;
             var hasError = jsdo._mergeUpdateForCUD(request.response, xhr);
 
-            if (hasError)
+            if (hasError) {
                 request.success = false;
+            }
 
             if (jsdo.autoApplyChanges) {
                 if (!hasError) {
@@ -5533,6 +5715,8 @@ limitations under the License.
             var changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
 
+			jsdo._setAllRecordsRejected(changes);            
+
             if (jsdo.autoApplyChanges) {
                 jsdo._applyChanges();
             }
@@ -5540,9 +5724,10 @@ limitations under the License.
 
 
         this._saveChangesError = function (jsdo, success, request) {
+			jsdo._setAllRecordsRejected(true);
             if (jsdo.autoApplyChanges) {
                 jsdo.rejectChanges();
-            }
+            }            
             jsdo._updateLastErrors(jsdo, null, null, request);
         };
 
@@ -5554,6 +5739,8 @@ limitations under the License.
             that were returned form the data service, but that would invalidate the _id's that
             the Kendo datasource depends on. The application programmmer must do the merging in
             the afterSaveChanges handler
+
+            *** Submit(temp-table) is not supported. This method will be removed in a future version. ***
          */         
         this._saveChangesSuccessTT = function (jsdo, success, request) {
             var changes;
@@ -5562,11 +5749,13 @@ limitations under the License.
             jsdo._clearErrors();
             changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
+            jsdo._setAllRecordsRejected(false);
         };
 
         this._saveChangesComplete = function (jsdo, success, request) {
             // Success with errors
-            if ((request.xhr.status >= 200 && request.xhr.status < 300) && jsdo._lastErrors.length > 0) {
+            if ((request.xhr.status >= 200 && request.xhr.status < 300)
+                && (jsdo._lastErrors.length > 0 || jsdo._someRecordsRejected)) {
                 request.success = false;
             }
 
@@ -5812,6 +6001,8 @@ limitations under the License.
                         if (!success && batch.operations) {
                             jsdo._updateLastErrors(jsdo, batch, null);
                         }
+                        this._setAllRecordsRejected(batch);
+
                         jsdo._fireAfterSaveChanges(success, request);
                     }
                 }
@@ -5822,7 +6013,7 @@ limitations under the License.
         /*
          * determine if a batch of XHR requests has completed in which all requests are successful
          */
-        this._isBatchSuccess = function (batch) {
+        this._isBatchSuccess = function (batch) {            
             if (batch.operations) {
                 for (var i = 0; i < batch.operations.length; i++) {
                     if (!batch.operations[i].success) {
@@ -5976,6 +6167,7 @@ limitations under the License.
                         }
                     }
                 } catch (e) {
+                    request.success = false;				
                     request.exception = e;
                     if ((typeof xhr.onErrorFn) == 'function') {
                         xhr.onErrorFn(xhr.jsdo, request.success, request);
@@ -6584,7 +6776,7 @@ limitations under the License.
 		requestMapping: function(jsdo, params, info) {
 			var sortFields,
 			field,
-            fieldName,            
+            fieldName,
             fieldInfo,
             tableName,
             filter,
@@ -6642,8 +6834,8 @@ limitations under the License.
                 }
 
 				if (params.sort) {
-                    // Convert sort expression to JFP format				
-					
+                    // Convert sort expression to JFP format
+
                     if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
                         // Kendo UI sort format - object
                         // Make params.sort an array
