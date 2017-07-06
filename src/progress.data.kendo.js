@@ -1,8 +1,8 @@
 
 /* 
-progress.data.kendo.js    Version: 4.3.0-10
+progress.data.kendo.js    Version: 4.4.0-01
 
-Copyright (c) 2015-2016 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2015-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -545,10 +545,7 @@ limitations under the License.
                             options.success(data);
                         }
                     } else {
-                        exception = request.exception;
-                        if (!exception) {
-                            exception = new Error("Error while reading records.");
-                        }
+                        exception = new Error("Error while reading records.");
                         options.error(request.xhr, request.xhr.status, exception);
                     }
                 };
@@ -666,22 +663,11 @@ limitations under the License.
                                 && request.batch.operations.length === 1) {
                             xhr = request.batch.operations[0].xhr;
                             status = request.batch.operations[0].xhr.status;
-                            if (status === 500) {
-                                exception = request.batch.operations[0].exception;
-                            } else {
-                                jsrecord = jsdo[transport.tableRef].findById(options.data._id);
-                                if (jsrecord) {
-                                    exception = new Error(jsrecord.getErrorString());
-                                }
-                            }
                         } else if (request.jsrecords) {
                             xhr = request.xhr;
                             status = request.xhr.status;
-                            // Use "default" exception text
                         }
-                        if (!exception) {
-                            exception = new Error("Error while saving changes.");
-                        }
+                        exception = new Error("Error while saving changes.");
                         options.error(xhr, status, exception);
                     }
                 };
@@ -785,10 +771,6 @@ limitations under the License.
                 jsrecord,
                 saveUseRelationships = jsdo.useRelationships;
             
-            if (!this.jsdo._hasSubmitOperation) {
-                options.error(null, null, new Error("Submit operation is required for batching support."));
-                return;
-            }
             options.batch = true;
             try {
                 jsdo.useRelationships = false;
