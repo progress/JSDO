@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 4.4.0-16
+progress.js    Version: 4.5.0-01
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3390,7 +3390,8 @@ limitations under the License.
         this._syncTableRef = function (operation, tableRef, batch) {
             var rowData,
                 requestData,
-                jsonObject;
+                jsonObject,
+                dataSetObject;
             
             if (tableRef._visited) return;
             tableRef._visited = true;
@@ -3423,11 +3424,9 @@ limitations under the License.
                         tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
 
                         if (this.isDataSet()) {
+                            dataSetObject = jsonObject[this._dataSetName] = {};
                             if (this._useBeforeImage("create")) {
-                                jsonObject[this._dataSetName] = {};
-                                var dataSetObject = jsonObject[this._dataSetName];
                                 dataSetObject["prods:hasChanges"] = true;
-
                                 dataSetObject[tableRef._name] = [];
                                 
                                 // Dont need to send prods:id for create, 
@@ -3441,8 +3440,8 @@ limitations under the License.
                                 dataSetObject[tableRef._name].push(rowData);
                             }
                             else {
-                                jsonObject[tableRef._name] = [];
-                                jsonObject[tableRef._name].push(rowData);
+                                dataSetObject[tableRef._name] = [];
+                                dataSetObject[tableRef._name].push(rowData);
                             }
                         }
                         else {
@@ -3485,8 +3484,7 @@ limitations under the License.
                         if (this.isDataSet()) {
                             if (this._useBeforeImage("update")) {
                                 useBeforeImageFormat = true;
-                                jsonObject[this._dataSetName] = {};
-                                var dataSetObject = jsonObject[this._dataSetName];
+                                dataSetObject = jsonObject[this._dataSetName] = {};
                                 dataSetObject["prods:hasChanges"] = true;
                                 dataSetObject[tableRef._name] = [];
 
@@ -3535,8 +3533,9 @@ limitations under the License.
                                 requestData = rowData;
 
                             if (this.isDataSet()) {
-                                jsonObject[tableRef._name] = [];
-                                jsonObject[tableRef._name].push(requestData);
+                                dataSetObject = jsonObject[this._dataSetName] = {};
+                                dataSetObject[tableRef._name] = [];
+                                dataSetObject[tableRef._name].push(requestData);
                             }
                             else {
                                 jsonObject = rowData;
@@ -3590,8 +3589,7 @@ limitations under the License.
                     if (this.isDataSet()) {
                         if (this._useBeforeImage("delete")) {
                             useBeforeImageFormat = true;
-                            jsonObject[this._dataSetName] = {};
-                            var dataSetObject = jsonObject[this._dataSetName];
+                            dataSetObject = jsonObject[this._dataSetName] = {};
                             dataSetObject["prods:hasChanges"] = true;
 
                             // There is no after tables for deletes, so just create before-table data
@@ -3630,8 +3628,9 @@ limitations under the License.
                         }
 
                         if (this.isDataSet()) {
-                            jsonObject[tableRef._name] = [];
-                            jsonObject[tableRef._name].push(requestData);
+                            dataSetObject = jsonObject[this._dataSetName] = {};
+                            dataSetObject[tableRef._name] = [];
+                            dataSetObject[tableRef._name].push(requestData);
                         }
                         else {
                             jsonObject = rowData;
