@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 4.4.0-16
+progress.js    Version: 4.5.0-02
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -6919,14 +6919,14 @@ limitations under the License.
                     }
 				}
                 
-				filter = JSON.stringify({
-					ablFilter: ablFilter,
+                filter = JSON.stringify({
+                    ablFilter: ablFilter,
                     sqlQuery: sqlQuery,
-					orderBy: sortFields,
-					skip: params.skip,
+                    orderBy: sortFields,
+                    skip: params.skip,
                     top: params.top,
-					id: params.id
-                });				
+                    id: params.id
+                });
 				
 				params = {filter: filter};
 			}
