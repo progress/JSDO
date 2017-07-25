@@ -6924,8 +6924,9 @@ limitations under the License.
                     sqlQuery: sqlQuery,
 					orderBy: sortFields,
 					skip: params.skip,
-					top: params.top
-					});				
+                    top: params.top,
+					id: params.id
+                });				
 				
 				params = {filter: filter};
 			}
