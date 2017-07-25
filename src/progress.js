@@ -3424,7 +3424,8 @@ limitations under the License.
                         tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
 
                         if (this.isDataSet()) {
-                            dataSetObject = jsonObject[this._dataSetName] = {};
+                            jsonObject[this._dataSetName] = {};
+                            dataSetObject = jsonObject[this._dataSetName];
                             if (this._useBeforeImage("create")) {
                                 dataSetObject["prods:hasChanges"] = true;
                                 dataSetObject[tableRef._name] = [];
@@ -3484,7 +3485,8 @@ limitations under the License.
                         if (this.isDataSet()) {
                             if (this._useBeforeImage("update")) {
                                 useBeforeImageFormat = true;
-                                dataSetObject = jsonObject[this._dataSetName] = {};
+                                jsonObject[this._dataSetName] = {};
+                                dataSetObject = jsonObject[this._dataSetName];
                                 dataSetObject["prods:hasChanges"] = true;
                                 dataSetObject[tableRef._name] = [];
 
@@ -3533,7 +3535,8 @@ limitations under the License.
                                 requestData = rowData;
 
                             if (this.isDataSet()) {
-                                dataSetObject = jsonObject[this._dataSetName] = {};
+                                jsonObject[this._dataSetName] = {};
+                                dataSetObject = jsonObject[this._dataSetName];
                                 dataSetObject[tableRef._name] = [];
                                 dataSetObject[tableRef._name].push(requestData);
                             }
@@ -3589,7 +3592,8 @@ limitations under the License.
                     if (this.isDataSet()) {
                         if (this._useBeforeImage("delete")) {
                             useBeforeImageFormat = true;
-                            dataSetObject = jsonObject[this._dataSetName] = {};
+                            jsonObject[this._dataSetName] = {};
+                            dataSetObject = jsonObject[this._dataSetName];
                             dataSetObject["prods:hasChanges"] = true;
 
                             // There is no after tables for deletes, so just create before-table data
@@ -3628,7 +3632,8 @@ limitations under the License.
                         }
 
                         if (this.isDataSet()) {
-                            dataSetObject = jsonObject[this._dataSetName] = {};
+                            jsonObject[this._dataSetName] = {};
+                            dataSetObject = jsonObject[this._dataSetName];
                             dataSetObject[tableRef._name] = [];
                             dataSetObject[tableRef._name].push(requestData);
                         }
