@@ -6923,13 +6923,14 @@ limitations under the License.
                     }
 				}
                 
-				filter = JSON.stringify({
-					ablFilter: ablFilter,
+                filter = JSON.stringify({
+                    ablFilter: ablFilter,
                     sqlQuery: sqlQuery,
-					orderBy: sortFields,
-					skip: params.skip,
-					top: params.top
-					});				
+                    orderBy: sortFields,
+                    skip: params.skip,
+                    top: params.top,
+                    id: params.id
+                });
 				
 				params = {filter: filter};
 			}
