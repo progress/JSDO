@@ -1,5 +1,5 @@
 /* 
-progress.session.js    Version: 4.4.0-10
+progress.session.js    Version: 4.5.0-1
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3584,10 +3584,12 @@ limitations under the License.
             
             if (result === progress.data.Session.EXPIRED_TOKEN) {
                 settleResult = progress.data.Session.EXPIRED_TOKEN;
-            } else {
+            } else if (result === progress.data.Session.LOGIN_AUTHENTICATION_FAILURE){
+		settleResult = progress.data.Session.LOGIN_AUTHENTICATION_FAILURE;
+	    } else {
                 settleResult = progress.data.Session.GENERAL_FAILURE;
             }
-            
+		
             if (xhr && xhr._deferred) {           
                 deferred  = xhr._deferred;
                 
