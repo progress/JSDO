@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 4.5.0-02
+progress.js    Version: 4.5.0-03
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3005,6 +3005,11 @@ limitations under the License.
                     xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
                 }
             }
+		
+	// Rejecting the promise if by any chance fill operation is resulted in failure
+		if (request.success == false) {
+			request.deferred.reject(xhr.jsdo, request.success, request);
+		}
 
             return promise;
         };
