@@ -5848,7 +5848,7 @@ limitations under the License.
                 i;
 
             if (request && !request.success) {
-               if ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status === 0) {
+               if (request.xhr.status >= 400 && request.xhr.status < 600) {
                     try {
                         responseObject = JSON.parse(request.xhr.responseText);
                         
