@@ -3006,10 +3006,23 @@ limitations under the License.
                 }
             }
 		
-	// Rejecting the promise if by any chance fill operation is resulted in failure
-		if (request.success == false) {
-			request.deferred.reject(xhr.jsdo, request.success, request);
-		}
+	// This is the scenario where the read.call did not reach server. i.e.,
+			// some problem in between making successful call to server and we are 
+			// completing the fill() operation with necessary cleanup operations
+			if (request.success == false && request.exception) {
+				//request.deferred.reject(xhr.jsdo, request.success, request);
+
+				if ((typeof xhr.onErrorFn) == 'function') {
+					xhr.onErrorFn(xhr.jsdo, request.success, request);
+				}
+
+				// get the Client Context ID (AppServer ID)
+				xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+
+				if ((typeof xhr.onCompleteFn) == 'function') {
+					xhr.onCompleteFn(xhr.jsdo, request.success, request);
+				}
+			}
 
             return promise;
         };
@@ -5836,7 +5849,7 @@ limitations under the License.
                 i;
 
             if (request && !request.success) {
-               if (request.xhr.status >= 400 && request.xhr.status < 600) {
+               if ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status == 0) {
                     try {
                         responseObject = JSON.parse(request.xhr.responseText);
                         
@@ -5964,7 +5977,7 @@ limitations under the License.
             else if (request 
                      && !request.success 
                      && request.xhr 
-                     && (request.xhr.status >= 400 && request.xhr.status < 600)) {
+                     && ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status == 0)) {
                 errors = this._getErrorsFromRequest(request);
                 errorText = "";
                 for (j = 0; j < errors.length; j += 1) {
