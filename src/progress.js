@@ -3006,7 +3006,7 @@ limitations under the License.
                 }
             }
 		
-            // This is the scenario where the read.call did not reach server. i.e.,
+            // This is the scenario where the 'read.call' did not reach server. i.e.,
             // some problem in between making successful call to server and we are 
             // completing the fill() operation with necessary cleanup operations
             if (request.success == false && request.exception) {
