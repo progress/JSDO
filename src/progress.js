@@ -5849,7 +5849,7 @@ limitations under the License.
                 i;
 
             if (request && !request.success) {
-               if ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status == 0) {
+               if ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status === 0) {
                     try {
                         responseObject = JSON.parse(request.xhr.responseText);
                         
@@ -5977,7 +5977,7 @@ limitations under the License.
             else if (request 
                      && !request.success 
                      && request.xhr 
-                     && ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status == 0)) {
+                     && ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status === 0)) {
                 errors = this._getErrorsFromRequest(request);
                 errorText = "";
                 for (j = 0; j < errors.length; j += 1) {
