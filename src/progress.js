@@ -3006,23 +3006,23 @@ limitations under the License.
                 }
             }
 		
-	// This is the scenario where the read.call did not reach server. i.e.,
-			// some problem in between making successful call to server and we are 
-			// completing the fill() operation with necessary cleanup operations
-			if (request.success == false && request.exception) {
-				//request.deferred.reject(xhr.jsdo, request.success, request);
+            // This is the scenario where the read.call did not reach server. i.e.,
+            // some problem in between making successful call to server and we are 
+            // completing the fill() operation with necessary cleanup operations
+            if (request.success == false && request.exception) {
+                //request.deferred.reject(xhr.jsdo, request.success, request);
 
-				if ((typeof xhr.onErrorFn) == 'function') {
-					xhr.onErrorFn(xhr.jsdo, request.success, request);
-				}
+                if ((typeof xhr.onErrorFn) == 'function') {
+                    xhr.onErrorFn(xhr.jsdo, request.success, request);
+                }
 
-				// get the Client Context ID (AppServer ID)
-				xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+                // get the Client Context ID (AppServer ID)
+                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
 
-				if ((typeof xhr.onCompleteFn) == 'function') {
-					xhr.onCompleteFn(xhr.jsdo, request.success, request);
-				}
-			}
+                if ((typeof xhr.onCompleteFn) == 'function') {
+                    xhr.onCompleteFn(xhr.jsdo, request.success, request);
+                }
+            }
 
             return promise;
         };
