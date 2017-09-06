@@ -3024,7 +3024,7 @@ limitations under the License.
             }
 
             return promise;
-        };
+            };
 
         // Alias for fill() method
         this.read = this.fill;
