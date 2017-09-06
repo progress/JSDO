@@ -2500,6 +2500,10 @@ limitations under the License.
                     offlineReason: null
                 };
 
+            if (this.loginResult !== progress.data.Session.LOGIN_SUCCESS) {
+                throw new Error("Attempted to call ping when not logged in.");
+            }
+
             if (args) {
                 if (args.async !== undefined) {
                     // when we do background pinging (because pingInterval is set),
