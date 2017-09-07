@@ -2145,6 +2145,8 @@ limitations under the License.
             setLoginHttpStatus(null, pdsession);
             setClientContextID(null, pdsession);
             setUserName(null, pdsession);
+            setAuthProvider(null);
+
             _password = null;
 
             if (success) {
@@ -2499,6 +2501,10 @@ limitations under the License.
                     onReadyStateFn: this._onReadyStateChangePing,
                     offlineReason: null
                 };
+
+            if ((!this._authProvider) && (this.loginResult !== progress.data.Session.LOGIN_SUCCESS)) {
+                throw new Error("Attempted to call ping when not logged in.");                
+            }
 
             if (args) {
                 if (args.async !== undefined) {
