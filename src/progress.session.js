@@ -33,6 +33,7 @@ limitations under the License.
     progress.data.ServicesManager._resources = [];
     progress.data.ServicesManager._data = [];
     progress.data.ServicesManager._sessions = [];
+    progress.data.ServicesManager._jsdosessions = [];
     /*
      progress.data.ServicesManager.put = function(id, jsdo) {
      progress.data.ServicesManager._data[id] = jsdo;
@@ -72,6 +73,15 @@ limitations under the License.
             throw new Error("Cannot load catalog '" + catalogURI + "' multiple times.");
         }
     };
+
+    progress.data.ServicesManager.addJSDOSession = function (catalogURI, jsdosession) {
+        if (progress.data.ServicesManager._jsdosessions[catalogURI] === undefined) {
+            progress.data.ServicesManager._jsdosessions[catalogURI] = jsdosession;
+        }
+        else {
+            throw new Error("Cannot load catalog '" + catalogURI + "' multiple times.");
+        }
+    };
     progress.data.ServicesManager.getSession = function (catalogURI) {
         try {
             return progress.data.ServicesManager._sessions[catalogURI];
@@ -79,6 +89,45 @@ limitations under the License.
         catch (e) {
             return null;
         }
+    };
+
+    progress.data.ServicesManager.invalidateSession = function (session) {
+        var servicesKey,
+        resourcesKey,
+        sessionsKey,
+        service,
+        jsdosession,
+        services = progress.data.ServicesManager._services,
+        resources = progress.data.ServicesManager._resources,
+        sessions = progress.data.ServicesManager._sessions,
+        jsdosessions = progress.data.ServicesManager._jsdosessions;
+        
+        // Delete the services and resources in the ServicesManager
+        // associated with the Session given
+        for (servicesKey in services) {
+            if (services[servicesKey]._session === session) {
+                service = services[servicesKey];
+                delete services[servicesKey];                    
+            }
+        }
+
+        for (resourcesKey in resources) {
+            if (resources[resourcesKey].service === service) {
+                delete resources[resourcesKey];
+            }
+        }
+
+        // Delete the session and jsdosession from the ServicesManager
+        for (sessionsKey in sessions) {
+            if (sessions[sessionsKey] === session) {
+                delete sessions[sessionsKey];
+
+                jsdosession = jsdosessions[sessionsKey];
+                delete jsdosessions[sessionsKey];
+            }
+        }
+
+        return jsdosession;
     };
 
     /*
@@ -2158,6 +2207,45 @@ limitations under the License.
             }
         };
 
+        // invalidate
+        this.invalidate = function () {
+            // var servicesKey,
+            //     resourcesKey,
+            //     sessionsKey,
+            //     service,
+            //     services = progress.data.ServicesManager._services,
+            //     resources = progress.data.ServicesManager._resources,
+            //     sessions = progress.data.ServicesManager._sessions;
+
+            // for (servicesKey in services) {
+            //     if (services.hasOwnProperty(servicesKey)) {
+            //         if (services[servicesKey]._session === this) {
+            //             service = services[servicesKey];
+            //         }
+
+            //         for (resourcesKey in resources) {
+            //             if (resources.hasOwnProperty(resourcesKey)) {
+            //                 if (resources[resourcesKey].service === service) {
+            //                     delete resources[resourcesKey];
+            //                 }
+            //             }
+            //         }
+
+            //         delete services[servicesKey];
+            //     }
+            // }
+
+            // for (sessionsKey in sessions) {
+            //     if (sessions.hasOwnProperty(sessionsKey)) {
+            //         if (sessions[sessionsKey] === this) {
+            //             delete sessions[sessionsKey];
+            //         }
+            //     }
+            // }
+
+            progress.data.ServicesManager.invalidateSession(this);
+        };
+
 
         /* addCatalog
          *
@@ -2398,7 +2486,8 @@ limitations under the License.
             var theSession = xhr.pdsession;
             var servicedata;
             var catalogURI = xhr._catalogURI,
-                serviceURL;
+                serviceURL,
+                theJSDOSession = jsdosession;
 
             // Only change the Session's state if the default AuthProv is being used
             if (!customCredentials) {
@@ -2444,6 +2533,7 @@ limitations under the License.
 
                 pushCatalogURIs(catalogURI, theSession);
                 progress.data.ServicesManager.addSession(catalogURI, theSession);
+                progress.data.ServicesManager.addJSDOSession(catalogURI, theJSDOSession);                
             } else if (_catalogHttpStatus === 401) {
                 return progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
             } else if (xhr._iosTimeOutExpired) {
@@ -4196,6 +4286,10 @@ limitations under the License.
             return deferred.promise();
         };
 
+        this.invalidate = function() {
+            _pdsession.invalidate(); 
+        }
+
         this.ping = function () {
             var deferred = $.Deferred();
 
@@ -4681,6 +4775,33 @@ limitations under the License.
 
         return deferred.promise();
     };
+
+    progress.data.invalidateAll = function () {
+        var jsdosession,
+            key,
+            deferred = $.Deferred(),
+            jsdosessions = progress.data.ServicesManager._jsdosessions,
+            logoutPromises = [];
+
+        for (key in jsdosessions) {
+            if (jsdosessions.hasOwnProperty(key)) {
+                jsdosession = jsdosessions[key];
+
+                jsdosession.invalidate();
+                logoutPromises.push(jsdosession.logout());
+            }
+        }
+
+        $.when.apply($, logoutPromises)
+            .then(function () {
+                deferred.resolve(progress.data.Session.SUCCESS);                
+            }, function (session, result, info) {
+                deferred.reject(progress.data.Session.GENERAL_FAILURE, info);
+            });
+
+        // Using beautiful jquery shenanigans
+        return deferred.promise();
+    }; 
 
 })();
 
