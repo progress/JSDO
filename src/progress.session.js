@@ -4741,7 +4741,7 @@ limitations under the License.
         return deferred.promise();
     };
 
-    progress.data.invalidateAll = function () {
+    progress.data.invalidateAllSessions = function () {
         var jsdosession,
             key,
             deferred = $.Deferred(),
@@ -4755,7 +4755,7 @@ limitations under the License.
                 logoutPromises.push(jsdosession.logout());
             }
         }
-        
+
         $.when.apply($, logoutPromises)
             .then(function () {
                 deferred.resolve(progress.data.Session.SUCCESS);                
