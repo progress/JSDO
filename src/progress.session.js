@@ -91,7 +91,7 @@ limitations under the License.
         }
     };
 
-    progress.data.ServicesManager.invalidateSession = function (session) {
+    progress.data.ServicesManager.cleanSession = function (session) {
         var servicesKey,
         resourcesKey,
         sessionsKey,
@@ -105,15 +105,20 @@ limitations under the License.
         // Delete the services and resources in the ServicesManager
         // associated with the Session given
         for (servicesKey in services) {
+            service = null;
             if (services[servicesKey]._session === session) {
                 service = services[servicesKey];
                 delete services[servicesKey];                    
             }
-        }
 
-        for (resourcesKey in resources) {
-            if (resources[resourcesKey].service === service) {
-                delete resources[resourcesKey];
+            if (!service) {
+                continue;
+            }
+
+            for (resourcesKey in resources) {
+                if (resources[resourcesKey].service === service) {
+                    delete resources[resourcesKey];
+                }
             }
         }
 
@@ -126,8 +131,6 @@ limitations under the License.
                 delete jsdosessions[sessionsKey];
             }
         }
-
-        return jsdosession;
     };
 
     /*
@@ -2195,6 +2198,7 @@ limitations under the License.
             setClientContextID(null, pdsession);
             setUserName(null, pdsession);
             setAuthProvider(null);
+            cleanServicesManager(); 
 
             _password = null;
 
@@ -2206,46 +2210,6 @@ limitations under the License.
                 clearTimeout(_timeoutID);   //  stop autopinging
             }
         };
-
-        // invalidate
-        this.invalidate = function () {
-            // var servicesKey,
-            //     resourcesKey,
-            //     sessionsKey,
-            //     service,
-            //     services = progress.data.ServicesManager._services,
-            //     resources = progress.data.ServicesManager._resources,
-            //     sessions = progress.data.ServicesManager._sessions;
-
-            // for (servicesKey in services) {
-            //     if (services.hasOwnProperty(servicesKey)) {
-            //         if (services[servicesKey]._session === this) {
-            //             service = services[servicesKey];
-            //         }
-
-            //         for (resourcesKey in resources) {
-            //             if (resources.hasOwnProperty(resourcesKey)) {
-            //                 if (resources[resourcesKey].service === service) {
-            //                     delete resources[resourcesKey];
-            //                 }
-            //             }
-            //         }
-
-            //         delete services[servicesKey];
-            //     }
-            // }
-
-            // for (sessionsKey in sessions) {
-            //     if (sessions.hasOwnProperty(sessionsKey)) {
-            //         if (sessions[sessionsKey] === this) {
-            //             delete sessions[sessionsKey];
-            //         }
-            //     }
-            // }
-
-            progress.data.ServicesManager.invalidateSession(this);
-        };
-
 
         /* addCatalog
          *
@@ -3319,6 +3283,11 @@ limitations under the License.
             }
         }
 
+        // Remove all resources, services, and sessions related to this Session from the ServicesManager
+        function cleanServicesManager() {
+            progress.data.ServicesManager.cleanSession(this);            
+        }
+
         // process constructor options and do other initialization
 
         // If a storage key (name property of a JSDOSession) was passed to the constructor,
@@ -4286,10 +4255,6 @@ limitations under the License.
             return deferred.promise();
         };
 
-        this.invalidate = function() {
-            _pdsession.invalidate(); 
-        }
-
         this.ping = function () {
             var deferred = $.Deferred();
 
@@ -4787,11 +4752,10 @@ limitations under the License.
             if (jsdosessions.hasOwnProperty(key)) {
                 jsdosession = jsdosessions[key];
 
-                jsdosession.invalidate();
                 logoutPromises.push(jsdosession.logout());
             }
         }
-
+        
         $.when.apply($, logoutPromises)
             .then(function () {
                 deferred.resolve(progress.data.Session.SUCCESS);                
