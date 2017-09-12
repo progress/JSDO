@@ -1,5 +1,5 @@
 /* 
-progress.session.js    Version: 4.4.0-10
+progress.session.js    Version: 4.4.0-11
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2092,6 +2092,8 @@ limitations under the License.
             setClientContextID(null, pdsession);
             setUserName(null, pdsession);
             _password = null;
+            setAuthProvider(null);
+
 
             if (success) {
                 setRestApplicationIsOnline(false);
@@ -2413,6 +2415,10 @@ limitations under the License.
                 fireEventIfOfflineChange: true, onReadyStateFn: this._onReadyStateChangePing,
                 offlineReason: null
             };
+            
+            if ((!this._authProvider) && (this.loginResult !== progress.data.Session.LOGIN_SUCCESS)) {
+                throw new Error("Attempted to call ping when not logged in.");                
+            }
             
             if (args) {
                 if (args.async !== undefined) {
