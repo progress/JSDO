@@ -96,7 +96,6 @@ limitations under the License.
         resourcesKey,
         sessionsKey,
         service,
-        jsdosession,
         services = progress.data.ServicesManager._services,
         resources = progress.data.ServicesManager._resources,
         sessions = progress.data.ServicesManager._sessions,
@@ -127,8 +126,9 @@ limitations under the License.
             if (sessions[sessionsKey] === session) {
                 delete sessions[sessionsKey];
 
-                jsdosession = jsdosessions[sessionsKey];
-                delete jsdosessions[sessionsKey];
+                if(jsdosessions[sessionsKey]) {
+                    delete jsdosessions[sessionsKey];
+                }
             }
         }
     };
@@ -2497,7 +2497,9 @@ limitations under the License.
 
                 pushCatalogURIs(catalogURI, theSession);
                 progress.data.ServicesManager.addSession(catalogURI, theSession);
-                progress.data.ServicesManager.addJSDOSession(catalogURI, theJSDOSession);                
+                if (theJSDOSession) {
+                    progress.data.ServicesManager.addJSDOSession(catalogURI, theJSDOSession);                
+                }
             } else if (_catalogHttpStatus === 401) {
                 return progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
             } else if (xhr._iosTimeOutExpired) {
@@ -3285,7 +3287,7 @@ limitations under the License.
 
         // Remove all resources, services, and sessions related to this Session from the ServicesManager
         function cleanServicesManager() {
-            progress.data.ServicesManager.cleanSession(this);            
+            progress.data.ServicesManager.cleanSession(that);            
         }
 
         // process constructor options and do other initialization
@@ -4244,7 +4246,11 @@ limitations under the License.
 
             this.disconnect()
                 .then(function () {
-                    return authProv.logout();
+                    if (authProv) {
+                        return authProv.logout();
+                    }
+                    // if there's no AP, just resolve immediately
+                    deferred.resolve(that, result, info);                    
                 })
                 .then(function (jsdosession, result, info) {
                     deferred.resolve(that, result, info);
