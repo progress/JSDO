@@ -3975,10 +3975,10 @@ limitations under the License.
             var deferred = $.Deferred(),
                 iOSBasicAuthTimeout;
 
-            console.warn(
-                "JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use "
-                + "the AuthenticationProvider API instead."
-            );
+            // console.warn(
+            //     "JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use "
+            //     + "the AuthenticationProvider API instead."
+            // );
 
             function callIsAuthorized() {
                 that.isAuthorized()
@@ -4229,10 +4229,10 @@ limitations under the License.
                 authProv = this.authProvider;
 
 
-            console.warn(
-                "JSDOSession: As of 4.4, logout() has been deprecated. Please use "
-                + "the AuthenticationProvider API instead."
-            );
+            // console.warn(
+            //     "JSDOSession: As of 4.4, logout() has been deprecated. Please use "
+            //     + "the AuthenticationProvider API instead."
+            // );
 
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: Cannot call logout() when authenticationModel is SSO.
@@ -4249,8 +4249,8 @@ limitations under the License.
                     if (authProv) {
                         return authProv.logout();
                     }
-                    // if there's no AP, just resolve immediately
-                    deferred.resolve(that, result, info);                    
+                    // if there's no AP, just resolve immediately successfully
+                    deferred.resolve(that, progress.data.Session.SUCCESS, {});                    
                 })
                 .then(function (jsdosession, result, info) {
                     deferred.resolve(that, result, info);
