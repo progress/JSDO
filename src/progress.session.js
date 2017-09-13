@@ -1,5 +1,5 @@
 /* 
-progress.session.js    Version: 4.4.1-1
+progress.session.js    Version: 4.4.1-2
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -3735,9 +3735,6 @@ limitations under the License.
         this.login = function (username, password, options) {
             var deferred = $.Deferred(),
                 iOSBasicAuthTimeout;
-
-            console.warn("JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use " 
-                         + "the AuthenticationProvider API instead.");
             
             function callIsAuthorized() {
                 that.isAuthorized()
@@ -3974,10 +3971,6 @@ limitations under the License.
         this.logout = function(){
             var deferred = $.Deferred(),
                 authProv = this.authProvider;
-
-                
-            console.warn("JSDOSession: As of 4.4, logout() has been deprecated. Please use " 
-                         + "the AuthenticationProvider API instead.");
             
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // JSDOSession: Cannot call logout() when authenticationModel is SSO. 
@@ -3993,7 +3986,7 @@ limitations under the License.
                         return authProv.logout();
                     }
                     // if there's no AP, just resolve immediately
-                    deferred.resolve(that, result, info);   
+                    deferred.resolve(that, progress.data.Session.SUCCESS, {});
                 })
                 .then(function (jsdosession, result, info) {
                     deferred.resolve(that, result, info);
