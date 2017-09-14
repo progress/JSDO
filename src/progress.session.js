@@ -1467,7 +1467,7 @@ limitations under the License.
             }
 
             if (this._isInvalidated) {
-                // Session: This object has already been invalidated and cannot be used.
+                // Session: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "Session"));
             }
 
@@ -2163,7 +2163,7 @@ limitations under the License.
 
         };
 
-        // This function erases all evidence of itselg from the ServicesManager and
+        // This function erases all evidence of itself from the ServicesManager and
         // flips a bit to prevent it to be used in the future
         this.invalidate = function () {
             isInvalidated = true;
@@ -2311,7 +2311,7 @@ limitations under the License.
             }
 
             if (this._isInvalidated) {
-                // JSDOSession: This object has already been invalidated and cannot be used.
+                // JSDOSession: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
             }
 
@@ -2587,7 +2587,7 @@ limitations under the License.
                 };
 
             if (this._isInvalidated) {
-                // Session: This object has already been invalidated and cannot be used.
+                // Session: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "Session"));
             }
 
@@ -4034,7 +4034,7 @@ limitations under the License.
             }
 
             if (this._isInvalidated) {
-                // JSDOSession: This object has already been invalidated and cannot be used.
+                // JSDOSession: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
             }
 
@@ -4114,7 +4114,7 @@ limitations under the License.
                 authProvider;
 
             if (this._isInvalidated) {
-                // JSDOSession: This object has already been invalidated and cannot be used.
+                // JSDOSession: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
             }
 
@@ -4324,7 +4324,7 @@ limitations under the License.
             var deferred = $.Deferred();
 
             if (this._isInvalidated) {
-                // JSDOSession: This object has already been invalidated and cannot be used.
+                // JSDOSession: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
             }
 
@@ -4353,7 +4353,7 @@ limitations under the License.
                 that = this;
 
             if (this._isInvalidated) {
-                // JSDOSession: This object has already been invalidated and cannot be used.
+                // JSDOSession: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
             }
 
