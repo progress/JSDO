@@ -4023,7 +4023,7 @@ limitations under the License.
             //     "JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use "
             //     + "the AuthenticationProvider API instead."
             // );
-            
+
             function callIsAuthorized() {
                 that.isAuthorized()
                     .then(function (jsdosession, result, info) {
