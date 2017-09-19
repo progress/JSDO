@@ -4370,7 +4370,10 @@ limitations under the License.
             try {
                 jsdosession = new progress.data.JSDOSession(options);
                 try {
-                    jsdosession.addCatalog(options.catalogURI)
+                    jsdosession.isAuthorized()
+                        .then(function() {
+                            return jsdosession.addCatalog(options.catalogURI);
+                        }, sessionRejectHandler)
                         .then(function (jsdosession, result, info) {
                             deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
                         }, sessionRejectHandler);
