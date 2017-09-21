@@ -1,5 +1,5 @@
 /*
-progress.session.js    Version: 4.5.0-1
+progress.session.js    Version: 4.5.0-2
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -4655,7 +4655,10 @@ limitations under the License.
             try {
                 jsdosession = new progress.data.JSDOSession(options);
                 try {
-                    jsdosession.addCatalog(options.catalogURI)
+                    jsdosession.isAuthorized()
+                        .then(function() {
+                            return jsdosession.addCatalog(options.catalogURI);
+                        }, sessionRejectHandler)
                         .then(function (jsdosession, result, info) {
                             deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
                         }, sessionRejectHandler);
