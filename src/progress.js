@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 4.4.0-16
+progress.js    Version: 4.4.1-01
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -160,7 +160,7 @@ limitations under the License.
         "the options object passed to its constructor must include an authProvider property.";
     msg.msgs.jsdoMSG509 = "progress.data.getSession: If the authenticationModel is AUTH_TYPE_SSO, " +
         "authenticationURI and authProviderAuthenticationModel are required parameters.";
-    msg.msgs.jsdoMSG510 = "*** deprecated message, please re-use ***";
+    msg.msgs.jsdoMSG510 = "{1}: This session has been invalidated and cannot be used.";
     msg.msgs.jsdoMSG511 = "JSDOSession: addCatalog() can only be called if an AuthenticationProvider was passed as an argument or " +
         "connect() has been successfully called.";
     
@@ -3003,6 +3003,22 @@ limitations under the License.
                     request.exception = e;
                     // get the Client Context ID (AppServer ID)
                     xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+                }
+            }
+			
+			// This is the scenario where the read.call did not reach server. i.e.,
+            // some problem in between making successful call to server and we are 
+            // completing the fill() operation with necessary cleanup operations
+            if (request.success == false && request.exception) {
+                if ((typeof xhr.onErrorFn) == 'function') {
+                    xhr.onErrorFn(xhr.jsdo, request.success, request);
+                }
+
+                // get the Client Context ID (AppServer ID)
+                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+
+                if ((typeof xhr.onCompleteFn) == 'function') {
+                    xhr.onCompleteFn(xhr.jsdo, request.success, request);
                 }
             }
 
@@ -5955,7 +5971,7 @@ limitations under the License.
             else if (request 
                      && !request.success 
                      && request.xhr 
-                     && (request.xhr.status >= 400 && request.xhr.status < 600)) {
+                     && ((request.xhr.status >= 400 && request.xhr.status < 600) || request.xhr.status === 0)) {
                 errors = this._getErrorsFromRequest(request);
                 errorText = "";
                 for (j = 0; j < errors.length; j += 1) {
