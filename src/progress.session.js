@@ -1412,7 +1412,7 @@ limitations under the License.
                 }
             }
             if (allHeaders) {
-                regExp = new RegExp("^" + headerName + ":", "m");
+                regExp = new RegExp("^" + headerName + ":", "mi");
                 if (allHeaders.match(regExp)) {
                     return xhr.getResponseHeader(headerName);
                 }
