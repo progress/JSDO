@@ -1,5 +1,7 @@
-/* 
-progress.util.js    Version: 4.4.0-7
+/*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
+/*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
+/*
+progress.util.js    Version: 4.5.0-2
 
 Copyright (c) 2014-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -8,9 +10,9 @@ Contains support objects used by the jsdo and/or session object
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
- 
+
     http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,10 +22,187 @@ limitations under the License.
  */
 /*global progress:true*/
 /*jslint nomen: true*/
+
+(function () {
+    // Pre-release code to detect enviroment and load required modules for Node.js and NativeScript
+    // Requirements:
+    // - XMLHttpRequest
+    // - localStorage
+    // - sessionStorage
+    // - Promise object (Promises with the same interface as jQuery Promises)
+
+    // Notes:
+    // Required packages should be installed before loading progress-jsdo.
+    // Node.js:
+    // - xmlhttprequest
+    // - node-localstorage
+    // NativeScript:
+    // - nativescript-localstorage
+    // - base-64
+
+    var isNativeScript = false,
+        isNodeJS = false;
+
+    // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
+    // load xmlhttprequest module
+    // Web browser and NativeScript clients have a built-in XMLHttpRequest object
+    if (typeof XMLHttpRequest === "undefined") {
+        isNodeJS = true;
+        try {
+            XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+        } catch(e) {
+            console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
+            + "Please install xmlhttprequest package.");
+        }
+    }
+
+    // Detect if the environment is NativeScript
+    if (!isNodeJS
+        && (typeof localStorage === "undefined"
+            || typeof sessionStorage === "undefined")) {
+        try {
+            require('file-system/file-system-access');
+            isNativeScript = true;
+        } catch(exception1) {
+            isNativeScript = false;
+        }
+    }
+
+    // If localStorage or sessionStorage is not defined,
+    // we need to load the corresponding support module
+
+    // If environment is NativeScript, load required modules
+    if (isNativeScript) {
+        try {
+            // load module nativescript-localstorage
+            if (typeof sessionStorage === "undefined") {
+                sessionStorage = require("nativescript-localstorage");
+            }
+            if (typeof localStorage === "undefined") {
+                localStorage = require("nativescript-localstorage");
+            }
+        } catch(exception2) {
+            console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n"
+                + "Please install nativescript-localstorage package.");
+        }
+
+        // load module base-64
+        try {
+            if (typeof btoa === "undefined") {
+                btoa = require("base-64").encode;
+            }
+        } catch(exception3) {
+            console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
+                + "Please install base-64 package.");
+        }
+    }
+
+    // If environment is NodeJS, load module node-localstorage
+    if (isNodeJS) {
+        var LocalStorage;
+        if (typeof localStorage === "undefined") {
+            try {
+                var module = require('node-localstorage');
+                LocalStorage = module.LocalStorage;
+                localStorage = new LocalStorage('./scratch1');
+            } catch(e) {
+                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
+                    + "Please install node-localstorage package.");
+            }
+        }
+
+        if (typeof sessionStorage === "undefined"
+            && typeof LocalStorage !== "undefined") {
+            sessionStorage = new LocalStorage('./scratch2');
+        }
+    }
+
+    // jQuery Promise compatibility layer (experimental) using wrapper code (pwrapper)
+    // This code will change once the JSDO fully uses native JavaScript Promises
+    // This code is also used if jQuery is not available in a web browser
+    if (typeof $ === "undefined" && typeof Promise !== "undefined") {
+        $ = function () {
+            "use strict";
+        };
+        $.Deferred = function () {
+            "use strict";
+            var deferred = {},
+                promise,
+                resolveArguments,
+                rejectArguments;
+
+            return {
+                promise: function () {
+                    promise = new Promise(function (resolve, reject) {
+                        deferred.resolve = resolve;
+                        deferred.reject = reject;
+                    });
+                    promise._then = promise.then;
+                    promise.done = function (callback) {
+                        promise._then(function () {
+                            callback.apply(this, arguments[0]);
+                        });
+                        return promise;
+                    };
+                    promise.fail = function (callback) {
+                        promise._then(undefined, function () {
+                            callback.apply(this, arguments[0]);
+                        });
+                        return promise;
+                    };
+
+                    /*
+                    promise.then = function (callback) {
+                        promise._then(function () {
+                            callback.apply(this, arguments[0]);
+                        }, function () {
+                            callback.apply(this, arguments[0]);
+                        });
+                        return promise;
+                    };
+                    */
+
+                    promise.then = function (callback) {
+                        // console.log("DEBUG: then: ");
+                        return promise._then(callback);
+                    }
+
+                    if (resolveArguments || rejectArguments) {
+                        // console.log("DEBUG: resolve/reject: ");
+                        setTimeout(function () {
+                            if (resolveArguments) {
+                                deferred.resolve(resolveArguments);
+                            } else if (rejectArguments) {
+                                deferred.reject(rejectArguments);
+                            }
+                        }, 500);
+                    }
+                    return promise;
+                },
+                resolve: function () {
+                    // console.log("DEBUG: resolve: " + promise + " deferred: " + deferred);
+                    if (promise) {
+                        deferred.resolve(arguments);
+                    } else {
+                        resolveArguments = arguments;
+                    }
+                },
+                reject: function () {
+                    if (promise) {
+                        deferred.reject(arguments);
+                    } else {
+                        rejectArguments = arguments;
+                    }
+                }
+            };
+        };
+    }
+}());
+
 (function () {
 
-     /* Define these if not defined yet - they may already be defined if
-      * progress.js was included first */
+    /* Define these if not defined yet - they may already be defined if
+     * progress.js was included first */
     if (typeof progress === "undefined") {
         progress = {};
     }
@@ -141,7 +320,7 @@ limitations under the License.
                 this.validateSubscribe(arguments, evt, listenerData);
             } catch (e) {
                 throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
-                                            "subscribe", e.message));
+                    "subscribe", e.message));
             }
 
             observers = this._events[evt] || [];
@@ -195,7 +374,7 @@ limitations under the License.
             } catch (e) {
             //  throw new Error("Invalid signature for unsubscribe. " + e.message);
                 throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
-                                        "unsubscribe", e.message));
+                    "unsubscribe", e.message));
             }
 
             observers = this._events[evt] || [];
@@ -451,7 +630,7 @@ limitations under the License.
                     filter = progress.util._format(format, operator, value, field);
                 } else if (operator && value === undefined) {
                     if (filter.operator === "isempty" || filter.operator === "isnotempty") {
-						ablType = tableRef._getABLType(field);
+                        ablType = tableRef._getABLType(field);
                         if (ablType !== CHARACTER_ABL_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a CHARACTER field");
@@ -473,7 +652,7 @@ limitations under the License.
 				
                     // format, operator {0}, value {1}, field {2}
                     filter = progress.util._format(format, operator, value, field);
-				}
+                }
             }
 
             result.push(filter);
@@ -603,7 +782,7 @@ limitations under the License.
                     filterStr = progress.util._format(format, operator, value, field);
                 } else if (operator && value === undefined) {
                     if (filter.operator === "isempty" || filter.operator === "isnotempty") {
-						type = tableRef._fields[field.toLowerCase()].type;
+                        type = tableRef._fields[field.toLowerCase()].type;
                         if (type !== STRING_OBJECT_TYPE.toLowerCase()) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a string field");
