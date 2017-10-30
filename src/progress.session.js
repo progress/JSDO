@@ -4048,7 +4048,10 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
 
-            
+
+            // As part of JSDOSession's login we create a new autHprovider always. However, when a valid
+            // authProvider is provided as part of JSDOSession's constructor. i.e., when we already have
+            // a valid authProvider, performing login operation is not allowed. We throw an error.
             if (!_pdsession._authProvider) {
                 // is there a better way to do this? Need it because we didn't have the authprovider when
                 // running the constructor
@@ -4067,8 +4070,8 @@ limitations under the License.
                     deferred.reject(that, result, info);
                 });
             } else {
-                callIsAuthorized();
-            }  
+                throw new Error(progress.data._getMsgText("jsdoMSG062", 'JSDOSession', 'login()'));
+            }
 
             return deferred.promise();
         };
