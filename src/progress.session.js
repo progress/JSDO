@@ -4048,6 +4048,7 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
 
+            
             if (!_pdsession._authProvider) {
                 // is there a better way to do this? Need it because we didn't have the authprovider when
                 // running the constructor
@@ -4055,9 +4056,8 @@ limitations under the License.
                     uri: this.serviceURI,
                     authenticationModel: this.authenticationModel
                 });
-            }
 
-            _pdsession._authProvider.logout()
+                _pdsession._authProvider.logout()
                 .then(function () {
                     return _pdsession._authProvider.login(username, password);
                 })
@@ -4066,6 +4066,9 @@ limitations under the License.
                 }, function (provider, result, info) {
                     deferred.reject(that, result, info);
                 });
+            } else {
+                callIsAuthorized();
+            }  
 
             return deferred.promise();
         };
