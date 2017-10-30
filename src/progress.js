@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 4.5.0-03
+progress.js    Version: 4.5.0-04
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -115,6 +115,7 @@ limitations under the License.
     msg.msgs.jsdoMSG060 = "AuthenticationProvider: AuthenticationProvider is no longer logged in. " +
         "Tried to refresh SSO token but failed due to authentication error at token server.";
     msg.msgs.jsdoMSG061 = "{1}: Attempted to set {2} property to an invalid value.";
+    msg.msgs.jsdoMSG062 = "{1}: Cannot call {2} when an AuthenticationProvider is already available and logged in.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
