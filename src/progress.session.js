@@ -1,5 +1,5 @@
 /*
-progress.session.js    Version: 4.5.0-3
+progress.session.js    Version: 4.5.0-4
 
 Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -4048,6 +4048,9 @@ limitations under the License.
                 iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
             }
 
+            // As part of JSDOSession's login we create a new authProvider always. However, when a valid
+            // authProvider is provided as part of JSDOSession's constructor. i.e., when we already have
+            // a valid authProvider, performing login operation is not allowed. We throw an error.
             if (!_pdsession._authProvider) {
                 // is there a better way to do this? Need it because we didn't have the authprovider when
                 // running the constructor
@@ -4055,9 +4058,8 @@ limitations under the License.
                     uri: this.serviceURI,
                     authenticationModel: this.authenticationModel
                 });
-            }
 
-            _pdsession._authProvider.logout()
+                _pdsession._authProvider.logout()
                 .then(function () {
                     return _pdsession._authProvider.login(username, password);
                 })
@@ -4066,6 +4068,9 @@ limitations under the License.
                 }, function (provider, result, info) {
                     deferred.reject(that, result, info);
                 });
+            } else {
+                throw new Error(progress.data._getMsgText("jsdoMSG062", 'JSDOSession', 'login()'));
+            }
 
             return deferred.promise();
         };
