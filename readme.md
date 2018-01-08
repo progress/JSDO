@@ -8,7 +8,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 ### JSDO and OpenEdge compatibility
 | JSDO version | OpenEdge version |
 |----|----|
-| 4.4.0 | 11.6.3, 11.7.x |
+| 4.4.1 | 11.6.3, 11.7.x |
 
 ### Download<a name="download"></a>
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
