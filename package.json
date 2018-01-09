@@ -1,0 +1,34 @@
+{
+  "name": "@progress/jsdo",
+  "version": "4.4.1",
+  "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
+  "main": "lib/progress.all.min.js",
+  "files": [
+    "LICENSE",
+    "notice.txt",
+    "readme.md",
+    "lib/"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CloudDataObject/JSDO.git"
+  },
+  "keywords": [
+    "JSDO",
+    "Progress",
+    "browser"
+  ],
+  "author": "Progress Software",
+  "typings": "typings/progress.all",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/CloudDataObject/JSDO/issues"
+  },
+  "homepage": "https://github.com/CloudDataObject/JSDO#readme",
+  "dependencies": {},
+  "peerDependencies": {},
+  "optionalDependencies": {}
+}
