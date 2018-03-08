@@ -1,9 +1,9 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
 /*
-progress.util.js    Version: 4.5.0-2
+progress.util.js    Version: 5.0.0
 
-Copyright (c) 2014-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
@@ -20,7 +20,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
  */
-/*global progress:true*/
+/*global progress:true, btoa:true*/
 /*jslint nomen: true*/
 
 (function () {
@@ -116,87 +116,6 @@ limitations under the License.
             sessionStorage = new LocalStorage('./scratch2');
         }
     }
-
-    // jQuery Promise compatibility layer (experimental) using wrapper code (pwrapper)
-    // This code will change once the JSDO fully uses native JavaScript Promises
-    // This code is also used if jQuery is not available in a web browser
-    if (typeof $ === "undefined" && typeof Promise !== "undefined") {
-        $ = function () {
-            "use strict";
-        };
-        $.Deferred = function () {
-            "use strict";
-            var deferred = {},
-                promise,
-                resolveArguments,
-                rejectArguments;
-
-            return {
-                promise: function () {
-                    promise = new Promise(function (resolve, reject) {
-                        deferred.resolve = resolve;
-                        deferred.reject = reject;
-                    });
-                    promise._then = promise.then;
-                    promise.done = function (callback) {
-                        promise._then(function () {
-                            callback.apply(this, arguments[0]);
-                        });
-                        return promise;
-                    };
-                    promise.fail = function (callback) {
-                        promise._then(undefined, function () {
-                            callback.apply(this, arguments[0]);
-                        });
-                        return promise;
-                    };
-
-                    /*
-                    promise.then = function (callback) {
-                        promise._then(function () {
-                            callback.apply(this, arguments[0]);
-                        }, function () {
-                            callback.apply(this, arguments[0]);
-                        });
-                        return promise;
-                    };
-                    */
-
-                    promise.then = function (callback) {
-                        // console.log("DEBUG: then: ");
-                        return promise._then(callback);
-                    }
-
-                    if (resolveArguments || rejectArguments) {
-                        // console.log("DEBUG: resolve/reject: ");
-                        setTimeout(function () {
-                            if (resolveArguments) {
-                                deferred.resolve(resolveArguments);
-                            } else if (rejectArguments) {
-                                deferred.reject(rejectArguments);
-                            }
-                        }, 500);
-                    }
-                    return promise;
-                },
-                resolve: function () {
-                    // console.log("DEBUG: resolve: " + promise + " deferred: " + deferred);
-                    if (promise) {
-                        deferred.resolve(arguments);
-                    } else {
-                        resolveArguments = arguments;
-                    }
-                },
-                reject: function () {
-                    if (promise) {
-                        deferred.reject(arguments);
-                    } else {
-                        rejectArguments = arguments;
-                    }
-                }
-            };
-        };
-    }
 }());
 
 (function () {
@@ -216,8 +135,178 @@ limitations under the License.
     var STRING_OBJECT_TYPE = "String",
         DATE_OBJECT_TYPE = "Date",
         CHARACTER_ABL_TYPE = "CHARACTER";
-    
-    
+        
+    /**
+     * Deferred class to provide access to ES6 and JQuery Promises.
+     *
+     * @class
+     */
+    progress.util.Deferred = /** @class */ (function () {
+        function Deferred() {
+            this._deferred = {};
+        }
+
+        /**
+         * Returns a Promise object.
+         */
+        Deferred.prototype.promise = function () {
+            var that = this;
+
+            if (progress.util.Deferred.useJQueryPromises) {
+                if (typeof($) !== 'undefined' && typeof($.Deferred) === 'function') {
+                    this._deferred._jQuerydeferred = $.Deferred();
+                    this._promise = this._deferred._jQuerydeferred.promise();
+                } else {
+                    throw new Error("JQuery Promises not found in environment.");
+                }
+            } else {
+                this._promise = new Promise(function (resolve, reject) {
+                    that._deferred.resolve = resolve;
+                    that._deferred.reject = reject;
+                });
+            }
+
+            if (this._resolveArguments || this._rejectArguments) {
+                setTimeout(function () {
+                    if (that._resolveArguments) {
+                        that.resolve.apply(that, that._resolveArguments);
+                    } else if (that._rejectArguments) {
+                        that.reject.apply(that, that._rejectArguments);
+                    }
+                }, 500);
+            }
+
+            // return null;
+            return this._promise;
+        
+        };
+
+        /**
+         * Calls the underlying resolve() method.
+         */
+        Deferred.prototype.resolve = function (arg1, arg2, arg3) {
+            if (this._promise) {
+                if (this._deferred._jQuerydeferred) {
+                    this._deferred._jQuerydeferred.resolve.apply(this, arguments);
+                } else {
+                    var object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);                    
+                    this._deferred.resolve(object);
+                }
+            } else {
+                this._resolveArguments = arguments;
+            }
+        };
+
+        /**
+         * Calls the underlying reject() method.
+         */
+        Deferred.prototype.reject = function (arg1, arg2, arg3) {
+            if (this._promise) {
+                if (this._deferred._jQuerydeferred) {
+                    this._deferred._jQuerydeferred.reject.apply(this, arguments);
+                } else {
+                    var object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);
+                    this._deferred.reject(object);
+                }
+            } else {
+                this._rejectArguments = arguments;
+            }
+        };
+
+        /**
+         * @property {boolean} useJQueryPromises - Tells the Deferred object to use jQuery Promises.
+         */
+        Deferred.useJQueryPromises = false;
+
+        /**
+         * Returns a deferred object based on a collection.
+         */                
+        Deferred.when = function (deferreds) {
+            if (progress.util.Deferred.useJQueryPromises) {
+                return $.when.apply($, deferreds);
+            } else {
+                return Promise.all(deferreds);
+            }
+        }
+
+        /**
+         * Returns an object with the parameters to resolve()/reject().
+         */        
+        Deferred.getParamObject1 = function (arg1, arg2, arg3) {
+            var object = {},
+                objectName;
+
+            try {
+                if ((typeof(arg1) === "undefined") || (arg1 === null)) {
+                    object.result = arg2;
+                    object.info = arg3;
+                } else {
+                    objectName = arg1.constructor.name.toLowerCase();
+                    if (!objectName) {
+                        objectName = typeof(arg1);
+                    }                    
+
+                    // Map some object name to use a particular property name
+                    switch (objectName) {
+                    case "authenticationprovider":
+                        objectName = "provider"
+                        break;
+                    case "number":
+                        objectName = "result"
+                        break;
+                    default:
+                        break;
+                    }
+                    object[objectName] = arg1;
+                    if (objectName === "jsdo") {
+                        object.success = arg2;
+                        if (arg3 && arg3.xhr) {
+                            object.request = arg3;
+                        } else {
+                            object.info = arg3;
+                        }
+                    } else {
+                        if (objectName === "result") {
+                            object.info = arg2;
+                            if (arg3) {
+                                object.info2 = arg3;
+                            }
+                        } else {
+                            object.result = arg2;
+                            object.info = arg3;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.log("Error: Undetermined argument in getParamObject() call.");
+            }    
+
+            return object;
+        }
+
+        /**
+         * Returns an object with the parameters to resolve()/reject() based on the Promise type.
+         */        
+        Deferred.getParamObject = function (arg1, arg2, arg3) {
+            var object = {};
+
+            if (progress.util.Deferred.useJQueryPromises) {
+                object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);
+            } else {
+                if (typeof(arg1) === "undefined") {
+                    object.result = arg2;
+                    object.info = arg3;
+                    arg1 = object;
+                }
+                return arg1;
+            }
+
+            return object;
+        };
+
+        return Deferred;
+    }());
+
     /**
      * Utility class that allows subscribing and unsubscribing from named events.
      *
