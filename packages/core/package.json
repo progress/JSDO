@@ -1,8 +1,8 @@
 {
-  "name": "@progress/jsdo",
+  "name": "@progress/jsdo-core",
   "version": "5.0.0",
-  "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
-  "main": "lib/progress.all.min.js",
+  "description": "JSDO Core Module",
+  "main": "lib/progress.core.min.js",
   "files": [
     "LICENSE",
     "notice.txt",
@@ -20,11 +20,11 @@
   "keywords": [
     "JSDO",
     "Progress",
-    "node",
-    "NativeScript"
+    "NativeScript",
+    "node"
   ],
   "author": "Progress Software",
-  "typings": "typings/progress.all.d.ts",
+  "typings": "typings/progress.core.d.ts",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/CloudDataObject/JSDO/issues"

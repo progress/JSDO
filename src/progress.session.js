@@ -1,7 +1,7 @@
 /*
-progress.session.js    Version: 4.5.0-4
+progress.session.js    Version: 5.0.0
 
-Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 
 */
 
+/*global progress:true */
 (function () {
 
     /* define these if not defined yet - they may already be defined if
@@ -93,13 +94,13 @@ limitations under the License.
 
     progress.data.ServicesManager.cleanSession = function (session) {
         var servicesKey,
-        resourcesKey,
-        sessionsKey,
-        service,
-        services = progress.data.ServicesManager._services,
-        resources = progress.data.ServicesManager._resources,
-        sessions = progress.data.ServicesManager._sessions,
-        jsdosessions = progress.data.ServicesManager._jsdosessions;
+            resourcesKey,
+            sessionsKey,
+            service,
+            services = progress.data.ServicesManager._services,
+            resources = progress.data.ServicesManager._resources,
+            sessions = progress.data.ServicesManager._sessions,
+            jsdosessions = progress.data.ServicesManager._jsdosessions;
         
         // Delete the services and resources in the ServicesManager
         // associated with the Session given
@@ -163,6 +164,8 @@ limitations under the License.
      * that has loaded the catalog
      */
     progress.data.ServicesManager.addCatalog = function (services, session) {
+        var name, value;
+
         if (!services) {
             throw new Error("Cannot find 'services' property in catalog file.");
         }
@@ -212,9 +215,11 @@ limitations under the License.
                             resource._tempTableName = undefined;
                             var properties = null;
 
+                            var keys, field;
+
                             try {
                                 if (typeof resource.schema.properties != 'undefined') {
-                                    var keys = Object.keys(resource.schema.properties);
+                                    keys = Object.keys(resource.schema.properties);
                                     properties = resource.schema.properties;
                                     if (keys.length == 1) {
                                         if (typeof resource.schema.properties[keys[0]].properties !=
@@ -234,7 +239,7 @@ limitations under the License.
                                     }
                                 }
                                 else {
-                                    var keys = Object.keys(resource.schema);
+                                    keys = Object.keys(resource.schema);
                                     if (keys.length == 1) {
                                         resource.dataProperty = keys[0];
                                         if (typeof resource.schema[keys[0]].items != 'undefined') {
@@ -256,10 +261,12 @@ limitations under the License.
                             catch (e) {
                                 throw new Error("Error parsing catalog file.");
                             }
+
+                            var tableName;
                             if (properties) {
                                 if (resource._dataSetName) {
                                     properties = properties[resource._dataSetName].properties;
-                                    for (var tableName in properties) {
+                                    for (tableName in properties) {
                                         resource.fields[tableName] = [];
                                         resource.primaryKeys[tableName] = properties[tableName].primaryKey;
                                         var tableProperties;
@@ -270,7 +277,7 @@ limitations under the License.
                                         else {
                                             tableProperties = properties[tableName].properties;
                                         }
-                                        for (var field in tableProperties) {
+                                        for (field in tableProperties) {
                                             tableProperties[field].name = field;
                                             if (field != '_id')
                                                 resource.fields[tableName].push(tableProperties[field]);
@@ -278,9 +285,9 @@ limitations under the License.
                                     }
                                 }
                                 else {
-                                    var tableName = resource.dataProperty ? resource.dataProperty : "";
+                                    tableName = resource.dataProperty ? resource.dataProperty : "";
                                     resource.fields[tableName] = [];
-                                    for (var field in properties) {
+                                    for (field in properties) {
                                         properties[field].name = field;
                                         if (field != '_id')
                                             resource.fields[tableName].push(properties[field]);
@@ -324,23 +331,23 @@ limitations under the License.
                                 // Set default verb based on operation
                                 if (!resource.operations[idx].verb) {
                                     switch (opname) {
-                                        case 'create':
-                                            resource.operations[idx].verb = "POST";
-                                            break;
-                                        case 'read':
-                                            resource.operations[idx].verb = "GET";
-                                            break;
-                                        case 'update':
-                                        case 'invoke':
-                                        case 'submit':
-                                        case 'count':
-                                            resource.operations[idx].verb = "PUT";
-                                            break;
-                                        case 'delete':
-                                            resource.operations[idx].verb = "DELETE";
-                                            break;
-                                        default:
-                                            break;
+                                    case 'create':
+                                        resource.operations[idx].verb = "POST";
+                                        break;
+                                    case 'read':
+                                        resource.operations[idx].verb = "GET";
+                                        break;
+                                    case 'update':
+                                    case 'invoke':
+                                    case 'submit':
+                                    case 'count':
+                                        resource.operations[idx].verb = "PUT";
+                                        break;
+                                    case 'delete':
+                                        resource.operations[idx].verb = "DELETE";
+                                        break;
+                                    default:
+                                        break;
                                     }
                                 }
 
@@ -361,6 +368,8 @@ limitations under the License.
                                     var xhr = null;
 
                                     var request = {};
+                                    var i;
+
                                     if (object) {
                                         if (typeof (object) != "object") {
                                             throw new Error("Catalog error: Function '" +
@@ -392,66 +401,66 @@ limitations under the License.
 
                                         // Process objParam
                                         var isInvoke = (fn.definition.type.toUpperCase() == 'INVOKE');
-                                        for (var i = 0; i < fn.definition.params.length; i++) {
-                                            var name = fn.definition.params[i].name;
+                                        for (i = 0; i < fn.definition.params.length; i++) {
+                                            name = fn.definition.params[i].name;
                                             switch (fn.definition.params[i].type) {
-                                                case 'PATH':
-                                                case 'QUERY':
-                                                case 'MATRIX':
-                                                    var value = null;
-                                                    if (objParam)
-                                                        value = objParam[name];
-                                                    if (!value)
-                                                        value = "";
-                                                    if (url.indexOf('{' + name + '}') == -1) {
-                                                        throw new Error("Catalog error: Reference to " +
+                                            case 'PATH':
+                                            case 'QUERY':
+                                            case 'MATRIX':
+                                                var value = null;
+                                                if (objParam)
+                                                    value = objParam[name];
+                                                if (!value)
+                                                    value = "";
+                                                if (url.indexOf('{' + name + '}') == -1) {
+                                                    throw new Error("Catalog error: Reference to " +
                                                             fn.definition.params[i].type + " parameter '" +
                                                             name + "' is missing in path.");
-                                                    }
-                                                    url = url.replace(
-                                                        new RegExp('{' + name + '}', 'g'),
-                                                        encodeURIComponent(value));
-                                                    break;
-                                                case 'REQUEST_BODY':
-                                                case 'REQUEST_BODY,RESPONSE_BODY':
-                                                case 'RESPONSE_BODY,REQUEST_BODY':
-                                                    if (xhr && !reqBody) {
-                                                        reqBody = objParam;
-                                                    }
-                                                    else {
-                                                        var reqParam = objParam[name];
-                                                        if (isInvoke
+                                                }
+                                                url = url.replace(
+                                                    new RegExp('{' + name + '}', 'g'),
+                                                    encodeURIComponent(value));
+                                                break;
+                                            case 'REQUEST_BODY':
+                                            case 'REQUEST_BODY,RESPONSE_BODY':
+                                            case 'RESPONSE_BODY,REQUEST_BODY':
+                                                if (xhr && !reqBody) {
+                                                    reqBody = objParam;
+                                                }
+                                                else {
+                                                    var reqParam = objParam[name];
+                                                    if (isInvoke
                                                             && (fn.definition.params[i].xType
                                                                 && ("DATASET,TABLE".indexOf(
                                                                     fn.definition.params[i].xType) != -1))) {
-                                                            var unwrapped = (jsdo._resource.service.settings
+                                                        var unwrapped = (jsdo._resource.service.settings
                                                                 && jsdo._resource.service.settings.unwrapped);
-                                                            if (unwrapped) {
-                                                                // Remove extra level if found
-                                                                if ((typeof (reqParam) == 'object')
+                                                        if (unwrapped) {
+                                                            // Remove extra level if found
+                                                            if ((typeof (reqParam) == 'object')
                                                                     && (Object.keys(reqParam).length == 1)
                                                                     && (typeof (reqParam[name]) == 'object'))
-                                                                    reqParam = reqParam[name];
-                                                            }
-                                                            else {
-                                                                // Add extra level if not found
-                                                                if ((typeof (reqParam) == 'object')
+                                                                reqParam = reqParam[name];
+                                                        }
+                                                        else {
+                                                            // Add extra level if not found
+                                                            if ((typeof (reqParam) == 'object')
                                                                     && (typeof (reqParam[name]) == 'undefined')) {
-                                                                    reqParam = {};
-                                                                    reqParam[name] = objParam[name];
-                                                                }
+                                                                reqParam = {};
+                                                                reqParam[name] = objParam[name];
                                                             }
                                                         }
-                                                        if (!reqBody) {
-                                                            reqBody = {};
-                                                        }
-                                                        reqBody[name] = reqParam;
                                                     }
-                                                    break;
-                                                case 'RESPONSE_BODY':
-                                                    break;
-                                                default:
-                                                    throw new Error("Catalog error: " +
+                                                    if (!reqBody) {
+                                                        reqBody = {};
+                                                    }
+                                                    reqBody[name] = reqParam;
+                                                }
+                                                break;
+                                            case 'RESPONSE_BODY':
+                                                break;
+                                            default:
+                                                throw new Error("Catalog error: " +
                                                         "Unexpected parameter type '" +
                                                         fn.definition.params[i].type + "'.");
                                             }
@@ -460,9 +469,9 @@ limitations under the License.
                                         // URL has parameters
                                         if (url.indexOf('{') != -1) {
                                             var paramsFromURL = extractParamsFromURL(url);
-                                            for (var i = 0; i < paramsFromURL.length; i++) {
-                                                var name = paramsFromURL[i];
-                                                var value = null;
+                                            for (i = 0; i < paramsFromURL.length; i++) {
+                                                name = paramsFromURL[i];
+                                                value = null;
                                                 if (objParam)
                                                     value = objParam[name];
                                                 if (!value)
@@ -480,10 +489,9 @@ limitations under the License.
                                     request.fnName = fn.fnName;
                                     request.async = async;
 
-                                    if (request.deferred === undefined &&
-                                        typeof ($) == 'function' && typeof ($.Deferred) == 'function') {
-                                        deferred = $.Deferred();
-                                        request.deferred = deferred;
+                                    if (request.deferred === undefined) {
+                                        deferred = new progress.util.Deferred();
+                                        request.deferred = deferred;    
                                     }
 
                                     var data = jsdo._httpRequest(xhr, fn.definition.verb,
@@ -493,43 +501,43 @@ limitations under the License.
                                 // End of Function Definition
 
                                 switch (resource.operations[idx].verb.toLowerCase()) {
-                                    case 'get':
-                                    case 'post':
-                                    case 'put':
-                                    case 'delete':
-                                        break;
-                                    default:
-                                        throw new Error("Catalog error: Unexpected HTTP verb '" +
+                                case 'get':
+                                case 'post':
+                                case 'put':
+                                case 'delete':
+                                    break;
+                                default:
+                                    throw new Error("Catalog error: Unexpected HTTP verb '" +
                                             resource.operations[idx].verb +
                                             "' found while parsing the catalog.");
                                 }
 
                                 switch (opname) {
-                                    case 'invoke':
-                                        break;
-                                    case 'create':
-                                    case 'read':
-                                    case 'update':
-                                    case 'delete':
-                                    case 'submit':
-                                    case 'count':
-                                        if (typeof (resource.generic[opname]) == "function") {
-                                            throw new Error("Catalog error: Multiple '" +
+                                case 'invoke':
+                                    break;
+                                case 'create':
+                                case 'read':
+                                case 'update':
+                                case 'delete':
+                                case 'submit':
+                                case 'count':
+                                    if (typeof (resource.generic[opname]) == "function") {
+                                        throw new Error("Catalog error: Multiple '" +
                                                 resource.operations[idx].type +
                                                 "' operations specified in the catalog for resource '" +
                                                 resource.name + "'.");
-                                        }
-                                        else
-                                            resource.generic[opname] = func;
-                                        break;
-                                    default:
-                                        throw new Error("Catalog error: Unexpected operation '" +
+                                    }
+                                    else
+                                        resource.generic[opname] = func;
+                                    break;
+                                default:
+                                    throw new Error("Catalog error: Unexpected operation '" +
                                             resource.operations[idx].type +
                                             "' found while parsing the catalog.");
                                 }
 
                                 // Set fnName
-                                var name = resource.operations[idx].name;
+                                name = resource.operations[idx].name;
                                 if (opname === "invoke" || opname === "count") {
                                     resource.fn[name] = {};
                                     resource.fn[name]["function"] = func;
@@ -2112,6 +2120,7 @@ limitations under the License.
                     try {
                         xhr.withCredentials = true;
                     } catch (e) {
+                        // Empty
                     }
 
                     xhr.setRequestHeader("Accept", "application/json");
@@ -2273,7 +2282,7 @@ limitations under the License.
                             xhr._iosTimeOutExpired = true;
                             xhr.abort();
                         },
-                            iOSBasicAuthTimeout);
+                        iOSBasicAuthTimeout);
                     }
 
                     // in case the caller is a JSDOSession
@@ -3154,6 +3163,7 @@ limitations under the License.
                 xhr.withCredentials = true;
                 xhr.setRequestHeader("Accept", acceptString);
             } catch (e) {
+                // Empty
             }
         }
 
@@ -3239,7 +3249,7 @@ limitations under the License.
             } catch (e) {
                 // invalid json
                 setLoginResult(progress.data.Session.LOGIN_GENERAL_FAILURE, params.session);
-                setLoginHttpStatus(xhr.status, params.session);
+                setLoginHttpStatus(params.xhr.status, params.session);
                 throw new Error("Unable to parse login response from server.");
             }
 
@@ -3303,6 +3313,7 @@ limitations under the License.
                     try {
                         context = JSON.parse(contextString);
                     } catch (e) {
+                        // Empty
                     }
                     if (typeof context === "object") {
                         session._contextProperties.setContext(context);
@@ -4016,62 +4027,74 @@ limitations under the License.
         // Auth Provider's constructor or login will bubble up to the caller, otherwise this method
         // returns the promise from the A-P's login call.
         this.login = function (username, password, options) {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 iOSBasicAuthTimeout;
-
-            // console.warn(
-            //     "JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use "
-            //     + "the AuthenticationProvider API instead."
-            // );
 
             function callIsAuthorized() {
                 that.isAuthorized()
-                    .then(function (jsdosession, result, info) {
-                        deferred.resolve(that, result, info);
-                    }, function (jsdosession, result, info) {
-                        deferred.reject(that, result, info);
+                    .then(function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);
+                        deferred.resolve(that, object.result, object.info);
+                    }, function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);                        
+                        deferred.reject(that, object.result, object.info);
                     });
             }
 
-            if (this._isInvalidated) {
-                // JSDOSession: This session has been invalidated and cannot be used.
-                throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
+            try {
+                // console.warn(
+                //     "JSDOSession: As of JSDO 4.4, login() has been deprecated. Please use "
+                //     + "the AuthenticationProvider API instead."
+                // );
+
+                if (this._isInvalidated) {
+                    // JSDOSession: This session has been invalidated and cannot be used.
+                    throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
+                }
+
+                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                    // JSDOSession: Cannot call login() when authenticationModel is SSO.
+                    // Please use the AuthenticationProvider object instead.
+                    throw new Error(progress.data._getMsgText("jsdoMSG057", 'JSDOSession', 'login()'));
+                }
+
+                if (typeof options === 'object') {
+                    iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
+                }
+
+                // As part of JSDOSession's login we create a new authProvider always. However, when a valid
+                // authProvider is provided as part of JSDOSession's constructor. i.e., when we already have
+                // a valid authProvider, performing login operation is not allowed. We throw an error.
+                if (!_pdsession._authProvider) {
+                    // is there a better way to do this? Need it because we didn't have the authprovider when
+                    // running the constructor
+                    _pdsession._authProvider = new progress.data.AuthenticationProvider({
+                        uri: this.serviceURI,
+                        authenticationModel: this.authenticationModel
+                    });
+
+                    _pdsession._authProvider.logout()
+                        .then(function () {
+                            return _pdsession._authProvider.login(username, password);
+                        })
+                        .then(function () {
+                            callIsAuthorized();
+                        }, function (object, result, info) {
+                            object = progress.util.Deferred.getParamObject(object, result, info);
+                            deferred.reject(that, object.result, object.info);
+                        });
+                } else {
+                    throw new Error(progress.data._getMsgText("jsdoMSG062", 'JSDOSession', 'login()'));
+                }
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
+                }                
             }
-
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // JSDOSession: Cannot call login() when authenticationModel is SSO.
-                // Please use the AuthenticationProvider object instead.
-                throw new Error(progress.data._getMsgText("jsdoMSG057", 'JSDOSession', 'login()'));
-            }
-
-            if (typeof options === 'object') {
-                iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
-            }
-
-            // As part of JSDOSession's login we create a new authProvider always. However, when a valid
-            // authProvider is provided as part of JSDOSession's constructor. i.e., when we already have
-            // a valid authProvider, performing login operation is not allowed. We throw an error.
-            if (!_pdsession._authProvider) {
-                // is there a better way to do this? Need it because we didn't have the authprovider when
-                // running the constructor
-                _pdsession._authProvider = new progress.data.AuthenticationProvider({
-                    uri: this.serviceURI,
-                    authenticationModel: this.authenticationModel
-                });
-
-                _pdsession._authProvider.logout()
-                .then(function () {
-                    return _pdsession._authProvider.login(username, password);
-                })
-                .then(function () {
-                    callIsAuthorized();
-                }, function (provider, result, info) {
-                    deferred.reject(that, result, info);
-                });
-            } else {
-                throw new Error(progress.data._getMsgText("jsdoMSG062", 'JSDOSession', 'login()'));
-            }
-
             return deferred.promise();
         };
 
@@ -4085,7 +4108,7 @@ limitations under the License.
         // Data for any catalogs loaded by the JSDOSession will NOT be deleted.
         // See additional commecnts at the Session._disconnect method.
         this.disconnect = function () {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 errorObject;
 
             try {
@@ -4100,14 +4123,20 @@ limitations under the License.
             }
 
             if (errorObject) {
-                throw errorObject;
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw errorObject;
+                } else {
+                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: errorObject
+                    });
+                }
             } else {
                 return deferred.promise();
             }
         };
 
         this.addCatalog = function (catalogURI, unameOrOpts, password, opts) {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 catalogURIs,
                 numCatalogs,
                 catalogIndex,
@@ -4118,160 +4147,169 @@ limitations under the License.
                 options,
                 authProvider;
 
-            if (this._isInvalidated) {
-                // JSDOSession: This session has been invalidated and cannot be used.
-                throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
-            }
+            try {
+                if (this._isInvalidated) {
+                    // JSDOSession: This session has been invalidated and cannot be used.
+                    throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
+                }
 
-            // check whether 1st param is a string or an array
-            if (typeof catalogURI === "string") {
-                catalogURIs = [catalogURI];
-            } else if (catalogURI instanceof Array) {
-                catalogURIs = catalogURI;
-            } else {
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG033",
-                    "JSDOSession",
-                    "addCatalog",
-                    "The first argument must be a string or an array of strings specifying the URI of the catalog."
-                ));
-            }
-
-            // type check the 2nd param if it exists
-            if (unameOrOpts) {
-                if (typeof unameOrOpts === "string") {
-                    if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                        // Session: Cannot pass username and password to addCatalog when
-                        // authenticationModel is SSO. Pass an AuthenticationProvider instead.
-                        throw new Error(progress.data._getMsgText("jsdoMSG058", 'Session'));
-                    }
-                    username = unameOrOpts;
-                    // explictly ignore any authProvider if using the (catURI, uname, pw, options) signature
-                    if (opts) {
-                        options = opts;
-                        options.authProvider = undefined;
-                    }
-                } else if (typeof unameOrOpts === "object") {
-                    options = unameOrOpts;
+                // check whether 1st param is a string or an array
+                if (typeof catalogURI === "string") {
+                    catalogURIs = [catalogURI];
+                } else if (catalogURI instanceof Array) {
+                    catalogURIs = catalogURI;
                 } else {
-                    // JSDOSession: Argument 2 must be of type object in addCatalog call.
                     throw new Error(progress.data._getMsgText(
-                        "jsdoMSG121",
+                        "jsdoMSG033",
                         "JSDOSession",
-                        "2",
-                        "object",
-                        "addCatalog"
+                        "addCatalog",
+                        "The first argument must be a string or an array of strings specifying the URI of the catalog."
                     ));
                 }
-            }
 
-            if (typeof options === 'object') {
-                // possible override for the workaround for the Cordova iOS async Basic auth bug
-                iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
-                if (options.authProvider) {
-                    authProvider = options.authProvider;
-                } else if (this.authProvider) {
-                    authProvider = this.authProvider;
-                }
-            }
-
-            // Error out if no authProvider or username was given
-            if (!authProvider && !this.authProvider && !username) {
-                throw new Error(progress.data._getMsgText("jsdoMSG511"));
-            }
-
-            /* When we're done processing all catalogs, we pass an array of results to resolve() or
-               reject(). We're attaching this array to the deferred object, in case the app makes
-               multiple addCatalog calls (if the array was attached to the JSDOSession,
-               the 2nd call might overwrite the first)
-             */
-
-            /*  Add properties to the deferred object for this call to store the total
-                number of catalogs that are to be done, the number that ahve been processed,
-                and a reference to an array of results.
-                Loop through the array of catalogURIs, calling addCatalog for each one. If a call
-                throws an error or returns something other than ASYNC_PENDING, create a result object
-                for that catalog and add the result object to the resultArray. Otherwise, the result
-                object will be added by the afterAddCatalog handler.
-                If all of the Session.addCatalog calls throw an error or return something other
-                than ASYNC_PENDING, this function will reject the promise and return. Otherwise
-                the afterAddCatalog handler will resolve or reject the promise after all calls have
-                been processed.
-                Note that we try to make sure that each entry in the results array is in the same position
-                as its catalogURI in the input array.
-               */
-            // if a catalogURI has no protocol, pdsession will assume it's relative to the serviceURI,
-            // if there has been a login
-            // NOTE: this means if the app is trying to load a local catalog, it MUST
-            // specify the file: protocol (and we need to make sure that works on all platforms)
-
-            _pdsession.subscribe('afterAddCatalog', onAfterAddCatalog, this);
-
-            numCatalogs = catalogURIs.length;
-            deferred._numCatalogs = numCatalogs;
-            deferred._numCatalogsProcessed = 0;
-            deferred._results = [];
-            deferred._results.length = numCatalogs;
-
-            for (catalogIndex = 0; catalogIndex < numCatalogs; catalogIndex += 1) {
-                errorObject = undefined;
-                addResult = undefined;
-                try {
-                    addResult = _pdsession.addCatalog(
-                        {
-                            catalogURI: catalogURIs[catalogIndex],
-                            async: true,
-                            userName: username,
-                            password: password,
-                            deferred: deferred,
-                            catalogIndex: catalogIndex,
-                            iOSBasicAuthTimeout: iOSBasicAuthTimeout,
-                            authProvider: authProvider,
-                            offlineAddCatalog: true
+                // type check the 2nd param if it exists
+                if (unameOrOpts) {
+                    if (typeof unameOrOpts === "string") {
+                        if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                            // Session: Cannot pass username and password to addCatalog when
+                            // authenticationModel is SSO. Pass an AuthenticationProvider instead.
+                            throw new Error(progress.data._getMsgText("jsdoMSG058", 'Session'));
                         }
-                    );  // OK to get catalog if offline
-                } catch (e) {
-                    errorObject = new Error("JSDOSession: Unable to send addCatalog request. " + e.message);
-                }
-
-                if (addResult !== progress.data.Session.ASYNC_PENDING) {
-                    /* Set a property on the deferred to indicate that the "overall" result was
-                       a failure. When we decide whether to reject or resolve the promise, we reject
-                       if it's set to GENERAL_FAILURE, otherwise we resolve the promise
-                       (really only need to set this once, but simpler code if we just set (or possibly
-                       re-set) it whenever we find an error, plus if, at some point while we're still
-                       processing, it's important to know whether we've already had an error, we can
-                       check the property)
-                     */
-                    deferred._overallCatalogResult = progress.data.Session.GENERAL_FAILURE;
-                    if (errorObject) {
-                        addResult = progress.data.Session.GENERAL_FAILURE;
+                        username = unameOrOpts;
+                        // explictly ignore any authProvider if using the (catURI, uname, pw, options) signature
+                        if (opts) {
+                            options = opts;
+                            options.authProvider = undefined;
+                        }
+                    } else if (typeof unameOrOpts === "object") {
+                        options = unameOrOpts;
+                    } else {
+                        // JSDOSession: Argument 2 must be of type object in addCatalog call.
+                        throw new Error(progress.data._getMsgText(
+                            "jsdoMSG121",
+                            "JSDOSession",
+                            "2",
+                            "object",
+                            "addCatalog"
+                        ));
                     }
-                    deferred._results[catalogIndex] = {
-                        catalogURI: catalogURIs[catalogIndex],
-                        result: addResult,
-                        errorObject: errorObject,
-                        xhr: undefined
-                    };
-                    deferred._numCatalogsProcessed += 1;
                 }
-            }
 
-            if ((deferred._numCatalogsProcessed === numCatalogs) && !deferred._processedPromise) {
-                /* The goal here is to handle the case where all the catalogs
-                   have been processed but the afterAddCatalog handler may not be invoked at the
-                   end (the obvious example is if there are no async requests actually made by
-                   Session.addCatalog). In that case, we have to resolve/reject from here. Chances are
-                   very good that if we're doing this here, there's been at least one error, but just
-                   to be sure, we check the deferred._overallCatalogResult anyway
-                 */
-                if (deferred._overallCatalogResult === progress.data.Session.GENERAL_FAILURE) {
-                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, deferred._results);
+                if (typeof options === 'object') {
+                    // possible override for the workaround for the Cordova iOS async Basic auth bug
+                    iOSBasicAuthTimeout = options.iOSBasicAuthTimeout;
+                    if (options.authProvider) {
+                        authProvider = options.authProvider;
+                    } else if (this.authProvider) {
+                        authProvider = this.authProvider;
+                    }
+                }
+
+                // Error out if no authProvider or username was given
+                if (!authProvider && !this.authProvider && !username) {
+                    throw new Error(progress.data._getMsgText("jsdoMSG511"));
+                }
+
+                /* When we're done processing all catalogs, we pass an array of results to resolve() or
+                reject(). We're attaching this array to the deferred object, in case the app makes
+                multiple addCatalog calls (if the array was attached to the JSDOSession,
+                the 2nd call might overwrite the first)
+                */
+
+                /*  Add properties to the deferred object for this call to store the total
+                    number of catalogs that are to be done, the number that ahve been processed,
+                    and a reference to an array of results.
+                    Loop through the array of catalogURIs, calling addCatalog for each one. If a call
+                    throws an error or returns something other than ASYNC_PENDING, create a result object
+                    for that catalog and add the result object to the resultArray. Otherwise, the result
+                    object will be added by the afterAddCatalog handler.
+                    If all of the Session.addCatalog calls throw an error or return something other
+                    than ASYNC_PENDING, this function will reject the promise and return. Otherwise
+                    the afterAddCatalog handler will resolve or reject the promise after all calls have
+                    been processed.
+                    Note that we try to make sure that each entry in the results array is in the same position
+                    as its catalogURI in the input array.
+                */
+                // if a catalogURI has no protocol, pdsession will assume it's relative to the serviceURI,
+                // if there has been a login
+                // NOTE: this means if the app is trying to load a local catalog, it MUST
+                // specify the file: protocol (and we need to make sure that works on all platforms)
+
+                _pdsession.subscribe('afterAddCatalog', onAfterAddCatalog, this);
+
+                numCatalogs = catalogURIs.length;
+                deferred._numCatalogs = numCatalogs;
+                deferred._numCatalogsProcessed = 0;
+                deferred._results = [];
+                deferred._results.length = numCatalogs;
+
+                for (catalogIndex = 0; catalogIndex < numCatalogs; catalogIndex += 1) {
+                    errorObject = undefined;
+                    addResult = undefined;
+                    try {
+                        addResult = _pdsession.addCatalog(
+                            {
+                                catalogURI: catalogURIs[catalogIndex],
+                                async: true,
+                                userName: username,
+                                password: password,
+                                deferred: deferred,
+                                catalogIndex: catalogIndex,
+                                iOSBasicAuthTimeout: iOSBasicAuthTimeout,
+                                authProvider: authProvider,
+                                offlineAddCatalog: true
+                            }
+                        );  // OK to get catalog if offline
+                    } catch (e) {
+                        errorObject = new Error("JSDOSession: Unable to send addCatalog request. " + e.message);
+                    }
+
+                    if (addResult !== progress.data.Session.ASYNC_PENDING) {
+                        /* Set a property on the deferred to indicate that the "overall" result was
+                        a failure. When we decide whether to reject or resolve the promise, we reject
+                        if it's set to GENERAL_FAILURE, otherwise we resolve the promise
+                        (really only need to set this once, but simpler code if we just set (or possibly
+                        re-set) it whenever we find an error, plus if, at some point while we're still
+                        processing, it's important to know whether we've already had an error, we can
+                        check the property)
+                        */
+                        deferred._overallCatalogResult = progress.data.Session.GENERAL_FAILURE;
+                        if (errorObject) {
+                            addResult = progress.data.Session.GENERAL_FAILURE;
+                        }
+                        deferred._results[catalogIndex] = {
+                            catalogURI: catalogURIs[catalogIndex],
+                            result: addResult,
+                            errorObject: errorObject,
+                            xhr: undefined
+                        };
+                        deferred._numCatalogsProcessed += 1;
+                    }
+                }
+
+                if ((deferred._numCatalogsProcessed === numCatalogs) && !deferred._processedPromise) {
+                    /* The goal here is to handle the case where all the catalogs
+                    have been processed but the afterAddCatalog handler may not be invoked at the
+                    end (the obvious example is if there are no async requests actually made by
+                    Session.addCatalog). In that case, we have to resolve/reject from here. Chances are
+                    very good that if we're doing this here, there's been at least one error, but just
+                    to be sure, we check the deferred._overallCatalogResult anyway
+                    */
+                    if (deferred._overallCatalogResult === progress.data.Session.GENERAL_FAILURE) {
+                        deferred.reject(this, progress.data.Session.GENERAL_FAILURE, deferred._results);
+                    } else {
+                        deferred.resolve(this, progress.data.Session.SUCCESS, deferred._results);
+                    }
+                }
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
                 } else {
-                    deferred.resolve(this, progress.data.Session.SUCCESS, deferred._results);
+                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
                 }
             }
-
             return deferred.promise();
         };
 
@@ -4283,38 +4321,49 @@ limitations under the License.
         //
         // Note that we also don't support login/logout on the JSDOSession for page refresh
         this.logout = function () {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 authProv = this.authProvider;
 
+            try {
+                // console.warn(
+                //     "JSDOSession: As of 4.4, logout() has been deprecated. Please use "
+                //     + "the AuthenticationProvider API instead."
+                // );
 
-            // console.warn(
-            //     "JSDOSession: As of 4.4, logout() has been deprecated. Please use "
-            //     + "the AuthenticationProvider API instead."
-            // );
+                if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
+                    // JSDOSession: Cannot call logout() when authenticationModel is SSO.
+                    // Please use the AuthenticationProvider object instead.
+                    throw new Error(progress.data._getMsgText(
+                        "jsdoMSG057",
+                        'JSDOSession',
+                        'logout()'
+                    ));
+                }
 
-            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
-                // JSDOSession: Cannot call logout() when authenticationModel is SSO.
-                // Please use the AuthenticationProvider object instead.
-                throw new Error(progress.data._getMsgText(
-                    "jsdoMSG057",
-                    'JSDOSession',
-                    'logout()'
-                ));
+                this.disconnect()
+                    .then(function () {
+                        if (authProv) {
+                            return authProv.logout();
+                        }
+                        // if there's no AP, just resolve immediately successfully
+                        deferred.resolve(that, progress.data.Session.SUCCESS, {});                    
+                    })
+                    .then(function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);                    
+                        deferred.resolve(that, object.result, object.info);
+                    }, function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);                    
+                        deferred.reject(that, object.result, object.info);
+                    });
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred.reject(that, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
+                }
             }
-
-            this.disconnect()
-                .then(function () {
-                    if (authProv) {
-                        return authProv.logout();
-                    }
-                    // if there's no AP, just resolve immediately successfully
-                    deferred.resolve(that, progress.data.Session.SUCCESS, {});                    
-                })
-                .then(function (jsdosession, result, info) {
-                    deferred.resolve(that, result, info);
-                }, function (provider, result, info) {
-                    deferred.reject(that, result, info);
-                });
 
             return deferred.promise();
         };
@@ -4326,21 +4375,31 @@ limitations under the License.
         };
 
         this.ping = function () {
-            var deferred = $.Deferred();
-
-            if (this._isInvalidated) {
-                // JSDOSession: This session has been invalidated and cannot be used.
-                throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
-            }
+            var deferred = new progress.util.Deferred();
 
             try {
-                _pdsession.ping({
-                    async: true,
-                    deferred: deferred,
-                    onCompleteFn: onPingComplete
-                });
-            } catch (e) {
-                throw new Error("JSDOSession: Unable to send ping request. " + e.message);
+                if (this._isInvalidated) {
+                    // JSDOSession: This session has been invalidated and cannot be used.
+                    throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
+                }
+
+                try {
+                    _pdsession.ping({
+                        async: true,
+                        deferred: deferred,
+                        onCompleteFn: onPingComplete
+                    });
+                } catch (e) {
+                    throw new Error("JSDOSession: Unable to send ping request. " + e.message);
+                }
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
+                }
             }
 
             return deferred.promise();
@@ -4352,73 +4411,83 @@ limitations under the License.
         // For example, if the JSDOSession is using Form authentication, is the server
         // session still valid or did it expire?
         this.isAuthorized = function () {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 xhr = new XMLHttpRequest(),
                 result,
                 that = this;
 
-            if (this._isInvalidated) {
+            try {
+                if (this._isInvalidated) {
                 // JSDOSession: This session has been invalidated and cannot be used.
-                throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
-            }
+                    throw new Error(progress.data._getMsgText("jsdoMSG510", "JSDOSession"));
+                }
 
-            // If we logged in successfuly using login() or if we have an AuthProvider, make the call
-            if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this.authProvider) {
-                _pdsession._openRequest(
-                    xhr,
-                    "GET",
-                    _pdsession.loginTarget,
-                    true,
-                    function () {
-                        xhr.onreadystatechange = function () {
+                // If we logged in successfuly using login() or if we have an AuthProvider, make the call
+                if (this.loginResult === progress.data.Session.LOGIN_SUCCESS || this.authProvider) {
+                    _pdsession._openRequest(
+                        xhr,
+                        "GET",
+                        _pdsession.loginTarget,
+                        true,
+                        function () {
+                            xhr.onreadystatechange = function () {
                             // do we need this xhr var? The one declared in isAuthorized seems to be in scope
-                            var xhr = this,
-                                cbresult,
-                                info;
+                                var xhr = this,
+                                    cbresult,
+                                    info;
 
-                            if (xhr.readyState === 4) {
-                                info = {
-                                    xhr: xhr,
-                                    offlineReason: undefined,
-                                    fireEventIfOfflineChange: true,
-                                    usingOepingFormat: false
-                                };
+                                if (xhr.readyState === 4) {
+                                    info = {
+                                        xhr: xhr,
+                                        offlineReason: undefined,
+                                        fireEventIfOfflineChange: true,
+                                        usingOepingFormat: false
+                                    };
 
-                                // call _processPingResult because it has logic for
-                                // detecting change in online/offline state
-                                _pdsession._processPingResult(info);
+                                    // call _processPingResult because it has logic for
+                                    // detecting change in online/offline state
+                                    _pdsession._processPingResult(info);
 
-                                if (xhr.status >= 200 && xhr.status < 300) {
-                                    deferred.resolve(
-                                        that,
-                                        progress.data.Session.SUCCESS,
-                                        info
-                                    );
-                                } else {
-                                    if (xhr.status === 401) {
-                                        cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                    if (xhr.status >= 200 && xhr.status < 300) {
+                                        deferred.resolve(
+                                            that,
+                                            progress.data.Session.SUCCESS,
+                                            info
+                                        );
                                     } else {
-                                        cbresult = progress.data.Session.GENERAL_FAILURE;
+                                        if (xhr.status === 401) {
+                                            cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                        } else {
+                                            cbresult = progress.data.Session.GENERAL_FAILURE;
+                                        }
+                                        deferred.reject(that, cbresult, info);
                                     }
-                                    deferred.reject(that, cbresult, info);
                                 }
-                            }
-                        };
+                            };
 
-                        try {
-                            xhr.send();
-                        } catch (e) {
-                            throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
+                            try {
+                                xhr.send();
+                            } catch (e) {
+                                throw new Error("JSDOSession: Unable to validate authorization. " + e.message);
+                            }
                         }
-                    }
-                );
-            } else {
+                    );
+                } else {
                 // Never logged in (or logged in and logged out). Regardless of what the reason
                 // was that there wasn't a login, the bottom line is that authentication is required
-                result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
-                deferred.reject(that, result, {xhr: xhr});
-            }
+                    result = progress.data.Session.LOGIN_AUTHENTICATION_REQUIRED;
+                    deferred.reject(that, result, {xhr: xhr});
+                }
 
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred.reject(that, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
+                }
+            }
             return deferred.promise();
         };
 
@@ -4630,22 +4699,28 @@ limitations under the License.
     };
 
     progress.data.getSession = function (options) {
-        var deferred = $.Deferred(),
+        var deferred = new progress.util.Deferred(),
             authProvider,
             promise,
             authProviderInitObject = {};
 
         // This is the reject handler for session-related operations
         // login, addCatalog, and logout
-        function sessionRejectHandler(originator, result, info) {
+        function sessionRejectHandler(object, result, info) {
+            // The object parameter may include the following properties
+            // - originator
+            // - result
+            // - info
+            object = progress.util.Deferred.getParamObject(object, result, info);
             // undo the AuthenticationProvider's login if it succeeded
             if (authProvider && authProvider.hasClientCredentials()) {
-                authProvider.logout()
-                    .always(function () {
-                        deferred.reject(result, info);
-                    });
+                var callback = function () {
+                    deferred.reject(object.result, object.info);
+                };
+                // finally
+                authProvider.logout().then(callback, callback);
             } else {
-                deferred.reject(result, info);
+                deferred.reject(object.result, object.info);
             }
         }
 
@@ -4654,7 +4729,7 @@ limitations under the License.
             deferred.reject(progress.data.Session.GENERAL_FAILURE, {"reason": reason});
         }
 
-        function loginHandler(provider) {
+        function loginHandler(object) {
             var jsdosession;
 
             try {
@@ -4664,8 +4739,9 @@ limitations under the License.
                         .then(function() {
                             return jsdosession.addCatalog(options.catalogURI);
                         }, sessionRejectHandler)
-                        .then(function (jsdosession, result, info) {
-                            deferred.resolve(jsdosession, progress.data.Session.SUCCESS);
+                        .then(function (object, result, info) {
+                            object = progress.util.Deferred.getParamObject(object, result, info);
+                            deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
                         }, sessionRejectHandler);
                 } catch (e) {
                     sessionRejectHandler(
@@ -4827,25 +4903,36 @@ limitations under the License.
     progress.data.invalidateAllSessions = function () {
         var jsdosession,
             key,
-            deferred = $.Deferred(),
+            deferred = new progress.util.Deferred(),
             jsdosessions = progress.data.ServicesManager._jsdosessions,
             invalidatePromises = [];
 
-        for (key in jsdosessions) {
-            if (jsdosessions.hasOwnProperty(key)) {
-                jsdosession = jsdosessions[key];
+        try {
+            for (key in jsdosessions) {
+                if (jsdosessions.hasOwnProperty(key)) {
+                    jsdosession = jsdosessions[key];
 
-                invalidatePromises.push(jsdosession.invalidate());
+                    invalidatePromises.push(jsdosession.invalidate());
+                }
+            }
+
+            progress.util.Deferred.when(invalidatePromises)
+                .then(function () {
+                    deferred.resolve(progress.data.Session.SUCCESS);
+                }, function (object, result, info) {
+                    object = progress.util.Deferred.getParamObject(object, result, info);
+                    deferred.reject(progress.data.Session.GENERAL_FAILURE, info);
+                });
+
+        } catch (error) {
+            if (progress.util.Deferred.useJQueryPromises) {
+                throw error;
+            } else {
+                deferred.reject(progress.data.Session.GENERAL_FAILURE, {
+                    errorObject: error
+                });
             }
         }
-
-        $.when.apply($, invalidatePromises)
-            .then(function () {
-                deferred.resolve(progress.data.Session.SUCCESS);                
-            }, function (session, result, info) {
-                deferred.reject(progress.data.Session.GENERAL_FAILURE, info);
-            });
-
         // Using beautiful jquery shenanigans
         return deferred.promise();
     }; 
