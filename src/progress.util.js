@@ -49,10 +49,12 @@ limitations under the License.
     if (typeof XMLHttpRequest === "undefined") {
         isNodeJS = true;
         try {
-            XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+            // XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+            xhrc = require("xmlhttprequest-cookie");
+            XMLHttpRequest = xhrc.XMLHttpRequest;
         } catch(e) {
             console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
-            + "Please install xmlhttprequest package.");
+            + "Please install xmlhttprequest-cookie package.");
         }
     }
 
@@ -114,6 +116,16 @@ limitations under the License.
         if (typeof sessionStorage === "undefined"
             && typeof LocalStorage !== "undefined") {
             sessionStorage = new LocalStorage('./scratch2');
+        }
+
+        // load module base-64
+        try {
+            if (typeof btoa === "undefined") {
+                btoa = require("base-64").encode;
+            }
+        } catch(exception3) {
+            console.error("Error: JSDO library requires btoa() function in Node.js.\n"
+                + "Please install base-64 package.");
         }
     }
 }());

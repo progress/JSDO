@@ -82,13 +82,15 @@ var DataSource = (function () {
             filter.filter = this._options.filter;
             filter.sort = this._options.sort;
         }
+        // tableRef required for multi-table DataSets
+        filter.tableRef = this._tableRef;
         wrapperPromise = new Promise(function (resolve, reject) {
             _this.jsdo.fill(filter)
                 .then(function (result) {
                 _this._data = result.jsdo[_this._tableRef].getData();
                 resolve(_this._data);
             }).catch(function (result) {
-                reject(new Error(_this.normalizeError(result.request)));
+                reject(new Error(_this.normalizeError(result, "Unknown error occurred calling read.")));
             });
         });
         obs = Observable_1.Observable.fromPromise(wrapperPromise);
@@ -228,6 +230,7 @@ var DataSource = (function () {
     DataSource.prototype.saveChanges = function () {
         var _this = this;
         var promise;
+        var obs;
         var promResponse = {};
         var tableRefVal;
         promise = new Promise(function (resolve, reject) {
@@ -262,50 +265,33 @@ var DataSource = (function () {
                     }
                 }
             }).catch(function (result) {
-                if (result.info && result.info.errorObject) {
-                    reject(result.info.errorObject.message);
-                }
-                else if (result.jsdo) {
-                    // reject(result.jsdo.tableRefVal.getErrors());
-                    // reject(result.jsdo.[this._tableRef].getErrors());
-                    // We dont have access to any local variables (tableRefVar) or this (datasource)
-                    // object here. As a result using getErrors on jsdo directly
-                    reject(result.jsdo.getErrors());
-                }
-                else if (result.message) {
-                    reject(result.message);
-                }
-                else {
-                    reject("Unknown error occurred when calling saveChanges.");
-                }
+                reject(_this.normalizeError(result, "Unknown error occurred when calling saveChanges."));
             });
         });
-        return promise;
+        obs = Observable_1.Observable.fromPromise(promise);
+        obs.catch(function (e) {
+            return [];
+        });
+        return obs;
     };
-    DataSource.prototype.normalizeError = function (request) {
+    DataSource.prototype.normalizeError = function (result, defaultMsg) {
         var errorMsg = "";
-        var jsdo = request.jsdo;
-        var response = request.response;
         var lastErrors = null;
         try {
-            lastErrors = jsdo[this._tableRef].getErrors();
-            if (response && response._errors && response._errors.length > 0) {
-                errorMsg = response._errors[0]._errorMsg;
+            if (result.info && result.info.errorObject) {
+                errorMsg = result.info.errorObject.message;
             }
-            else if (lastErrors.length === 1) {
-                errorMsg = lastErrors[0].error;
-            }
-            else if (lastErrors.length > 1) {
-                errorMsg = "Submit failed with "
-                    + lastErrors.length + (lastErrors.length === 1 ? " error." : " errors.");
-            }
-            if (errorMsg === "") {
-                if (request.xhr.responseText.substring(0, 6) !== "<html>") {
-                    errorMsg = request.xhr.responseText;
+            else if (result.jsdo) {
+                lastErrors = result.jsdo[this._tableRef].getErrors();
+                if (lastErrors.length >= 1) {
+                    errorMsg = lastErrors[0].error;
                 }
-                if (errorMsg === "") {
-                    errorMsg = request.xhr.statusText;
-                }
+            }
+            else if (result.message) {
+                errorMsg = result.message;
+            }
+            if (errorMsg === "" && defaultMsg) {
+                errorMsg = defaultMsg;
             }
         }
         catch (error) {

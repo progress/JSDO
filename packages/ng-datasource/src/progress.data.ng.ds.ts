@@ -86,6 +86,9 @@ export class DataSource {
             filter.sort = this._options.sort;
         }
 
+        // tableRef required for multi-table DataSets
+        filter.tableRef = this._tableRef;
+
         wrapperPromise = new Promise(
             (resolve, reject) => {
                 this.jsdo.fill(filter)
@@ -94,7 +97,7 @@ export class DataSource {
                         resolve(this._data);
 
                     }).catch((result) => {
-                        reject(new Error(this.normalizeError(result.request)));
+                        reject(new Error(this.normalizeError(result, "Unknown error occurred calling read.")));
                     });
             }
         );
@@ -255,8 +258,9 @@ export class DataSource {
      * modifications are batched together and are sent in single transaction
      * @returns {object} Promise
      */
-    saveChanges(): Promise<object> {
+    saveChanges(): Observable<Array<object>> {
         let promise;
+        let obs: Observable<Array<object>>;
         const promResponse: object = {};
         let tableRefVal: any;
 
@@ -291,51 +295,38 @@ export class DataSource {
                             }
                         }
                     }).catch((result) => {
-                        if (result.info && result.info.errorObject) {
-                            reject(result.info.errorObject.message);
-                        } else if (result.jsdo) {
-                            // reject(result.jsdo.tableRefVal.getErrors());
-                            // reject(result.jsdo.[this._tableRef].getErrors());
-                            // We dont have access to any local variables (tableRefVar) or this (datasource)
-                            // object here. As a result using getErrors on jsdo directly
-                            reject(result.jsdo.getErrors());
-                        } else if (result.message) {
-                            reject(result.message);
-                        } else {
-                            reject("Unknown error occurred when calling saveChanges.");
-                        }
+
+                        reject(this.normalizeError(result, "Unknown error occurred when calling saveChanges."));
                     });
             }
         );
 
-        return promise;
+        obs = Observable.fromPromise(promise);
+        obs.catch((e) => {
+            return [];
+        });
+
+        return obs;
     }
 
-    private normalizeError(request) {
+    private normalizeError(result, defaultMsg) {
         let errorMsg = "";
-        const jsdo = request.jsdo;
-        const response = request.response;
         let lastErrors = null;
 
         try {
-            lastErrors = jsdo[this._tableRef].getErrors();
-
-            if (response && response._errors && response._errors.length > 0) {
-                errorMsg = response._errors[0]._errorMsg;
-            } else if (lastErrors.length === 1) {
-                errorMsg = lastErrors[0].error;
-            } else if (lastErrors.length > 1) {
-                errorMsg = "Submit failed with "
-                    + lastErrors.length + (lastErrors.length === 1 ? " error." : " errors.");
-            }
-
-            if (errorMsg === "") {
-                if (request.xhr.responseText.substring(0, 6) !== "<html>") {
-                    errorMsg = request.xhr.responseText;
+            if (result.info && result.info.errorObject) {
+                errorMsg = result.info.errorObject.message;
+            } else if (result.jsdo) {
+                lastErrors = result.jsdo[this._tableRef].getErrors();
+                if (lastErrors.length >= 1) {
+                    errorMsg = lastErrors[0].error;
                 }
-                if (errorMsg === "") {
-                    errorMsg = request.xhr.statusText;
-                }
+            } else if (result.message) {
+                errorMsg = result.message;
+            } 
+            
+            if (errorMsg === "" && defaultMsg) {
+                errorMsg = defaultMsg;
             }
         } catch (error) {
             errorMsg = error.message;
