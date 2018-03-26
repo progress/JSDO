@@ -49,12 +49,12 @@ limitations under the License.
     if (typeof XMLHttpRequest === "undefined") {
         isNodeJS = true;
         try {
-            // XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-            xhrc = require("xmlhttprequest-cookie");
-            XMLHttpRequest = xhrc.XMLHttpRequest;
+            XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+            // xhrc = require("xmlhttprequest-cookie");
+            // XMLHttpRequest = xhrc.XMLHttpRequest;
         } catch(e) {
             console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
-            + "Please install xmlhttprequest-cookie package.");
+            + "Please install xmlhttprequest package.");
         }
     }
 
