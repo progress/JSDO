@@ -80,7 +80,7 @@ export declare class DataSource {
      * modifications are batched together and are sent in single transaction
      * @returns {object} Promise
      */
-    saveChanges(): Promise<object>;
+    saveChanges(): Observable<Array<object>>;
     private normalizeError(request);
     private _copyRecord(source, target);
     /**
