@@ -88,6 +88,8 @@ limitations under the License.
         case progress.data.Session.AUTH_TYPE_FORM_SSO:
             authProv = new progress.data.AuthenticationProviderSSO(initObject.uri);
             break;
+        case progress.data.Session.AUTH_TYPE_AZURE:                                    // NA - 03/2018
+            break;
         default:
             // AuthenticationProvider: The 'init-object' parameter passed to the 'constructor' function
             //                          has an invalid value for the 'authenticationModel' property.
