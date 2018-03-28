@@ -89,6 +89,7 @@ limitations under the License.
             authProv = new progress.data.AuthenticationProviderSSO(initObject.uri);
             break;
         case progress.data.Session.AUTH_TYPE_AZURE:                                    // NA - 03/2018
+            authProv = new progress.data.AuthenticationProviderAzure(initObject.uri);
             break;
         default:
             // AuthenticationProvider: The 'init-object' parameter passed to the 'constructor' function
