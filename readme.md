@@ -1,5 +1,5 @@
 # JSDO
-The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.
+The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation. 
 The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps. 
 
 ### Documentation
