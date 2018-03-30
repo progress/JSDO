@@ -36,14 +36,14 @@ var jsdo_core_1 = require("@progress/jsdo-core");
 require("rxjs/add/observable/fromPromise");
 require("rxjs/add/operator/catch");
 var Observable_1 = require("rxjs/Observable");
-var DataSourceOptions = (function () {
+var DataSourceOptions = /** @class */ (function () {
     function DataSourceOptions() {
     }
     return DataSourceOptions;
 }());
 exports.DataSourceOptions = DataSourceOptions;
 // tslint:disable max-classes-per-file
-var DataSource = (function () {
+var DataSource = /** @class */ (function () {
     function DataSource(options) {
         this.jsdo = undefined;
         this._data = null;
@@ -79,8 +79,11 @@ var DataSource = (function () {
             filter = params;
         }
         else {
+            // Initial read() where the params are empty and we are assigning the filter criteria
             filter.filter = this._options.filter;
             filter.sort = this._options.sort;
+            filter.top = this._options.top;
+            filter.skip = this._options.skip;
         }
         // tableRef required for multi-table DataSets
         filter.tableRef = this._tableRef;
