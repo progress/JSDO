@@ -7,12 +7,17 @@ export declare class DataSourceOptions {
     tableRef?: string;
     filter?: any;
     sort?: any;
+    top?: any;
+    skip?: any;
+    mergeMode?: any;
+    pageSize?: any;
 }
 export declare class DataSource {
     jsdo: progress.data.JSDO;
     private _data;
     private _options;
     private _tableRef;
+    _skipRec: number;
     constructor(options: DataSourceOptions);
     /**
      * Calls the jsdo.fill() retrieving data from the backend service
@@ -58,7 +63,7 @@ export declare class DataSource {
      */
     acceptChanges(): void;
     /**
-     * Cancels any pending changes in the data source. Deleted rows are restored, 
+     * Cancels any pending changes in the data source. Deleted rows are restored,
      * new rows are removed and updated rows are restored to their initial state.
      */
     cancelChanges(): void;
@@ -81,7 +86,7 @@ export declare class DataSource {
      * @returns {object} Promise
      */
     saveChanges(): Observable<Array<object>>;
-    private normalizeError(request);
+    private normalizeError(result, defaultMsg);
     private _copyRecord(source, target);
     /**
      * This method is responsible for building a valid responseObject when multiple records
