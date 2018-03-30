@@ -35,6 +35,10 @@ export class DataSourceOptions {
     tableRef?: string;
     filter?: any;
     sort?: any;
+    top?: any;
+    skip?: any;
+    mergeMode?: any;
+    pageSize?: any;
 }
 
 // tslint:disable max-classes-per-file
@@ -46,6 +50,7 @@ export class DataSource {
 
     private _options: DataSourceOptions;
     private _tableRef: string;
+    _skipRec: number;
 
     constructor(options: DataSourceOptions) {
         this.jsdo = options.jsdo;
@@ -80,10 +85,13 @@ export class DataSource {
         let filter: any = {};
 
         if (params) {
-            filter = params;
+            filter = params;            
         } else {
+            // Initial read() where the params are empty and we are assigning the filter criteria
             filter.filter = this._options.filter;
             filter.sort = this._options.sort;
+            filter.top = this._options.top;
+            filter.skip = this._options.skip;
         }
 
         // tableRef required for multi-table DataSets
@@ -146,7 +154,7 @@ export class DataSource {
         const row = {};
 
         // For now, we are using _id as our id to find records..
-        jsRecord =  this.jsdo[this._options.tableRef].findById(id, false);
+        jsRecord = this.jsdo[this._options.tableRef].findById(id, false);
         if (jsRecord) {
             this._copyRecord(jsRecord.data, row);
 
@@ -226,10 +234,10 @@ export class DataSource {
         this.jsdo[this._tableRef].acceptChanges();
     }
 
-     /**
-      * Cancels any pending changes in the data source. Deleted rows are restored,
-      * new rows are removed and updated rows are restored to their initial state.
-      */
+    /**
+     * Cancels any pending changes in the data source. Deleted rows are restored,
+     * new rows are removed and updated rows are restored to their initial state.
+     */
     cancelChanges(): void {
         this.jsdo[this._tableRef].rejectChanges();
     }
@@ -323,8 +331,8 @@ export class DataSource {
                 }
             } else if (result.message) {
                 errorMsg = result.message;
-            } 
-            
+            }
+
             if (errorMsg === "" && defaultMsg) {
                 errorMsg = defaultMsg;
             }

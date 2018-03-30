@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 5.0.0
+progress.js    Version: 5.0.1
 
 Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2106,6 +2106,7 @@ limitations under the License.
         this._lastErrors = [];
         this._localStorage = null;
         this._convertForServer;
+        this._fillMergeMode;
         var autoFill = false;
 
         // Initialize JSDO using init values
@@ -3062,6 +3063,20 @@ limitations under the License.
                     else if (typeof(arguments[0]) == "object") {
                         // options 
                         // ablFilter, id, top, skip, sort
+
+                        if (arguments[0].mergeMode){
+                            this._fillMergeMode = arguments[0].mergeMode
+                            switch(arguments[0].mergeMode) {
+                                case progress.data.JSDO.MODE_APPEND: 
+                                case progress.data.JSDO.MODE_EMPTY:
+                                case progress.data.JSDO.MODE_MERGE:
+                                case progress.data.JSDO.MODE_REPLACE:
+                                        break;
+                                default:
+                                    throw new Error(msg.getMsgText("jsdoMSG022"));
+                            }
+                            
+                        }
                         
                         // Use plugin if mappingType is not undefined, null, or ""
                         if (mapping) {
@@ -5177,7 +5192,33 @@ limitations under the License.
                         else
                             data = null;
                         data = data ? data : [];
-                        this._buffers[buf]._data = data;
+
+                        // We want to merge records based on the mergeMode that is coming to fill() operation.
+                        // i.e., a mergeMode can be APPEND, MERGE, REPLACE or EMPTY. Excluding EMPTY because this is already
+                        // taken care in the _fillSuccess
+                        
+                        if (this._fillMergeMode) {
+                            switch (this._fillMergeMode) {
+                                case progress.data.JSDO.MODE_APPEND: 
+                                    console.log("In APPEND mode of fill()");
+                                    this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_APPEND);
+                                    break;
+                                case progress.data.JSDO.MODE_MERGE:
+                                    console.log("In MERGE mode of fill()");
+                                    this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_MERGE, this._buffers[buf]._primaryKeys);
+                                    break;
+                                case progress.data.JSDO.MODE_REPLACE:
+                                    console.log("In REPLACE mode of fill()");
+                                    this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_REPLACE, this._buffers[buf]._primaryKeys);
+                                    break;
+                                default:
+                                    throw new Error(msg.getMsgText("jsdoMSG022"));
+                            }
+                            
+                        } else {
+                            this._buffers[buf]._data = data;
+                        }
+                        
                         if (this._buffers[buf].autoSort) {
                             this._buffers[buf]._sort();
                         }
@@ -5187,6 +5228,10 @@ limitations under the License.
                             this._buffers[buf]._loadBeforeImageData(jsonObject);
                         }
                     }
+
+                    // Reset the fillMergeMode back to default such that it will not affect upcoming fill() operations
+                    this._fillMergeMode = undefined;
+                    
                     // Load nested data into _data
                     if (this._numBuffers > 1) {
                         for (var buf in this._buffers) {
@@ -5646,7 +5691,11 @@ limitations under the License.
                 }                
             } 
 
-            jsdo._clearData();
+            // Here check for the mergeMode flag of fill() operation and performing accordingly.
+            // When the mergeMode is EMPTY or if the fillMergeMode is NOT set then only we will be performing clearData operation
+            if(!request.jsdo._fillMergeMode || request.jsdo._fillMergeMode === progress.data.JSDO.MODE_EMPTY) {
+                jsdo._clearData();
+            }
             jsdo._mergeRead(request.response, xhr);   
 
             // Set working record
