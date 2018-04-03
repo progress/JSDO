@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 5.0.1
+progress.js    Version: 5.0.0
 
 Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -5198,6 +5198,13 @@ limitations under the License.
                         // taken care in the _fillSuccess
                         
                         if (this._fillMergeMode) {
+
+                            // Check for the availability of the buffer (temp-table). If we don't find any, then we want to assign an
+                            // empty array such that we proceed with addRecords() operation with an empty dataset
+                            if (this.isDataSet() && jsonObject[this._dataSetName] && !jsonObject[this._dataSetName][this._buffers[buf]._name]) {
+                                jsonObject[this._dataSetName][this._buffers[buf]._name] = [];
+                            }
+
                             switch (this._fillMergeMode) {
                                 case progress.data.JSDO.MODE_APPEND: 
                                     console.log("In APPEND mode of fill()");
