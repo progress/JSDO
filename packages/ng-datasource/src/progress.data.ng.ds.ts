@@ -389,7 +389,10 @@ export class DataSource {
             this._copyRecord(source, target);
         } else {
             firstKey = Object.keys(target)[0];
-            if (firstKey) {
+            
+            // Delete's on no submit services return empty datasets so
+            // don't add anything.
+            if (firstKey && typeof target[firstKey][this._tableRef] !== "undefined") {
                 // Dataset usecase
                 if (firstKey !== this._tableRef) {
                     target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
