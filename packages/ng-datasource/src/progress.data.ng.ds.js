@@ -339,24 +339,32 @@ var DataSource = /** @class */ (function () {
      */
     DataSource.prototype._buildResponse = function (source, target) {
         var newEntry = source;
-        var firstKey;
-        if (Object.keys(target).length === 0) {
-            this._copyRecord(source, target);
-        }
-        else {
-            firstKey = Object.keys(target)[0];
-            if (firstKey) {
-                // Dataset usecase
-                if (firstKey !== this._tableRef) {
-                    target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
+        var firstKey = Object.keys(source)[0], secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
+        // Delete's on no submit services return empty datasets so
+        // don't add anything.
+        if (typeof source[firstKey] !== "undefined"
+            && typeof source[firstKey][secondKey] !== "undefined") {
+            if (Object.keys(target).length === 0) {
+                this._copyRecord(source, target);
+            }
+            else {
+                firstKey = Object.keys(target)[0];
+                // Delete's on no submit services return empty datasets so
+                // don't add anything.
+                if (firstKey && typeof target[firstKey][this._tableRef] !== "undefined") {
+                    // Dataset usecase
+                    if (firstKey !== this._tableRef) {
+                        target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
+                    }
+                    else { // Temp-table usecase
+                        target[this._tableRef].push(newEntry[this._tableRef][0]);
+                    }
+                    return target;
                 }
-                else {
-                    target[this._tableRef].push(newEntry[this._tableRef][0]);
-                }
-                return target;
             }
         }
     };
+    
     DataSource = __decorate([
         core_1.Injectable()
     ], DataSource);
