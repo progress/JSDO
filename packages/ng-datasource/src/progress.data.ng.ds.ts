@@ -85,7 +85,7 @@ export class DataSource {
         let filter: any = {};
 
         if (params) {
-            filter = params;            
+            filter = params;
         } else {
             // Initial read() where the params are empty and we are assigning the filter criteria
             filter.filter = this._options.filter;
@@ -101,11 +101,14 @@ export class DataSource {
             (resolve, reject) => {
                 this.jsdo.fill(filter)
                     .then((result) => {
-                        this._data = result.jsdo[this._tableRef].getData();
+                        const data = result.jsdo[this._tableRef].getData();
+
+                        // Make copy of jsdo data for datasource
+                        this._data = (data.length > 0 ? data.map(item => Object.assign({}, item)) : []);
                         resolve(this._data);
 
                     }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, "Unknown error occurred calling read.")));
+                        reject(new Error(this.normalizeError(result, "read", "")));
                     });
             }
         );
@@ -261,10 +264,9 @@ export class DataSource {
     /**
      * Synchronizes to the server all record changes (creates, updates, and deletes) pending in
      * JSDO memory for the current Data Object resource
-     * @param {boolean} useSubmit Optional parameter. By default points to 'false' where all
-     * record modifications are sent to server individually. When 'true' is used all record
-     * modifications are batched together and are sent in single transaction
-     * @returns {object} Promise
+     * If jsdo.hasSubmitOperation is false, all record modifications are sent to server individually. 
+     * When 'true', modifications are batched together and sent in single request
+     * @returns {object} Observable
      */
     saveChanges(): Observable<Array<object>> {
         let promise;
@@ -299,12 +301,11 @@ export class DataSource {
                             } else if (result.info.batch.operations.length === 0) {
                                 resolve({});
                             } else { // Reject promise if either of above cases are met
-                                reject("Unknown error occurred when calling saveChanges.");
+                                reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                             }
                         }
                     }).catch((result) => {
-
-                        reject(this.normalizeError(result, "Unknown error occurred when calling saveChanges."));
+                        reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     });
             }
         );
@@ -317,7 +318,16 @@ export class DataSource {
         return obs;
     }
 
-    private normalizeError(result, defaultMsg) {
+    /**
+     * This method is called after an error has occurred on a jsdo operation, and is
+     * used to get an error message.
+     * @param {any} result Object containing error info returned after execution of jsdo operation
+     * @param {string} operation String containing operation performed when error occurred
+     * @param {string} genericMsg If multiple errors are found in result object, if specified,
+     * this string will be returned. If not specified, first error string will be returned.
+     * @returns A single error message
+     */
+    private normalizeError(result: any, operation: string, genericMsg: string) {
         let errorMsg = "";
         let lastErrors = null;
 
@@ -327,14 +337,19 @@ export class DataSource {
             } else if (result.jsdo) {
                 lastErrors = result.jsdo[this._tableRef].getErrors();
                 if (lastErrors.length >= 1) {
-                    errorMsg = lastErrors[0].error;
+                    // If generic message is provided, use that, else we'll just grab first message
+                    if (lastErrors.length > 1 && genericMsg) {
+                        errorMsg = genericMsg;
+                    } else {
+                        errorMsg = lastErrors[0].error;
+                    }
                 }
             } else if (result.message) {
                 errorMsg = result.message;
             }
 
-            if (errorMsg === "" && defaultMsg) {
-                errorMsg = defaultMsg;
+            if (errorMsg === "") {
+                errorMsg = "Unknown error occurred when calling " + operation + ".";
             }
         } catch (error) {
             errorMsg = error.message;
@@ -395,7 +410,7 @@ export class DataSource {
                 this._copyRecord(source, target);
             } else {
                 firstKey = Object.keys(target)[0];
-                
+
                 // Delete's on no submit services return empty datasets so
                 // don't add anything.
                 if (firstKey && typeof target[firstKey][this._tableRef] !== "undefined") {
