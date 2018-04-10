@@ -3215,7 +3215,7 @@ limitations under the License.
             }
             var contentType = xhr.getResponseHeader("Content-Type");
 
-            if (
+            if (contentType &&
                 (contentType.indexOf("text/html") >= 0) &&
                 (xhr.responseText.indexOf(searchString) >= 0)
             ) {
