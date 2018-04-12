@@ -20,7 +20,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
  */
-/*global progress:true, btoa:true*/
+/*global progress:true*/
 /*jslint nomen: true*/
 
 (function () {
