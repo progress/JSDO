@@ -996,6 +996,7 @@ limitations under the License.
                         case progress.data.Session.AUTH_TYPE_BASIC:
                         case progress.data.Session.AUTH_TYPE_ANON:
                         case progress.data.Session.AUTH_TYPE_SSO:
+                        case progress.data.Session.AUTH_TYPE_BEARER:
                         case null:
                             _authenticationModel = newval;
                             storeSessionInfo("authenticationModel", newval);
@@ -2099,7 +2100,8 @@ limitations under the License.
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-                        this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                        this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC ||
+                            this.authenticationModel === progress.data.Session.AUTH_TYPE_BEARER) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                         xhr.onResponseFn = this._processLogoutResult;
@@ -2195,7 +2197,8 @@ limitations under the License.
             } else if (xhr.status !== 200) {
                 /* Determine whether an error returned from the server is really an error
                  */
-                if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC ||
+                        pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BEARER) {
                     /* If the Auth model is Basic, we probably got back a 404 Not found.
                      * But that's OK, because logout from Basic is meaningless on the
                      * server side unless it happens to be stateful, which is the only
@@ -3580,7 +3583,15 @@ limitations under the License.
                 enumerable: true
             }
         );
-
+        Object.defineProperty(
+            progress.data.Session,
+            'AUTH_TYPE_BEARER',
+            {
+                value: "bearer",
+                enumerable: true
+            }
+        );
+        
         Object.defineProperty(
             progress.data.Session,
             'DEVICE_OFFLINE',
@@ -3635,6 +3646,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
         progress.data.Session.AUTH_TYPE_SSO = "sso";
+        progress.data.Session.AUTH_TYPE_BEARER = "bearer";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
