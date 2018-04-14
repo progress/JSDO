@@ -10,7 +10,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 | 5.0.0 | 11.6.4, 11.7.x |
 
 ### Download<a name="download"></a>
-You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
+You can <a href="https://github.com/progress/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
 
 ### License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
