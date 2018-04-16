@@ -9,7 +9,7 @@ Contribute to the JSDO
 
 Report an Issue
 ===
-If you find a bug in the source code or a mistake in the documentation, you can submit an issue to our <a href="https://github.com/CloudDataObject/JSDO">GitHub Repository</a>.
+If you find a bug in the source code or a mistake in the documentation, you can submit an issue to our <a href="https://github.com/progress/JSDO">GitHub Repository</a>.
 Before you submit your issue, search the archive to check if a similar issues has been logged or addressed. This will let us focus on fixing issues and adding new features.
 If your issue appears to be a bug, and hasn't been reported, open a new issue. To help us investigate your issue and respond in a timely manner, you can provide is with the following details.
 
@@ -25,16 +25,16 @@ If your issue appears to be a bug, and hasn't been reported, open a new issue. T
 
 Request a Feature
 ===
-You can request a new feature by submitting an issue with the *enhancement* label to our <a href="https://github.com/CloudDataObject/JSDO">GitHub Repository</a>.
-If you want to implement a new feature yourself, consider submitting it to the <a href="https://github.com/CloudDataObject/JSDO">GitHub Repository</a> as a Pull Request.
+You can request a new feature by submitting an issue with the *enhancement* label to our <a href="https://github.com/progress/JSDO">GitHub Repository</a>.
+If you want to implement a new feature yourself, consider submitting it to the <a href="https://github.com/progress/JSDO">GitHub Repository</a> as a Pull Request.
 
 [Back to Top][1]
 
 Contribute to the Code Base
 ===
 Before you submit a Pull Request, consider the following guidelines.
-
-* Search <a href="https://github.com/CloudDataObject/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
+* Read and sign the <a href="https://docs.google.com/forms/d/e/1FAIpQLSe4hxgAUXwaRXLya67ZqDEz3TyNfryxz0_YnUKriXfNaa5Dxg/viewform">JSDO Contributor License Agreement</a>.
+* Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
 * Clone the repository.
 ```bash
     git clone git@github.com:CloudDataObject/JSDO.git
@@ -47,7 +47,7 @@ Before you submit a Pull Request, consider the following guidelines.
 ```bash
     git submodule update
 ```
-* Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a> so you will have to branch from our master branch.
+* Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a> so you will have to branch from our develop branch.
 
 * Commit your changes and create a descriptive commit message (the commit message is used to generate release notes).
 ```bash
@@ -72,7 +72,7 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```bash
     git push origin --delete my-fix-branch
 ```
-* Check out the master branch.
+* Check out the develop branch.
 ```bash
     git checkout master -f
 ```
@@ -80,7 +80,7 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```bash
     git branch -D my-fix-branch
 ```
-* Update your master branch with the latest upstream version.
+* Update your develop branch with the latest upstream version.
 ```
     git pull --ff upstream master
 ```

@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CloudDataObject/JSDO.git"
+    "url": "git+https://github.com/progress/JSDO.git"
   },
   "keywords": [
     "JSDO",
@@ -28,9 +28,9 @@
   "typings": "typings/progress.data.node.d.ts",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/CloudDataObject/JSDO/issues"
+    "url": "https://github.com/progress/JSDO/issues"
   },
-  "homepage": "https://github.com/CloudDataObject/JSDO#readme",
+  "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {
     "@angular/core": "^5.2.1",
     "@progress/jsdo-core": "^5.0.0",

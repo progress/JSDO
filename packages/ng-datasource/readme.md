@@ -9,13 +9,13 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 
 | Source File| Purpose | 
 | ---------- | ------- | 
-| [progress.data.ng.ds.ts](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.ng.ds.js) | TypeScript - JSDO DataSource for NativeScript and Angular |
-| [progress.data.ng.ds.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - JSDO DataSource for NativeScript and Angular |
+| [progress.data.ng.ds.ts](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | TypeScript - JSDO DataSource for NativeScript and Angular |
+| [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - JSDO DataSource for NativeScript and Angular |
 
 
 | Lib File| Purpose | 
 | ------- | ------- | 
-| [progress.data.ng.ds.js](https://github.com/CloudDataObject/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - JSDO DataSource for NativeScript and Angular |
+| [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - JSDO DataSource for NativeScript and Angular |
 
 The JSDODataSource can be used by mobile apps built using NativeScript
 
