@@ -3,9 +3,9 @@ Contribute to the JSDO
 
 *Help us improve the JSDO* 
 
-* [Report an Issue](#bug "Learn how to report an issue")
-* [Request a Feature](#request "Learn how to submit a feature or improvement request")
-* [Contribute to the Code Base](#contribute "Learn how to submit your own improvements to the code")
+* [Report an Issue](#report-an-issue "Learn how to report an issue")
+* [Request a Feature](#request-a-feature "Learn how to submit a feature or improvement request")
+* [Contribute to the Code Base](#contribute-to-the-code-base "Learn how to submit your own improvements to the code")
 
 Report an Issue
 ===
@@ -33,8 +33,8 @@ If you want to implement a new feature yourself, consider submitting it to the <
 Contribute to the Code Base
 ===
 Before you submit a Pull Request, consider the following guidelines.
-
-* Search <a href="https://github.com/CloudDataObject/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
+* Read and sign the <a href="https://www.progress.com/jsdo/cla ">JSDO Contributor License Agreement</a>.
+* Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
 * Clone the repository.
 ```bash
     git clone git@github.com:CloudDataObject/JSDO.git
