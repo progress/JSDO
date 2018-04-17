@@ -33,7 +33,7 @@ If you want to implement a new feature yourself, consider submitting it to the <
 Contribute to the Code Base
 ===
 Before you submit a Pull Request, consider the following guidelines.
-* Read and sign the <a href="https://docs.google.com/forms/d/e/1FAIpQLSe4hxgAUXwaRXLya67ZqDEz3TyNfryxz0_YnUKriXfNaa5Dxg/viewform">JSDO Contributor License Agreement</a>.
+* Read and sign the <a href="https://www.progress.com/jsdo/cla ">JSDO Contributor License Agreement</a>.
 * Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
 * Clone the repository.
 ```bash
