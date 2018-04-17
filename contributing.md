@@ -3,9 +3,9 @@ Contribute to the JSDO
 
 *Help us improve the JSDO* 
 
-* [Report an Issue](#bug "Learn how to report an issue")
-* [Request a Feature](#request "Learn how to submit a feature or improvement request")
-* [Contribute to the Code Base](#contribute "Learn how to submit your own improvements to the code")
+* [Report an Issue](#report-an-issue "Learn how to report an issue")
+* [Request a Feature](#request-a-feature "Learn how to submit a feature or improvement request")
+* [Contribute to the Code Base](#contribute-to-the-code-base "Learn how to submit your own improvements to the code")
 
 Report an Issue
 ===
