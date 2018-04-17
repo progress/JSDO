@@ -1,6 +1,47 @@
 # JSDO
 The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.
-The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps. 
+The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.
+
+### Getting Started
+
+#### Installation
+
+```javascript
+npm install @progress/jsdo
+```
+
+#### Web Browser Usage
+
+```html
+    <script src="<Path to jQuery library>"></script>
+    <script src="<Path to Kendo UI library>"></script>    
+    <script src="lib/progress.all.js"></script>
+    <script>
+        var serviceURI = "<Service URI>";
+        var catalogURI = "<Catalog URI>";
+
+        progress.data.getSession({
+            serviceURI: serviceURI,
+            catalogURI: catalogURI,
+            authenticationModel: "anonymous"
+        }).then(function () {
+            var jsdo = new progress.data.JSDO({name: 'Customer'});
+
+            jsdo.fill("CustNum <= 11").then(function (jsdo, success, request) {
+                jsdo.ttCustomer.foreach(function (customer) {
+                    document.write(customer.data.CustNum + ' ' + customer.data.Name + '<br>');
+                });
+            }, function () {
+                console.log("Error while reading records.");
+            });
+        }, function () {
+            console.log("Error while creating session.");
+        });        
+    </script>
+```
+**Notes:**
+* Use lib/progress.all.js to include support for the Kendo UI DataSource.
+* Use lib/progress.jsdo.js if you are not using Kendo UI.
 
 ### Documentation
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
@@ -8,7 +49,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 ### JSDO and OpenEdge compatibility
 | JSDO version | OpenEdge version |
 |----|----|
-| 4.4.0 | 11.6.3, 11.7.x |
+| 4.4.1 | 11.6.3, 11.7.x |
 
 ### Download<a name="download"></a>
 You can <a href="https://github.com/CloudDataObject/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
