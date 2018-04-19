@@ -47,7 +47,7 @@ Before you submit a Pull Request, consider the following guidelines.
 ```bash
     git submodule update
 ```
-* Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a> so you will have to branch from our develop branch.
+* Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a> so you will have to branch from our master branch.
 
 * Commit your changes and create a descriptive commit message (the commit message is used to generate release notes).
 ```bash
@@ -72,7 +72,7 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```bash
     git push origin --delete my-fix-branch
 ```
-* Check out the develop branch.
+* Check out the master branch.
 ```bash
     git checkout master -f
 ```
@@ -80,7 +80,7 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```bash
     git branch -D my-fix-branch
 ```
-* Update your develop branch with the latest upstream version.
+* Update your master branch with the latest upstream version.
 ```
     git pull --ff upstream master
 ```
