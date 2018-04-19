@@ -83,15 +83,6 @@ limitations under the License.
             throw new Error("Cannot load catalog '" + catalogURI + "' multiple times.");
         }
     };
-
-    progress.data.ServicesManager.addJSDOSession = function (catalogURI, jsdosession) {
-        if (progress.data.ServicesManager._jsdosessions[catalogURI] === undefined) {
-            progress.data.ServicesManager._jsdosessions[catalogURI] = jsdosession;
-        }
-        else {
-            throw new Error("Cannot load catalog '" + catalogURI + "' multiple times.");
-        }
-    };
     progress.data.ServicesManager.getSession = function (catalogURI) {
         try {
             return progress.data.ServicesManager._sessions[catalogURI];
@@ -1482,6 +1473,7 @@ limitations under the License.
                     callback();
                 }
             }
+
             if (this._isInvalidated) {
                 // Session: This session has been invalidated and cannot be used.
                 throw new Error(progress.data._getMsgText("jsdoMSG510", "Session"));
@@ -2241,7 +2233,6 @@ limitations under the License.
             setAuthProvider(null);
 
             _password = null;
-            setAuthProvider(null);
 
             if (success) {
                 setRestApplicationIsOnline(false);
@@ -2612,6 +2603,7 @@ limitations under the License.
             if ((!this._authProvider) && (this.loginResult !== progress.data.Session.LOGIN_SUCCESS)) {
                 throw new Error("Attempted to call ping when not logged in.");                
             }
+
             if (args) {
                 if (args.async !== undefined) {
                     // when we do background pinging (because pingInterval is set),
@@ -4037,6 +4029,7 @@ limitations under the License.
         this.login = function (username, password, options) {
             var deferred = new progress.util.Deferred(),
                 iOSBasicAuthTimeout;
+
             function callIsAuthorized() {
                 that.isAuthorized()
                     .then(function (object, result, info) {
