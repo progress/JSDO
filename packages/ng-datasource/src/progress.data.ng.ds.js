@@ -125,7 +125,7 @@ var DataSource = /** @class */ (function () {
      */
     DataSource.prototype.findById = function (id) {
         // For now, we are using _id as our id to find records..
-        jsRecord = this.jsdo[this._options.tableRef].findById(id, false);
+        return this.jsdo[this._options.tableRef].findById(id, false);
     };
     /**
      * Calls the jsdo.update() method, for updating a record in JSDO memory
