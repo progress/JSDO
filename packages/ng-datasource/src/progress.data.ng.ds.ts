@@ -46,7 +46,7 @@ export class DataSourceOptions {
 export class DataSource {
     jsdo: progress.data.JSDO = undefined;
 
-    private _data: Observable<Array<object>> = null;
+    private _data: Array<object> = null;
 
     private _options: DataSourceOptions;
     private _tableRef: string;
@@ -126,8 +126,8 @@ export class DataSource {
      * Returns array of record objects from JSDO local memory
      * @returns {object}
      */
-    getData(): Observable<Array<object>> {
-        return this.jsdo[this._tableRef].getData();
+    getData(): Array<object> {
+        return this._data;
     }
 
     /**
@@ -153,19 +153,8 @@ export class DataSource {
      * @returns - copy of record with specified id, else null if no record found
      */
     findById(id: string): object {
-        let jsRecord;
-        const row = {};
-
         // For now, we are using _id as our id to find records..
-        jsRecord = this.jsdo[this._options.tableRef].findById(id, false);
-        if (jsRecord) {
-            this._copyRecord(jsRecord.data, row);
-
-            return row;
-        } else {
-
-            return null;
-        }
+        return this.jsdo[this._options.tableRef].findById(id, false);
     }
 
     /**
