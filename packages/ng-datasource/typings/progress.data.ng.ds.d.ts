@@ -28,7 +28,7 @@ export declare class DataSource {
      * Returns array of record objects from JSDO local memory
      * @returns {object}
      */
-    getData(): Observable<Array<object>>;
+    getData(): Array<object>;
     /**
      * Calls the jsdo.add() method, creating a new record in JSDO memory
      * jsdo.add() will either return the new record, or throws an exception
@@ -37,10 +37,10 @@ export declare class DataSource {
      */
     create(data: object): object;
     /**
-     * Returns a copy of the record with the specified id.
+     * Returns the record with the specified id.
      * Note: current implementation uses jsdo's internal _id as id.
      * @param id - id of record
-     * @returns - copy of record with specified id, else null if no record found
+     * @returns - record with specified id, else null if no record found
      */
     findById(id: string): object;
     /**
