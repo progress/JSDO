@@ -153,8 +153,10 @@ export class DataSource {
      * @returns - copy of record with specified id, else null if no record found
      */
     findById(id: string): object {
+        let jsRecord;
         // For now, we are using _id as our id to find records..
-        return this.jsdo[this._options.tableRef].findById(id, false);
+        jsRecord = this.jsdo[this._options.tableRef].findById(id, false);
+        return jsRecord.data;
     }
 
     /**
