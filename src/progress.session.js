@@ -592,7 +592,6 @@ limitations under the License.
         }
     };
 
-
     /*
      * Contains information about a server-side Mobile service.
      * Properties of args parameter for constructor:
