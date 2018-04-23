@@ -154,7 +154,8 @@ export class DataSource {
      */
     findById(id: string): object {
         // For now, we are using _id as our id to find records..
-        return this.jsdo[this._options.tableRef].findById(id, false);
+        jsRecord = this.jsdo[this._options.tableRef].findById(id, false);
+        return jsRecord.data;
     }
 
     /**
