@@ -102,7 +102,7 @@ var DataSource = /** @class */ (function () {
      * @returns {object}
      */
     DataSource.prototype.getData = function () {
-        return this._data;
+        return this.jsdo[this._tableRef].getData();
     };
     /**
      * Calls the jsdo.add() method, creating a new record in JSDO memory
@@ -124,8 +124,17 @@ var DataSource = /** @class */ (function () {
      * @returns - copy of record with specified id, else null if no record found
      */
     DataSource.prototype.findById = function (id) {
+        var jsRecord;
+        var row = {};
         // For now, we are using _id as our id to find records..
-        return this.jsdo[this._options.tableRef].findById(id, false);
+        jsRecord = this.jsdo[this._options.tableRef].findById(id, false);
+        if (jsRecord) {
+            this._copyRecord(jsRecord.data, row);
+            return row;
+        }
+        else {
+            return null;
+        }
     };
     /**
      * Calls the jsdo.update() method, for updating a record in JSDO memory
