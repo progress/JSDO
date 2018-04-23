@@ -351,9 +351,7 @@ export class DataSource {
         let field;
         let newObject;
 
-        if (!target) {
-            console.log("_copyRecord: target parameter is not defined");
-
+        if (!target) {            
             return;
         }
 

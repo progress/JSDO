@@ -583,11 +583,11 @@ limitations under the License.
                         + "\nparams: " + resource.operations[i].params.length
                         + "\n";
                 }
-                console.log("** DEBUG INFO **\nResource name: %s\nURL:%s\n%s\n%s\n\n",
-                    resource.name, resource.url, cSchema, cOperations);
+                // console.log("** DEBUG INFO **\nResource name: %s\nURL:%s\n%s\n%s\n\n",
+                //     resource.name, resource.url, cSchema, cOperations);
             }
             else
-                console.log("Resource not found");
+                throw new Error("Resource not found");
             //console.log("** END **");
         }
     };
