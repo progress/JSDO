@@ -24,11 +24,11 @@ Author(s): maura, anikumar, egarcia
 
 */
 
-import { Injectable } from "@angular/core";
-import { progress } from "@progress/jsdo-core";
-import "rxjs/add/observable/fromPromise";
-import "rxjs/add/operator/catch";
-import { Observable } from "rxjs/Observable";
+import { Injectable } from '@angular/core';
+import { progress } from '@progress/jsdo-core';
+import 'rxjs/add/observable/fromPromise';
+import 'rxjs/add/operator/catch';
+import { Observable } from 'rxjs/Observable';
 
 export class DataSourceOptions {
     jsdo: progress.data.JSDO;
@@ -39,35 +39,38 @@ export class DataSourceOptions {
     skip?: any;
     mergeMode?: any;
     pageSize?: any;
+    readLocal?: boolean;
 }
+
 
 // tslint:disable max-classes-per-file
 @Injectable()
 export class DataSource {
     jsdo: progress.data.JSDO = undefined;
-
-    private _data: Observable<Array<object>> = null;
-
     private _options: DataSourceOptions;
     private _tableRef: string;
+    private _initFromServer: boolean;
+    readLocal: boolean;
     _skipRec: number;
 
     constructor(options: DataSourceOptions) {
         this.jsdo = options.jsdo;
+        this._initFromServer = false;
         this._options = options;
+        this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
 
-        // Turning off autoApplyChanges. Want to explicitly call jsdo.acceptChanges() and rejectChanges()
-        this.jsdo.autoApplyChanges = false;
+        // Make sure autoApplyChanges = true
+        this.jsdo.autoApplyChanges = true;
 
         if (!options.jsdo || !(options.jsdo instanceof progress.data.JSDO)) {
-            throw new Error("DataSource: jsdo property must be set to a JSDO instance.");
+            throw new Error('DataSource: jsdo property must be set to a JSDO instance.');
         }
 
         if (this._options.tableRef === undefined && this.jsdo.defaultTableRef) {
             this._options.tableRef = this.jsdo.defaultTableRef._name;
         }
         if (this._options.tableRef === undefined) {
-            throw new Error("DataSource: A tableRef must be specified when using a multi-table DataSet.");
+            throw new Error('DataSource: A tableRef must be specified when using a multi-table DataSet.');
         } else if (this.jsdo[this._options.tableRef] === undefined) {
             throw new Error("DataSource: tableRef '"
                 + this._options.tableRef + "' is not present in underlying JSDO definition.");
@@ -83,6 +86,24 @@ export class DataSource {
         let wrapperPromise;
         let obs: Observable<Array<object>>;
         let filter: any = {};
+        const jsdo = this.jsdo;
+        const tableRef = this._tableRef;
+
+        // If this is a DataSource for a child table, check if read() was performed on parent
+        if (!this._initFromServer) {
+            if (jsdo[tableRef]._parent) {
+                this._initFromServer = (jsdo[jsdo[tableRef]._parent]._data && (jsdo[jsdo[tableRef]._parent]._data.length > 0))
+                    || (jsdo[tableRef]._data instanceof Array && (jsdo[tableRef]._data.length > 0));
+            } else {
+                this._initFromServer = (jsdo[tableRef]._data instanceof Array) && (jsdo[tableRef]._data.length > 0);
+            }
+        }
+
+        if (this.readLocal && this._initFromServer) {
+            return Observable.create(observer => {
+                observer.next(this.getJsdoData());
+            });
+        }
 
         if (params) {
             filter = params;
@@ -99,16 +120,12 @@ export class DataSource {
 
         wrapperPromise = new Promise(
             (resolve, reject) => {
-                this.jsdo.fill(filter)
+                jsdo.fill(filter)
                     .then((result) => {
-                        const data = result.jsdo[this._tableRef].getData();
-
-                        // Make copy of jsdo data for datasource
-                        this._data = (data.length > 0 ? data.map(item => Object.assign({}, item)) : []);
-                        resolve(this._data);
-
+                        this._initFromServer = true;
+                        resolve(this.getJsdoData());
                     }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, "read", "")));
+                        reject(new Error(this.normalizeError(result, 'read', '')));
                     });
             }
         );
@@ -118,15 +135,35 @@ export class DataSource {
             return [];
         });
 
-        // return Observable.fromPromise(wrapperPromise);
         return obs;
     }
 
     /**
-     * Returns array of record objects from JSDO local memory
-     * @returns {object}
+     * First, retrieves data from JSDO local memory
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
+     * Returns array of record objects
+     * @returns Array<object>
      */
-    getData(): Observable<Array<object>> {
+    private getJsdoData (): Array<object> {
+        const jsdo = this.jsdo;
+        const saveUseRelationships = jsdo.useRelationships;
+        let data;
+
+        jsdo.useRelationships = false;
+        data = jsdo[this._tableRef].getData();
+        jsdo.useRelationships = saveUseRelationships;
+
+        // Make copy of jsdo data for datasource
+        data = (data.length > 0 ? data.map(item => Object.assign({}, item)) : []);
+
+        return data;
+    }
+
+    /**
+     * Returns array of record objects from local memory
+     * @returns Array<object>
+     */
+    getData(): Array<object> {
         return this.jsdo[this._tableRef].getData();
     }
 
@@ -139,9 +176,17 @@ export class DataSource {
     create(data: object): object {
         let jsRecord;
         const newRow = {};
+        const saveUseRelationships = this.jsdo.useRelationships;
 
-        jsRecord = this.jsdo[this._tableRef].add(data);
-        this._copyRecord(jsRecord.data, newRow);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].add(data);
+            this._copyRecord(jsRecord.data, newRow);
+        } catch (error) {
+            throw error;
+        } finally {
+            this.jsdo.useRelationships = saveUseRelationships;
+        }
 
         return newRow;
     }
@@ -175,25 +220,34 @@ export class DataSource {
      * @returns - boolean. True if successful, false if there is any failure
      */
     update(data: any): boolean {
+        const saveUseRelationships = this.jsdo.useRelationships;
 
         if (!data && (data === undefined || null)) {
-            throw new Error("Unexpected signature for update() operation.");
+            throw new Error('Unexpected signature for update() operation.');
         }
 
         const id: string = (data && data._id) ? data._id : null;
         let jsRecord;
-        let retVal: boolean = false;
+        let retVal = false;
 
         if (!id) {
-            throw new Error("DataSource.update(): data missing _id property");
+            throw new Error('DataSource.update(): data missing _id property');
         }
 
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets update now
-            retVal = jsRecord.assign(data);
-        } else {
-            throw new Error("DataSource.update(): Unable to find record with this id " + id);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets update now
+                retVal = jsRecord.assign(data);
+                this.jsdo.useRelationships = saveUseRelationships;
+            } else {
+                throw new Error('DataSource.update(): Unable to find record with this id ' + id);
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
 
         return retVal;
@@ -206,24 +260,32 @@ export class DataSource {
      * @returns boolean - True if the operation succeeds, false otherwise
      */
     remove(data: any): boolean {
-        let retVal: boolean = false;
+        let retVal = false;
         const id: string = (data && data._id) ? data._id : null;
+        const saveUseRelationships = this.jsdo.useRelationships;
         let jsRecord;
 
         if (!data && (data === undefined || null)) {
-            throw new Error("Unexpected signature for remove() operation.");
+            throw new Error('Unexpected signature for remove() operation.');
         }
 
         if (!id) {
-            throw new Error("DataSource.remove(): data missing _id property");
+            throw new Error('DataSource.remove(): data missing _id property');
         }
 
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets delete the record
-            retVal = jsRecord.remove(data);
-        } else {
-            throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets delete the record
+                retVal = jsRecord.remove(data);
+            } else {
+                throw new Error('DataSource.remove(): Unable to find record with this id ' + id);
+            }
+        } catch (error) {
+            throw error;
+        } finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
 
         return retVal;
@@ -264,7 +326,7 @@ export class DataSource {
     /**
      * Synchronizes to the server all record changes (creates, updates, and deletes) pending in
      * JSDO memory for the current Data Object resource
-     * If jsdo.hasSubmitOperation is false, all record modifications are sent to server individually. 
+     * If jsdo.hasSubmitOperation is false, all record modifications are sent to server individually.
      * When 'true', modifications are batched together and sent in single request
      * @returns {object} Observable
      */
@@ -301,11 +363,11 @@ export class DataSource {
                             } else if (result.info.batch.operations.length === 0) {
                                 resolve({});
                             } else { // Reject promise if either of above cases are met
-                                reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                                reject(new Error(this.normalizeError(result, 'saveChanges', 'Errors occurred while saving Changes.')));
                             }
                         }
                     }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                        reject(new Error(this.normalizeError(result, 'saveChanges', 'Errors occurred while saving Changes.')));
                     });
             }
         );
@@ -328,7 +390,7 @@ export class DataSource {
      * @returns A single error message
      */
     private normalizeError(result: any, operation: string, genericMsg: string) {
-        let errorMsg = "";
+        let errorMsg = '';
         let lastErrors = null;
 
         try {
@@ -348,8 +410,8 @@ export class DataSource {
                 errorMsg = result.message;
             }
 
-            if (errorMsg === "") {
-                errorMsg = "Unknown error occurred when calling " + operation + ".";
+            if (errorMsg === '') {
+                errorMsg = 'Unknown error occurred when calling ' + operation + '.';
             }
         } catch (error) {
             errorMsg = error.message;
@@ -363,7 +425,7 @@ export class DataSource {
         let newObject;
 
         if (!target) {
-            console.log("_copyRecord: target parameter is not defined");
+            console.log('_copyRecord: target parameter is not defined');
 
             return;
         }
@@ -372,14 +434,14 @@ export class DataSource {
             if (source.hasOwnProperty(field)) {
                 // Ignore all internal fields, except _id
                 if (source[field] === undefined || source[field] === null ||
-                    (field.charAt(0) === "_" && field !== "_id") ||
-                    field.startsWith("prods:")) {
+                    (field.charAt(0) === '_' && field !== '_id') ||
+                    field.startsWith('prods:')) {
                     continue;
                 }
 
                 if (source[field] instanceof Date) {
                     target[field] = source[field];
-                } else if (typeof source[field] === "object") {
+                } else if (typeof source[field] === 'object') {
                     newObject = source[field] instanceof Array ? [] : {};
                     this._copyRecord(source[field], newObject);
                     target[field] = newObject;
@@ -398,13 +460,13 @@ export class DataSource {
      */
     private _buildResponse(source, target) {
         const newEntry = source;
-        let firstKey = Object.keys(source)[0],
-            secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
+        let firstKey = Object.keys(source)[0];
+        const secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
 
         // Delete's on no submit services return empty datasets so
         // don't add anything.
-        if (typeof source[firstKey] !== "undefined"
-            && typeof source[firstKey][secondKey] !== "undefined") {
+        if (typeof source[firstKey] !== 'undefined'
+            && typeof source[firstKey][secondKey] !== 'undefined') {
 
             if (Object.keys(target).length === 0) {
                 this._copyRecord(source, target);
@@ -413,7 +475,7 @@ export class DataSource {
 
                 // Delete's on no submit services return empty datasets so
                 // don't add anything.
-                if (firstKey && typeof target[firstKey][this._tableRef] !== "undefined") {
+                if (firstKey && typeof target[firstKey][this._tableRef] !== 'undefined') {
                     // Dataset usecase
                     if (firstKey !== this._tableRef) {
                         target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
