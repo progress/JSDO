@@ -38,7 +38,6 @@ exports.DataSourceOptions = DataSourceOptions;
 var DataSource = /** @class */ (function () {
     function DataSource(options) {
         this.jsdo = undefined;
-        this._data = null;
         this.jsdo = options.jsdo;
         this._options = options;
         // Turning off autoApplyChanges. Want to explicitly call jsdo.acceptChanges() and rejectChanges()
@@ -84,8 +83,7 @@ var DataSource = /** @class */ (function () {
                 .then(function (result) {
                 var data = result.jsdo[_this._tableRef].getData();
                 // Make copy of jsdo data for datasource
-                _this._data = (data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
-                resolve(_this._data);
+                resolve((data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []));
             }).catch(function (result) {
                 reject(new Error(_this.normalizeError(result, "read", "")));
             });
