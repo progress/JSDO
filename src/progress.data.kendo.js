@@ -233,9 +233,9 @@ if (typeof (kendo) !== "undefined") {
                         }
                         catch (e) {
                             // Conversion to a date object was not successful
-                            data[targetFieldName] = orig;
-                            console.log(progress.data._getMsgText("jsdoMSG000", 
-                                "_convertStringToDate() could not convert to date object: " + orig));
+                            data[targetFieldName] = orig;                            
+                            throw new Error(msg.getMsgText("jsdoMSG000", 
+                            "_convertStringToDate() could not convert to date object: " + orig));
                         }
                     }
                 }

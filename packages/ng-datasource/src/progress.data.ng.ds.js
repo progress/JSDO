@@ -313,8 +313,7 @@ var DataSource = /** @class */ (function () {
     DataSource.prototype._copyRecord = function (source, target) {
         var field;
         var newObject;
-        if (!target) {
-            console.log("_copyRecord: target parameter is not defined");
+        if (!target) {            
             return;
         }
         for (field in source) {

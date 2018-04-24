@@ -295,8 +295,8 @@ limitations under the License.
                         }
                     }
                 }
-            } catch(e) {
-                console.log("Error: Undetermined argument in getParamObject() call.");
+            } catch(e) {                
+                throw new Error("Undetermined argument in getParamObject() call.");
             }    
 
             return object;
