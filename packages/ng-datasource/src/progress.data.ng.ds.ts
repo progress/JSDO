@@ -28,7 +28,7 @@ import { Injectable } from "@angular/core";
 import { progress } from "@progress/jsdo-core";
 import "rxjs/add/observable/fromPromise";
 import "rxjs/add/operator/catch";
-import { Observable } from 'rxjs/Observable';
+import { Observable } from "rxjs/Observable";
 
 export class DataSourceOptions {
     jsdo: progress.data.JSDO;
