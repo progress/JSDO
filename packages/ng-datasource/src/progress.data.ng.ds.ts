@@ -39,22 +39,27 @@ export class DataSourceOptions {
     skip?: any;
     mergeMode?: any;
     pageSize?: any;
+    readLocal?: boolean;
 }
 
 // tslint:disable max-classes-per-file
 @Injectable()
 export class DataSource {
     jsdo: progress.data.JSDO = undefined;
+    readLocal: boolean;
+    _skipRec: number;
     private _options: DataSourceOptions;
     private _tableRef: string;
-    _skipRec: number;
+    private _initFromServer: boolean;
 
     constructor(options: DataSourceOptions) {
         this.jsdo = options.jsdo;
+        this._initFromServer = false;
         this._options = options;
+        this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
 
-        // Turning off autoApplyChanges. Want to explicitly call jsdo.acceptChanges() and rejectChanges()
-        this.jsdo.autoApplyChanges = false;
+        // Make sure autoApplyChanges = true
+        this.jsdo.autoApplyChanges = true;
 
         if (!options.jsdo || !(options.jsdo instanceof progress.data.JSDO)) {
             throw new Error("DataSource: jsdo property must be set to a JSDO instance.");
@@ -80,6 +85,25 @@ export class DataSource {
         let wrapperPromise;
         let obs: Observable<Array<object>>;
         let filter: any = {};
+        const jsdo = this.jsdo;
+        const tableRef = this._tableRef;
+
+        // If this is a DataSource for a child table, check if read() was performed on parent
+        if (!this._initFromServer) {
+            if (jsdo[tableRef]._parent) {
+                this._initFromServer = (jsdo[jsdo[tableRef]._parent]._data &&
+                                       (jsdo[jsdo[tableRef]._parent]._data.length > 0))
+                    || (jsdo[tableRef]._data instanceof Array && (jsdo[tableRef]._data.length > 0));
+            } else {
+                this._initFromServer = (jsdo[tableRef]._data instanceof Array) && (jsdo[tableRef]._data.length > 0);
+            }
+        }
+
+        if (this.readLocal && this._initFromServer) {
+            return Observable.create((observer) => {
+                observer.next(this.getJsdoData());
+            });
+        }
 
         if (params) {
             filter = params;
@@ -96,13 +120,10 @@ export class DataSource {
 
         wrapperPromise = new Promise(
             (resolve, reject) => {
-                this.jsdo.fill(filter)
+                jsdo.fill(filter)
                     .then((result) => {
-                        const data = result.jsdo[this._tableRef].getData();
-
-                        // Make copy of jsdo data for datasource
-                        resolve((data.length > 0 ? data.map(item => Object.assign({}, item)) : []));
-
+                        this._initFromServer = true;
+                        resolve(this.getJsdoData());
                     }).catch((result) => {
                         reject(new Error(this.normalizeError(result, "read", "")));
                     });
@@ -114,13 +135,12 @@ export class DataSource {
             return [];
         });
 
-        // return Observable.fromPromise(wrapperPromise);
         return obs;
     }
 
     /**
-     * Returns array of record objects from JSDO local memory
-     * @returns {object}
+     * Returns array of record objects from local memory
+     * @returns Array<object>
      */
     getData(): Array<object> {
         return this.jsdo[this._tableRef].getData();
@@ -135,9 +155,20 @@ export class DataSource {
     create(data: object): object {
         let jsRecord;
         const newRow = {};
+        const saveUseRelationships = this.jsdo.useRelationships;
 
-        jsRecord = this.jsdo[this._tableRef].add(data);
-        this._copyRecord(jsRecord.data, newRow);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].add(data);
+            this._copyRecord(jsRecord.data, newRow);
+        } catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        } finally {
+            this.jsdo.useRelationships = saveUseRelationships;
+        }
 
         return newRow;
     }
@@ -171,6 +202,7 @@ export class DataSource {
      * @returns - boolean. True if successful, false if there is any failure
      */
     update(data: any): boolean {
+        const saveUseRelationships = this.jsdo.useRelationships;
 
         if (!data && (data === undefined || null)) {
             throw new Error("Unexpected signature for update() operation.");
@@ -178,18 +210,29 @@ export class DataSource {
 
         const id: string = (data && data._id) ? data._id : null;
         let jsRecord;
-        let retVal: boolean = false;
+        let retVal = false;
 
         if (!id) {
             throw new Error("DataSource.update(): data missing _id property");
         }
 
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets update now
-            retVal = jsRecord.assign(data);
-        } else {
-            throw new Error("DataSource.update(): Unable to find record with this id " + id);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets update now
+                retVal = jsRecord.assign(data);
+                this.jsdo.useRelationships = saveUseRelationships;
+            } else {
+                throw new Error("DataSource.update(): Unable to find record with this id " + id);
+            }
+        } catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        } finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
 
         return retVal;
@@ -202,8 +245,9 @@ export class DataSource {
      * @returns boolean - True if the operation succeeds, false otherwise
      */
     remove(data: any): boolean {
-        let retVal: boolean = false;
+        let retVal = false;
         const id: string = (data && data._id) ? data._id : null;
+        const saveUseRelationships = this.jsdo.useRelationships;
         let jsRecord;
 
         if (!data && (data === undefined || null)) {
@@ -214,31 +258,25 @@ export class DataSource {
             throw new Error("DataSource.remove(): data missing _id property");
         }
 
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets delete the record
-            retVal = jsRecord.remove(data);
-        } else {
-            throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets delete the record
+                retVal = jsRecord.remove(data);
+            } else {
+                throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+            }
+        } catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        } finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
 
         return retVal;
-    }
-
-    /**
-     * Accepts any pending changes in the data source. This results in the removal of the
-     * before-image data. It also clears out any error messages.
-     */
-    acceptChanges(): void {
-        this.jsdo[this._tableRef].acceptChanges();
-    }
-
-    /**
-     * Cancels any pending changes in the data source. Deleted rows are restored,
-     * new rows are removed and updated rows are restored to their initial state.
-     */
-    cancelChanges(): void {
-        this.jsdo[this._tableRef].rejectChanges();
     }
 
     /**
@@ -260,7 +298,7 @@ export class DataSource {
     /**
      * Synchronizes to the server all record changes (creates, updates, and deletes) pending in
      * JSDO memory for the current Data Object resource
-     * If jsdo.hasSubmitOperation is false, all record modifications are sent to server individually. 
+     * If jsdo.hasSubmitOperation is false, all record modifications are sent to server individually.
      * When 'true', modifications are batched together and sent in single request
      * @returns {object} Observable
      */
@@ -301,6 +339,9 @@ export class DataSource {
                             }
                         }
                     }).catch((result) => {
+                        if (this.jsdo.autoApplyChanges) {
+                            this.jsdo[this._tableRef].rejectChanges();
+                        }
                         reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     });
             }
@@ -312,6 +353,27 @@ export class DataSource {
         });
 
         return obs;
+    }
+
+    /**
+     * First, retrieves data from JSDO local memory
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
+     * Returns array of record objects
+     * @returns Array<object>
+     */
+    private getJsdoData(): Array<object> {
+        const jsdo = this.jsdo;
+        const saveUseRelationships = jsdo.useRelationships;
+        let data;
+
+        jsdo.useRelationships = false;
+        data = jsdo[this._tableRef].getData();
+        jsdo.useRelationships = saveUseRelationships;
+
+        // Make copy of jsdo data for datasource
+        data = (data.length > 0 ? data.map((item) => Object.assign({}, item)) : []);
+
+        return data;
     }
 
     /**
