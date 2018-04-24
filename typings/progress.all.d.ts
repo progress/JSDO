@@ -54,10 +54,37 @@ export module progress {
 
     export module data {
 
+        // Constants for progress.data.Session
+        export class Session {
+            public static LOGIN_SUCCESS: number;
+            public static LOGIN_AUTHENTICATION_FAILURE: number;
+            public static LOGIN_GENERAL_FAILURE: number;
+            public static CATALOG_ALREADY_LOADED: number;
+    
+            public static LOGIN_AUTHENTICATION_REQUIRED: number;
+            public static ASYNC_PENDING: number;
+            public static EXPIRED_TOKEN: number;
+
+            public static SERVER_OFFLINE: string;
+            public static WEB_APPLICATION_OFFLINE: string;
+            public static SERVICE_OFFLINE: string;
+            public static APPSERVER_OFFLINE: string;
+
+            public static SUCCESS: number;
+            public static AUTHENTICATION_FAILURE: number;
+            public static GENERAL_FAILURE: number;
+    
+            public static AUTH_TYPE_ANON: string;
+            public static AUTH_TYPE_BASIC: string;
+            public static AUTH_TYPE_FORM: string;
+            public static AUTH_TYPE_SSO: string;
+            public static AUTH_TYPE_FORM_SSO: string;
+        }
+
         /** 
          * The progress.data.JSDO is a JavaScript class that provides access to resources 
          * (Data Objects) of a Progress Data Object Service. A single progress.data.JSDO object (JSDO instance) provides access to a single resource supported by a given Data Object Service.
-         * */        
+         * */
         export class JSDO implements IJSTableRef, IJSRecord, ISubscribe {
 
             public static MODE_APPEND: number;
