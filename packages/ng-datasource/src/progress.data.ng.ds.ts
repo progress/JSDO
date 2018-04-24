@@ -24,10 +24,10 @@ Author(s): maura, anikumar, egarcia
 
 */
 
-import { Injectable } from '@angular/core';
-import { progress } from '@progress/jsdo-core';
-import 'rxjs/add/observable/fromPromise';
-import 'rxjs/add/operator/catch';
+import { Injectable } from "@angular/core";
+import { progress } from "@progress/jsdo-core";
+import "rxjs/add/observable/fromPromise";
+import "rxjs/add/operator/catch";
 import { Observable } from 'rxjs/Observable';
 
 export class DataSourceOptions {
@@ -41,7 +41,6 @@ export class DataSourceOptions {
     pageSize?: any;
     readLocal?: boolean;
 }
-
 
 // tslint:disable max-classes-per-file
 @Injectable()
@@ -63,14 +62,14 @@ export class DataSource {
         this.jsdo.autoApplyChanges = true;
 
         if (!options.jsdo || !(options.jsdo instanceof progress.data.JSDO)) {
-            throw new Error('DataSource: jsdo property must be set to a JSDO instance.');
+            throw new Error("DataSource: jsdo property must be set to a JSDO instance.");
         }
 
         if (this._options.tableRef === undefined && this.jsdo.defaultTableRef) {
             this._options.tableRef = this.jsdo.defaultTableRef._name;
         }
         if (this._options.tableRef === undefined) {
-            throw new Error('DataSource: A tableRef must be specified when using a multi-table DataSet.');
+            throw new Error("DataSource: A tableRef must be specified when using a multi-table DataSet.");
         } else if (this.jsdo[this._options.tableRef] === undefined) {
             throw new Error("DataSource: tableRef '"
                 + this._options.tableRef + "' is not present in underlying JSDO definition.");
@@ -125,7 +124,7 @@ export class DataSource {
                         this._initFromServer = true;
                         resolve(this.getJsdoData());
                     }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, 'read', '')));
+                        reject(new Error(this.normalizeError(result, "read", "")));
                     });
             }
         );
@@ -183,6 +182,9 @@ export class DataSource {
             jsRecord = this.jsdo[this._tableRef].add(data);
             this._copyRecord(jsRecord.data, newRow);
         } catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
             throw error;
         } finally {
             this.jsdo.useRelationships = saveUseRelationships;
@@ -223,7 +225,7 @@ export class DataSource {
         const saveUseRelationships = this.jsdo.useRelationships;
 
         if (!data && (data === undefined || null)) {
-            throw new Error('Unexpected signature for update() operation.');
+            throw new Error("Unexpected signature for update() operation.");
         }
 
         const id: string = (data && data._id) ? data._id : null;
@@ -231,7 +233,7 @@ export class DataSource {
         let retVal = false;
 
         if (!id) {
-            throw new Error('DataSource.update(): data missing _id property');
+            throw new Error("DataSource.update(): data missing _id property");
         }
 
         try {
@@ -242,9 +244,12 @@ export class DataSource {
                 retVal = jsRecord.assign(data);
                 this.jsdo.useRelationships = saveUseRelationships;
             } else {
-                throw new Error('DataSource.update(): Unable to find record with this id ' + id);
+                throw new Error("DataSource.update(): Unable to find record with this id " + id);
             }
         } catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
             throw error;
         } finally {
             this.jsdo.useRelationships = saveUseRelationships;
@@ -266,11 +271,11 @@ export class DataSource {
         let jsRecord;
 
         if (!data && (data === undefined || null)) {
-            throw new Error('Unexpected signature for remove() operation.');
+            throw new Error("Unexpected signature for remove() operation.");
         }
 
         if (!id) {
-            throw new Error('DataSource.remove(): data missing _id property');
+            throw new Error("DataSource.remove(): data missing _id property");
         }
 
         try {
@@ -280,31 +285,18 @@ export class DataSource {
                 // Found a valid record. Lets delete the record
                 retVal = jsRecord.remove(data);
             } else {
-                throw new Error('DataSource.remove(): Unable to find record with this id ' + id);
+                throw new Error("DataSource.remove(): Unable to find record with this id " + id);
             }
         } catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
             throw error;
         } finally {
             this.jsdo.useRelationships = saveUseRelationships;
         }
 
         return retVal;
-    }
-
-    /**
-     * Accepts any pending changes in the data source. This results in the removal of the
-     * before-image data. It also clears out any error messages.
-     */
-    acceptChanges(): void {
-        this.jsdo[this._tableRef].acceptChanges();
-    }
-
-    /**
-     * Cancels any pending changes in the data source. Deleted rows are restored,
-     * new rows are removed and updated rows are restored to their initial state.
-     */
-    cancelChanges(): void {
-        this.jsdo[this._tableRef].rejectChanges();
     }
 
     /**
@@ -363,11 +355,14 @@ export class DataSource {
                             } else if (result.info.batch.operations.length === 0) {
                                 resolve({});
                             } else { // Reject promise if either of above cases are met
-                                reject(new Error(this.normalizeError(result, 'saveChanges', 'Errors occurred while saving Changes.')));
+                                reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                             }
                         }
                     }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, 'saveChanges', 'Errors occurred while saving Changes.')));
+                        if (this.jsdo.autoApplyChanges) {
+                            this.jsdo[this._tableRef].rejectChanges();
+                        }
+                        reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     });
             }
         );
@@ -390,7 +385,7 @@ export class DataSource {
      * @returns A single error message
      */
     private normalizeError(result: any, operation: string, genericMsg: string) {
-        let errorMsg = '';
+        let errorMsg = "";
         let lastErrors = null;
 
         try {
@@ -410,8 +405,8 @@ export class DataSource {
                 errorMsg = result.message;
             }
 
-            if (errorMsg === '') {
-                errorMsg = 'Unknown error occurred when calling ' + operation + '.';
+            if (errorMsg === "") {
+                errorMsg = "Unknown error occurred when calling " + operation + ".";
             }
         } catch (error) {
             errorMsg = error.message;
@@ -425,7 +420,7 @@ export class DataSource {
         let newObject;
 
         if (!target) {
-            console.log('_copyRecord: target parameter is not defined');
+            console.log("_copyRecord: target parameter is not defined");
 
             return;
         }
@@ -434,14 +429,14 @@ export class DataSource {
             if (source.hasOwnProperty(field)) {
                 // Ignore all internal fields, except _id
                 if (source[field] === undefined || source[field] === null ||
-                    (field.charAt(0) === '_' && field !== '_id') ||
-                    field.startsWith('prods:')) {
+                    (field.charAt(0) === "_" && field !== "_id") ||
+                    field.startsWith("prods:")) {
                     continue;
                 }
 
                 if (source[field] instanceof Date) {
                     target[field] = source[field];
-                } else if (typeof source[field] === 'object') {
+                } else if (typeof source[field] === "object") {
                     newObject = source[field] instanceof Array ? [] : {};
                     this._copyRecord(source[field], newObject);
                     target[field] = newObject;
@@ -460,13 +455,13 @@ export class DataSource {
      */
     private _buildResponse(source, target) {
         const newEntry = source;
-        let firstKey = Object.keys(source)[0];
-        const secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
+        let firstKey = Object.keys(source)[0],
+            secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
 
         // Delete's on no submit services return empty datasets so
         // don't add anything.
-        if (typeof source[firstKey] !== 'undefined'
-            && typeof source[firstKey][secondKey] !== 'undefined') {
+        if (typeof source[firstKey] !== "undefined"
+            && typeof source[firstKey][secondKey] !== "undefined") {
 
             if (Object.keys(target).length === 0) {
                 this._copyRecord(source, target);
@@ -475,7 +470,7 @@ export class DataSource {
 
                 // Delete's on no submit services return empty datasets so
                 // don't add anything.
-                if (firstKey && typeof target[firstKey][this._tableRef] !== 'undefined') {
+                if (firstKey && typeof target[firstKey][this._tableRef] !== "undefined") {
                     // Dataset usecase
                     if (firstKey !== this._tableRef) {
                         target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
