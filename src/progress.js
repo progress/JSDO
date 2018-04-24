@@ -5206,16 +5206,13 @@ limitations under the License.
                             }
 
                             switch (this._fillMergeMode) {
-                                case progress.data.JSDO.MODE_APPEND: 
-                                    console.log("In APPEND mode of fill()");
+                                case progress.data.JSDO.MODE_APPEND:                                     
                                     this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_APPEND);
                                     break;
-                                case progress.data.JSDO.MODE_MERGE:
-                                    console.log("In MERGE mode of fill()");
+                                case progress.data.JSDO.MODE_MERGE:                                    
                                     this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_MERGE, this._buffers[buf]._primaryKeys);
                                     break;
-                                case progress.data.JSDO.MODE_REPLACE:
-                                    console.log("In REPLACE mode of fill()");
+                                case progress.data.JSDO.MODE_REPLACE:                                    
                                     this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_REPLACE, this._buffers[buf]._primaryKeys);
                                     break;
                                 default:
