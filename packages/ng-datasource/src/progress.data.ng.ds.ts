@@ -45,9 +45,6 @@ export class DataSourceOptions {
 @Injectable()
 export class DataSource {
     jsdo: progress.data.JSDO = undefined;
-
-    private _data: Observable<Array<object>> = null;
-
     private _options: DataSourceOptions;
     private _tableRef: string;
     _skipRec: number;
@@ -104,8 +101,7 @@ export class DataSource {
                         const data = result.jsdo[this._tableRef].getData();
 
                         // Make copy of jsdo data for datasource
-                        this._data = (data.length > 0 ? data.map(item => Object.assign({}, item)) : []);
-                        resolve(this._data);
+                        resolve((data.length > 0 ? data.map(item => Object.assign({}, item)) : []));
 
                     }).catch((result) => {
                         reject(new Error(this.normalizeError(result, "read", "")));
@@ -126,7 +122,7 @@ export class DataSource {
      * Returns array of record objects from JSDO local memory
      * @returns {object}
      */
-    getData(): Observable<Array<object>> {
+    getData(): Array<object> {
         return this.jsdo[this._tableRef].getData();
     }
 
