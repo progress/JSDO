@@ -14,7 +14,6 @@ export declare class DataSourceOptions {
 }
 export declare class DataSource {
     jsdo: progress.data.JSDO;
-    private _data;
     private _options;
     private _tableRef;
     _skipRec: number;
@@ -28,7 +27,7 @@ export declare class DataSource {
      * Returns array of record objects from JSDO local memory
      * @returns {object}
      */
-    getData(): Observable<Array<object>>;
+    getData(): Array<object>;
     /**
      * Calls the jsdo.add() method, creating a new record in JSDO memory
      * jsdo.add() will either return the new record, or throws an exception
