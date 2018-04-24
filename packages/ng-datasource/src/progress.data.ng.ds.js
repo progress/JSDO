@@ -83,7 +83,7 @@ var DataSource = /** @class */ (function () {
                 .then(function (result) {
                 var data = result.jsdo[_this._tableRef].getData();
                 // Make copy of jsdo data for datasource
-                resolve((data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
+                resolve((data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []));
             }).catch(function (result) {
                 reject(new Error(_this.normalizeError(result, "read", "")));
             });
