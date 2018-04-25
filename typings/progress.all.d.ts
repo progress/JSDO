@@ -27,11 +27,7 @@ export module progress {
          * @param name - A string with an operative value that you define to enable page refresh
          * support for the returned JSDOSession object
          */
-        public static getSession(options: GetSessionOptions): Promise<{
-            jsdosession: any;
-            result: number;
-            info: any; 
-        }>;
+        public static getSession(options: GetSessionOptions): Promise<data.JSDOSessionPingInfo>;
 
         /**
          * A stand-alone function that invalidates all current progress.data.JSDOSession instances
