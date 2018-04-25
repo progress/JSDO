@@ -27,16 +27,19 @@ export module progress {
          * @param name - A string with an operative value that you define to enable page refresh
          * support for the returned JSDOSession object
          */
-        public static getSession(options: getSessionOptions): JQueryPromise;
+        public static getSession(options: GetSessionOptions): Promise<data.JSDOSessionPingInfo>;
 
         /**
          * A stand-alone function that invalidates all current progress.data.JSDOSession instances
          * that were created and initialized using the progress.data.getSession( ) stand-alone function
          */
-        public static invalidateAllSessions(): JQueryPromise;
+        public static invalidateAllSessions(): Promise<{
+            result: number,
+            info: data.LoginInfo
+        }>;
     }
 
-    interface getSessionOptions {
+    interface GetSessionOptions {
         serviceURI: String, 
         catalogURI: String, 
         authenticationModel: String, 
@@ -45,77 +48,39 @@ export module progress {
         name?: String
     }
 
-    interface JQueryPromise {
-
-        /**
-         * Add handlers to be called when the Deferred object is resolved, rejected, or still in progress.
-         *
-         * @param doneFilter     A function that is called when the Deferred is resolved.
-         * @param failFilter     An optional function that is called when the Deferred is rejected.
-         * @param progressFilter An optional function that is called when progress notifications are sent to the Deferred.
-         */
-        then(doneFilter: any, failFilter?: any, progressFilter?: any): JQueryPromise;
-
-        /**
-         * Add handlers to be called when the Deferred object is resolved.
-         *
-         * @param doneCallback  A function, or array of functions, that are called when the Deferred is resolved.
-         * @param doneCallbacks An Optional additional functions, or arrays of functions, that are called when the Deferred is resolved.
-         */
-        done(doneCallBack: any, ...doneCallbacks: any[]): JQueryPromise;
-
-        /**
-         * Add handlers to be called when the Deferred object is rejected.
-         *
-         * @param failCallback  A function, or array of functions, that are called when the Deferred is rejected.
-         * @param failCallbacks Optional additional functions, or arrays of functions, that are called when the Deferred is rejected.
-         */
-        fail(failCallback: any, ...failCallbacks: any[]): JQueryPromise;
-        catch(failCallback: any, ...failCallbacks: any[]): JQueryPromise;
-
-        /**
-         * Add handlers to be called when the Deferred object is either resolved or rejected.
-         *
-         * @param alwaysCallback  A function, or array of functions, that is called when the Deferred is resolved or rejected.
-         * @param alwaysCallbacks Optional additional functions, or arrays of functions, that are called when the Deferred is resolved or rejected.
-         */
-        always(alwaysCallback: any, ...alwaysCallbacks: any[]): JQueryPromise;
-
-        /**
-         * Add handlers to be called when the Deferred object generates progress notifications
-         *
-         * @param progressCallback  A function, or array of functions, to be called when the Deferred generates progress notifications.
-         * @param progressCallbacks Optional additional functions, or arrays of functions, to be called when the Deferred generates progress notifications.
-         */
-        progress(progressCallback: any, ...progressCallbacks: any[]): JQueryPromise;
-
-        /**
-         * Determine the current state of a Deferred object.
-         *
-         * "pending":  The Deferred object is not yet in a completed state (neither "rejected" nor "resolved").
-         * "resolved": The Deferred object is in the resolved state, meaning that either deferred.resolve()
-         *             or deferred.resolveWith() has been called for the object and the doneCallbacks have
-         *             been called (or are in the process of being called).
-         * "rejected": The Deferred object is in the rejected state, meaning that either deferred.reject()
-         *             or deferred.rejectWith() has been called for the object and the failCallbacks have
-         *             been called (or are in the process of being called).
-         */
-        state(): string;
-
-        /**
-         * Return a Deferred's Promise object.
-         *
-         * @param target: Object onto which the promise methods have to be attached
-         */
-        promise(target?: any): JQueryPromise;
-    }
-
     export module data {
+
+        // Constants for progress.data.Session
+        export class Session {
+            public static LOGIN_SUCCESS: number;
+            public static LOGIN_AUTHENTICATION_FAILURE: number;
+            public static LOGIN_GENERAL_FAILURE: number;
+            public static CATALOG_ALREADY_LOADED: number;
+    
+            public static LOGIN_AUTHENTICATION_REQUIRED: number;
+            public static ASYNC_PENDING: number;
+            public static EXPIRED_TOKEN: number;
+
+            public static SERVER_OFFLINE: string;
+            public static WEB_APPLICATION_OFFLINE: string;
+            public static SERVICE_OFFLINE: string;
+            public static APPSERVER_OFFLINE: string;
+
+            public static SUCCESS: number;
+            public static AUTHENTICATION_FAILURE: number;
+            public static GENERAL_FAILURE: number;
+    
+            public static AUTH_TYPE_ANON: string;
+            public static AUTH_TYPE_BASIC: string;
+            public static AUTH_TYPE_FORM: string;
+            public static AUTH_TYPE_SSO: string;
+            public static AUTH_TYPE_FORM_SSO: string;
+        }
 
         /** 
          * The progress.data.JSDO is a JavaScript class that provides access to resources 
          * (Data Objects) of a Progress Data Object Service. A single progress.data.JSDO object (JSDO instance) provides access to a single resource supported by a given Data Object Service.
-         * */        
+         * */
         export class JSDO implements IJSTableRef, IJSRecord, ISubscribe {
 
             public static MODE_APPEND: number;
@@ -202,7 +167,7 @@ export module progress {
              *               specified for the server routine that implements the invocation method. If the implementing routine does not
              *               take input parameters, specify null or leave out the argument entirely.
              */
-            invoke(methodName: string, object?: any): JSDOPromise;
+            invoke(methodName: string, object?: any): Promise<JSDOOperationInfo>;
 
             /**
              * Initializes JSDO memory with record objects from the data records in a single-table resource,
@@ -216,14 +181,14 @@ export module progress {
              * or in one or more tables of a multi-table resource, as returned by the Read operation
              * of the Data Object resource for which the JSDO is created.
              */
-            fill(options: FilterOptions): JSDOPromise;
+            fill(options: FilterOptions): Promise<JSDOOperationInfo>;
 
             /**
              * It is the alias for fill() operation. Initializes JSDO memory with record objects from the data 
              * records in a single-table resource, or in one or more tables of a multi-table resource, as returned 
              * by the Read operation of the Data Object resource for which the JSDO is created.
              */
-            read(options: FilterOptions): JSDOPromise;
+            read(options: FilterOptions): Promise<JSDOOperationInfo>;
 
             /**
              * Reads the record objects stored in the specified local storage area and updates JSDO memory based on these record objects,
@@ -772,52 +737,52 @@ export module progress {
             /**
              * Loads one local or remote Data Service Catalogs into the current JSDOSession object.
              */
-            addCatalog(catalogURI: string): JQueryCatalogPromise;
+            addCatalog(catalogURI: string): Promise<JSDOSessionAddCatalogInfo>;
 
             /**
              * Loads one or more local or remote Data Service Catalogs into the current JSDOSession object.
              */
-            addCatalog(catalogURI: string[]): JQueryCatalogPromise;
+            addCatalog(catalogURI: string[]): Promise<JSDOSessionAddCatalogInfo>;
 
             /**
              * Loads one local or remote Data Service Catalogs into the current JSDOSession object.
              */
-            addCatalog(catalogURI: string, username: string, password: string): JQueryCatalogPromise;
+            addCatalog(catalogURI: string, username: string, password: string): Promise<JSDOSessionAddCatalogInfo>;
 
             /**
              * Loads one or more local or remote Data Service Catalogs into the current JSDOSession object.
              */
-            addCatalog(catalogURI: string[], username: string, password: string): JQueryCatalogPromise;
+            addCatalog(catalogURI: string[], username: string, password: string): Promise<JSDOSessionAddCatalogInfo>;
 
             /**
              * Determines if the current JSDOSession object has authorized access to the web application specified by its serviceURI property setting.
              */
-            isAuthorized(): JQueryAuthorizedPromise;
+            isAuthorized(): Promise<JSDOSessionIsAuthorizedInfo>;
 
             /**
              * Starts a JSDO login session in a web application for the current JSDOSession object by sending an HTTP request
              * with specified user credentials to the web application URI specified in the object's constructor.
              */
-            login(loginParameter?: JSDOLoginParameter): JQueryLoginPromise;
+            login(loginParameter?: JSDOLoginParameter): Promise<JSDOSessionAuthorizationInfo>;
 
             /**
              * Starts a JSDO login session in a web application for the current JSDOSession object by sending an HTTP request
              * with specified user credentials to the web application URI specified in the object's constructor.
              */
-            login(username: string, password: string, loginParameter?: JSDOLoginParameter): JQueryLoginPromise;
+            login(username: string, password: string, loginParameter?: JSDOLoginParameter): Promise<JSDOSessionAuthorizationInfo>;
 
             /**
              * Terminates the login session on the web application managed by the current JSDOSession object,
              * and reinitializes most of the state information maintained by the object.
              */
-            logout(): JQueryLoginPromise;
+            logout(): Promise<JSDOSessionAuthorizationInfo>;
 
             /**
              * Determines the online state of the current JSDOSession object from its ability to access
              * the web application that it manages, and for an OpenEdge web application, from detecting
              * if its associated application server is running.
              */
-            ping(): JQueryPingPromise;
+            ping(): Promise<JSDOSessionPingInfo>;
 
             /**
              * Subscribes a given event callback function to an event of the current JSDOSession object.
@@ -881,7 +846,7 @@ export module progress {
              * Terminates the login session managed by the current JSDOSession object and permanently 
              * disables the object, rendering it unable to start a new login session.
              */
-            invalidate(): JQueryPromise;           
+            invalidate(): Promise<JSDOSessionAuthorizationInfo>;           
 
         }
 
@@ -896,13 +861,13 @@ export module progress {
              * @param username - Required unless the authenticationModel is Anonymous
              * @param password - Required unless the authenticationModel is Anonymous
              */
-            login(username: string, password: string): JQueryLoginPromise;
+            login(username: string, password: string): Promise<APAuthInfo>;
 
             /**
              * Resets the AuthenticationProvider's internal state and logs out from the Web application 
              * where authentication was done. Succeeds even if the AuthenticationProvider is not logged in.
              */
-            logout(): JQueryPromise;
+            logout(): Promise<APAuthInfo>;
 
              /**
              * Returns true if the authenticationProvider is currently managing the credentials 
@@ -927,7 +892,7 @@ export module progress {
              * @param username - Required unless the authenticationModel is Anonymous
              * @param password - Required unless the authenticationModel is Anonymous
              */
-            login(username: string, password: string): JQueryLoginPromise;
+            login(username: string, password: string): Promise<APAuthInfo>;
         }
 
         export class AuthenticationProviderForm {
@@ -938,13 +903,13 @@ export module progress {
              * @param username - Required unless the authenticationModel is Anonymous
              * @param password - Required unless the authenticationModel is Anonymous
              */
-            login(username: string, password: string): JQueryLoginPromise;
+            login(username: string, password: string): Promise<APAuthInfo>;
 
             /**
              * Resets the AuthenticationProvider's internal state and logs out from the Web application 
              * where authentication was done. Succeeds even if the AuthenticationProvider is not logged in.
              */
-            logout(): JQueryPromise;
+            logout(): Promise<APAuthInfo>;;
         }
 
         export class AuthenticationProviderSSO {
@@ -955,7 +920,7 @@ export module progress {
              * allows the client to continue accessing resources without logging in again.
              * The client simply sends the refresh token in a refresh request to the token server, which returns a new token
              */
-            refresh(): JQueryPromise;
+            refresh(): Promise<APAuthInfo>;
 
             /**
              * Returns true if the authenticationProvider is currently managing the credentials 
@@ -984,8 +949,6 @@ export module progress {
             sort?: any;
             top?: any;
         }
-
-        
 
         interface JSDORequest {
 
@@ -1044,29 +1007,67 @@ export module progress {
             readonly xhr: XMLHttpRequest;
         }
 
-        interface JSDOPromise extends JQueryPromise {
+        // This is the generic object returned by resolved/rejected Promises
+        // of JSDO methods
+        interface JSDOOperationInfo {
+            jsdo: JSDO;
+            success: boolean;
+            request: JSDORequest;
+        }
 
-            /**
-             * Add handlers to be called when the Deferred object is resolved.
-             *
-             * @param doneCallback  A function, or array of functions, that are called when the Deferred is resolved.
-             */
-            done(callback: (jsdo: JSDO, success: boolean, request: JSDORequest) => any): JSDOPromise;
+        // This is the generic object returned by resolved/rejected Promises
+        // of JSDOSession methods
+        interface JSDOSessionOperationInfo {
+            jsdosession: JSDOSession;
 
-            /**
-             * Add handlers to be called when the Deferred object is rejected.
-             *
-             * @param failCallback  A function, or array of functions, that are called when the Deferred is rejected.
-             */
-            fail(callback: (jsdo: JSDO, success: boolean, request: JSDORequest) => any): JSDOPromise;
+            // A constant indicating the overall result of the call that can have one of the following values:
+            // - progress.data.Session.AUTHENTICATION_SUCCESS
+            // - progress.data.Session.AUTHENTICATION_FAILURE
+            // - progress.data.Session.GENERAL_FAILURE
+            result: number;
+        }
 
-            /**
-             * Add handlers to be called when the Deferred object is either resolved or rejected.
-             *
-             * @param alwaysCallback  A function, or array of functions, that is called when the Deferred is resolved or rejected.
-             */
-            always(callback: (jsdo: JSDO, success: boolean, request: JSDORequest) => any): JSDOPromise;
+        // This is the object returned by the resolved/rejected Promise returned by
+        // JSDOSession.login(), logout(), and invalidate()
+        interface JSDOSessionAuthorizationInfo extends JSDOSessionOperationInfo {
+            info: LoginInfo;
+        }
 
+        // This is the object returned by the resolved/rejected Promise returned by
+        // JSDOSession.addCatalog()
+        interface JSDOSessionAddCatalogInfo extends JSDOSessionOperationInfo {
+            info: JSDOSessionCatalogDetails;
+        }
+
+        // This is the object returned by the resolved/rejected Promise returned by
+        // JSDOSession.isAuthorized()
+        interface JSDOSessionIsAuthorizedInfo extends JSDOSessionOperationInfo {
+            info: JSDOSessionAuthorizedInfo;
+        }
+
+        // This is the object returned by the resolved/rejected Promise returned by
+        // JSDOSession.ping()
+        interface JSDOSessionPingInfo {
+            jsdosession: JSDOSession;
+            
+            // This boolean is true if the session is still authenticated and false if not
+            result: boolean;
+
+            info: JSDOSessionAuthorizedInfo;
+        }
+
+        // This is the object returned by the resolved/rejected Promise returned by
+        // AuthProvider.login() and logout()
+        interface APAuthInfo {
+            authProvider: AuthenticationProvider;
+
+            // A constant indicating the overall result of the call that can have one of the following values:
+            // - progress.data.Session.AUTHENTICATION_SUCCESS
+            // - progress.data.Session.AUTHENTICATION_FAILURE
+            // - progress.data.Session.GENERAL_FAILURE
+            result: number;
+
+            info: LoginInfo;
         }
 
         interface JSDOOptions {
@@ -1208,32 +1209,7 @@ export module progress {
             iOSBasicAuthTimeout?: number;
         }
 
-        interface JQueryLoginPromise extends JQueryPromise {
-
-            /**
-             * Add handlers to be called when the Deferred object is resolved.
-             *
-             * @param doneCallback  A function, or array of functions, that are called when the Deferred is resolved.
-             */
-            done(callback: (session: JSDOSession, result: string, info: JSDOSessionLoginInfo) => any): JQueryLoginPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is rejected.
-             *
-             * @param failCallback  A function, or array of functions, that are called when the Deferred is rejected.
-             */
-            fail(callback: (session: JSDOSession, result: string, info: JSDOSessionLoginInfo) => any): JQueryLoginPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is either resolved or rejected.
-             *
-             * @param alwaysCallback  A function, or array of functions, that is called when the Deferred is resolved or rejected.
-             */
-            always(callback: (session: JSDOSession, result: string, info: JSDOSessionLoginInfo) => any): JQueryLoginPromise;
-
-        }
-
-        interface JSDOSessionLoginInfo {
+        interface LoginInfo {
 
             /**
              * Any error object thrown as a result of sending a login request to the web server.
@@ -1244,30 +1220,6 @@ export module progress {
              * A reference to the XMLHttpRequest object sent to the web server to start a JSDO login session.
              */
             xhr: XMLHttpRequest;
-        }
-
-        interface JQueryCatalogPromise extends JQueryPromise {
-
-            /**
-             * Add handlers to be called when the Deferred object is resolved.
-             *
-             * @param doneCallback  A function, or array of functions, that are called when the Deferred is resolved.
-             */
-            done(callback: (session: JSDOSession, result: string, details: JSDOSessionCatalogDetails) => any): JQueryCatalogPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is rejected.
-             *
-             * @param failCallback  A function, or array of functions, that are called when the Deferred is rejected.
-             */
-            fail(callback: (session: JSDOSession, result: string, details: JSDOSessionCatalogDetails) => any): JQueryCatalogPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is either resolved or rejected.
-             *
-             * @param alwaysCallback  A function, or array of functions, that is called when the Deferred is resolved or rejected.
-             */
-            always(callback: (session: JSDOSession, result: string, details: JSDOSessionCatalogDetails) => any): JQueryCatalogPromise;
         }
 
         interface JSDOSessionCatalogDetails {
@@ -1298,56 +1250,7 @@ export module progress {
             readonly xhr: XMLHttpRequest;
         }
 
-        interface JQueryPingPromise extends JQueryPromise {
-
-            /**
-             * Add handlers to be called when the Deferred object is resolved.
-             *
-             * @param doneCallback  A function, or array of functions, that are called when the Deferred is resolved.
-             */
-            done(callback: (session: JSDOSession, result: boolean, info: JSODSessionAuthorizedInfo) => any): JQueryPingPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is rejected.
-             *
-             * @param failCallback  A function, or array of functions, that are called when the Deferred is rejected.
-             */
-            fail(callback: (session: JSDOSession, result: boolean, info: JSODSessionAuthorizedInfo) => any): JQueryPingPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is either resolved or rejected.
-             *
-             * @param alwaysCallback  A function, or array of functions, that is called when the Deferred is resolved or rejected.
-             */
-            always(callback: (session: JSDOSession, result: boolean, info: JSODSessionAuthorizedInfo) => any): JQueryPingPromise;
-
-        }
-
-        interface JQueryAuthorizedPromise extends JQueryPromise {
-
-            /**
-             * Add handlers to be called when the Deferred object is resolved.
-             *
-             * @param doneCallback  A function, or array of functions, that are called when the Deferred is resolved.
-             */
-            done(callback: (session: JSDOSession, result: string, info: JSODSessionAuthorizedInfo) => any): JQueryAuthorizedPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is rejected.
-             *
-             * @param failCallback  A function, or array of functions, that are called when the Deferred is rejected.
-             */
-            fail(callback: (session: JSDOSession, result: string, info: JSODSessionAuthorizedInfo) => any): JQueryAuthorizedPromise;
-
-            /**
-             * Add handlers to be called when the Deferred object is either resolved or rejected.
-             *
-             * @param alwaysCallback  A function, or array of functions, that is called when the Deferred is resolved or rejected.
-             */
-            always(callback: (session: JSDOSession, result: string, info: JSODSessionAuthorizedInfo) => any): JQueryAuthorizedPromise;
-        }
-
-        interface JSODSessionAuthorizedInfo {
+        interface JSDOSessionAuthorizedInfo {
 
             /**
              * A reference to the XMLHttpRequest object, if any, sent to the web server to make the authorization request to the web application.
