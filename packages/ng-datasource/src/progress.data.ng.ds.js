@@ -126,7 +126,7 @@ var DataSource = /** @class */ (function () {
      * @returns Array<object>
      */
     DataSource.prototype.getData = function () {
-        return this.jsdo[this._tableRef].getData();
+        return this.getJsdoData();
     };
     /**
      * Calls the jsdo.add() method, creating a new record in JSDO memory

@@ -143,7 +143,7 @@ export class DataSource {
      * @returns Array<object>
      */
     getData(): Array<object> {
-        return this.jsdo[this._tableRef].getData();
+        return this.getJsdoData();
     }
 
     /**
