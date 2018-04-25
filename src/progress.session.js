@@ -1546,6 +1546,10 @@ limitations under the License.
                 this.authenticationModel = this.authenticationModel.toLowerCase();
             }
 
+            if (this.authenticationModel === progress.data.Session.AUTH_TYPE_AZURE) {
+                console.log("New type voor Azure");
+            }
+
             if (this.authenticationModel === progress.data.Session.AUTH_TYPE_SSO) {
                 // Session: Cannot call login() when authenticationModel is SSO. 
                 // Please use the AuthenticationProvider object instead.
@@ -3411,7 +3415,9 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM_SSO', {
             value: "form_sso", enumerable: true
         });
-        
+        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_AZURE', {                           // NA - 03/2018
+            value: "azure", enumerable: true
+        });
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -3443,6 +3449,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
         progress.data.Session.AUTH_TYPE_SSO = "sso";
+        progress.data.Session.AUTH_TYPE_AZURE = "azure";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
