@@ -11,6 +11,7 @@ export declare class DataSourceOptions {
     skip?: any;
     mergeMode?: any;
     pageSize?: any;
+    readLocal?: boolean;
 }
 export declare class DataSource {
     jsdo: progress.data.JSDO;
@@ -56,16 +57,6 @@ export declare class DataSource {
      * @returns boolean - True if the operation succeeds, false otherwise
      */
     remove(data: any): boolean;
-    /**
-     * Accepts any pending changes in the data source. This results in the removal of the
-     * before-image data. It also clears out any error messages.
-     */
-    acceptChanges(): void;
-    /**
-     * Cancels any pending changes in the data source. Deleted rows are restored,
-     * new rows are removed and updated rows are restored to their initial state.
-     */
-    cancelChanges(): void;
     /**
      * Returns true if the underlying jsdo has CUD support (create, update, delete operations).
      * If not, it returns false.

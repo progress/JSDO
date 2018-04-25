@@ -1,20 +1,28 @@
 "use strict";
 /*
 Progress JSDO DataSource for Angular: 5.0.0
+
 Copyright 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
 progress.data.ng.ds.ts    Version: v5.0.0
+
 Progress DataSource class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.
+
 Author(s): maura, anikumar, egarcia
+
 */
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -39,9 +47,11 @@ var DataSource = /** @class */ (function () {
     function DataSource(options) {
         this.jsdo = undefined;
         this.jsdo = options.jsdo;
+        this._initFromServer = false;
         this._options = options;
-        // Turning off autoApplyChanges. Want to explicitly call jsdo.acceptChanges() and rejectChanges()
-        this.jsdo.autoApplyChanges = false;
+        this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
+        // Make sure autoApplyChanges = true
+        this.jsdo.autoApplyChanges = true;
         if (!options.jsdo || !(options.jsdo instanceof jsdo_core_1.progress.data.JSDO)) {
             throw new Error("DataSource: jsdo property must be set to a JSDO instance.");
         }
@@ -66,6 +76,24 @@ var DataSource = /** @class */ (function () {
         var wrapperPromise;
         var obs;
         var filter = {};
+        var jsdo = this.jsdo;
+        var tableRef = this._tableRef;
+        // If this is a DataSource for a child table, check if read() was performed on parent
+        if (!this._initFromServer) {
+            if (jsdo[tableRef]._parent) {
+                this._initFromServer = (jsdo[jsdo[tableRef]._parent]._data &&
+                    (jsdo[jsdo[tableRef]._parent]._data.length > 0))
+                    || (jsdo[tableRef]._data instanceof Array && (jsdo[tableRef]._data.length > 0));
+            }
+            else {
+                this._initFromServer = (jsdo[tableRef]._data instanceof Array) && (jsdo[tableRef]._data.length > 0);
+            }
+        }
+        if (this.readLocal && this._initFromServer) {
+            return Observable_1.Observable.create(function (observer) {
+                observer.next(_this.getJsdoData());
+            });
+        }
         if (params) {
             filter = params;
         }
@@ -79,11 +107,10 @@ var DataSource = /** @class */ (function () {
         // tableRef required for multi-table DataSets
         filter.tableRef = this._tableRef;
         wrapperPromise = new Promise(function (resolve, reject) {
-            _this.jsdo.fill(filter)
+            jsdo.fill(filter)
                 .then(function (result) {
-                var data = result.jsdo[_this._tableRef].getData();
-                // Make copy of jsdo data for datasource
-                resolve((data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []));
+                _this._initFromServer = true;
+                resolve(_this.getJsdoData());
             }).catch(function (result) {
                 reject(new Error(_this.normalizeError(result, "read", "")));
             });
@@ -92,12 +119,11 @@ var DataSource = /** @class */ (function () {
         obs.catch(function (e) {
             return [];
         });
-        // return Observable.fromPromise(wrapperPromise);
         return obs;
     };
     /**
-     * Returns array of record objects from JSDO local memory
-     * @returns {object}
+     * Returns array of record objects from local memory
+     * @returns Array<object>
      */
     DataSource.prototype.getData = function () {
         return this.jsdo[this._tableRef].getData();
@@ -111,8 +137,21 @@ var DataSource = /** @class */ (function () {
     DataSource.prototype.create = function (data) {
         var jsRecord;
         var newRow = {};
-        jsRecord = this.jsdo[this._tableRef].add(data);
-        this._copyRecord(jsRecord.data, newRow);
+        var saveUseRelationships = this.jsdo.useRelationships;
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].add(data);
+            this._copyRecord(jsRecord.data, newRow);
+        }
+        catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        }
+        finally {
+            this.jsdo.useRelationships = saveUseRelationships;
+        }
         return newRow;
     };
     /**
@@ -141,6 +180,7 @@ var DataSource = /** @class */ (function () {
      * @returns - boolean. True if successful, false if there is any failure
      */
     DataSource.prototype.update = function (data) {
+        var saveUseRelationships = this.jsdo.useRelationships;
         if (!data && (data === undefined || null)) {
             throw new Error("Unexpected signature for update() operation.");
         }
@@ -150,13 +190,26 @@ var DataSource = /** @class */ (function () {
         if (!id) {
             throw new Error("DataSource.update(): data missing _id property");
         }
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets update now
-            retVal = jsRecord.assign(data);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets update now
+                retVal = jsRecord.assign(data);
+                this.jsdo.useRelationships = saveUseRelationships;
+            }
+            else {
+                throw new Error("DataSource.update(): Unable to find record with this id " + id);
+            }
         }
-        else {
-            throw new Error("DataSource.update(): Unable to find record with this id " + id);
+        catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        }
+        finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
         return retVal;
     };
@@ -169,6 +222,7 @@ var DataSource = /** @class */ (function () {
     DataSource.prototype.remove = function (data) {
         var retVal = false;
         var id = (data && data._id) ? data._id : null;
+        var saveUseRelationships = this.jsdo.useRelationships;
         var jsRecord;
         if (!data && (data === undefined || null)) {
             throw new Error("Unexpected signature for remove() operation.");
@@ -176,29 +230,27 @@ var DataSource = /** @class */ (function () {
         if (!id) {
             throw new Error("DataSource.remove(): data missing _id property");
         }
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets delete the record
-            retVal = jsRecord.remove(data);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets delete the record
+                retVal = jsRecord.remove(data);
+            }
+            else {
+                throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+            }
         }
-        else {
-            throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+        catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        }
+        finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
         return retVal;
-    };
-    /**
-     * Accepts any pending changes in the data source. This results in the removal of the
-     * before-image data. It also clears out any error messages.
-     */
-    DataSource.prototype.acceptChanges = function () {
-        this.jsdo[this._tableRef].acceptChanges();
-    };
-    /**
-     * Cancels any pending changes in the data source. Deleted rows are restored,
-     * new rows are removed and updated rows are restored to their initial state.
-     */
-    DataSource.prototype.cancelChanges = function () {
-        this.jsdo[this._tableRef].rejectChanges();
     };
     /**
      * Returns true if the underlying jsdo has CUD support (create, update, delete operations).
@@ -259,6 +311,9 @@ var DataSource = /** @class */ (function () {
                     }
                 }
             }).catch(function (result) {
+                if (_this.jsdo.autoApplyChanges) {
+                    _this.jsdo[_this._tableRef].rejectChanges();
+                }
                 reject(new Error(_this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
             });
         });
@@ -267,6 +322,23 @@ var DataSource = /** @class */ (function () {
             return [];
         });
         return obs;
+    };
+    /**
+     * First, retrieves data from JSDO local memory
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
+     * Returns array of record objects
+     * @returns Array<object>
+     */
+    DataSource.prototype.getJsdoData = function () {
+        var jsdo = this.jsdo;
+        var saveUseRelationships = jsdo.useRelationships;
+        var data;
+        jsdo.useRelationships = false;
+        data = jsdo[this._tableRef].getData();
+        jsdo.useRelationships = saveUseRelationships;
+        // Make copy of jsdo data for datasource
+        data = (data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
+        return data;
     };
     /**
      * This method is called after an error has occurred on a jsdo operation, and is
@@ -343,7 +415,6 @@ var DataSource = /** @class */ (function () {
      * @param source  Actual dataset/record to be merged
      * @param target  Resultant dataset with all records information
      */
-    
     DataSource.prototype._buildResponse = function (source, target) {
         var newEntry = source;
         var firstKey = Object.keys(source)[0], secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
