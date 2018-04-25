@@ -932,6 +932,7 @@ limitations under the License.
                             case progress.data.Session.AUTH_TYPE_BASIC :
                             case progress.data.Session.AUTH_TYPE_ANON :
                             case progress.data.Session.AUTH_TYPE_SSO :
+                            case progress.data.Session.AUTH_TYPE_ADAL :
                             case null :
                                 _authenticationModel = newval;
                                 storeSessionInfo("authenticationModel", newval);
@@ -3411,7 +3412,10 @@ limitations under the License.
         Object.defineProperty(progress.data.Session, 'AUTH_TYPE_FORM_SSO', {
             value: "form_sso", enumerable: true
         });
-        
+        Object.defineProperty(progress.data.Session, 'AUTH_TYPE_ADAL', {
+            value: "adal", enumerable: true
+        });
+
 
         Object.defineProperty(progress.data.Session, 'DEVICE_OFFLINE', {
             value: "Device is offline", enumerable: true
@@ -3443,6 +3447,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
         progress.data.Session.AUTH_TYPE_SSO = "sso";
+        progress.data.Session.AUTH_TYPE_ADAL = "adal";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -4501,6 +4506,10 @@ limitations under the License.
                 authProviderInitObject.authenticationModel = options.authenticationModel;
             }
 
+            if (options.authConfig) {
+                authProviderInitObject.authConfig = options.authConfig;
+            }
+
             authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
             options.authProvider = authProvider;
             
@@ -4508,7 +4517,7 @@ limitations under the License.
                 loginHandler(authProvider);
             } else {
                 // If model is anon, just log in.
-                if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
+                if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON || authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ADAL) {
                     authProvider.login()
                         .then(loginHandler, sessionRejectHandler);
                 } else {
