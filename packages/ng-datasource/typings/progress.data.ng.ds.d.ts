@@ -12,21 +12,25 @@ export declare class DataSourceOptions {
     mergeMode?: any;
     pageSize?: any;
     readLocal?: boolean;
+    countFnName?: string;
 }
 export declare class DataSource {
     jsdo: progress.data.JSDO;
+    readLocal: boolean;
+    _skipRec: number;
     private _options;
     private _tableRef;
-    _skipRec: number;
+    private _initFromServer;
     constructor(options: DataSourceOptions);
     /**
      * Calls the jsdo.fill() retrieving data from the backend service
-     * @returns Observable<Array<object>>
+     * @returns An Observable which includes an Array<Object> followed
+     * by an attribute for specifying 'total' records
      */
     read(params?: progress.data.FilterOptions): Observable<Array<object>>;
     /**
-     * Returns array of record objects from JSDO local memory
-     * @returns {object}
+     * Returns array of record objects from local memory
+     * @returns Array<object>
      */
     getData(): Array<object>;
     /**
@@ -70,13 +74,35 @@ export declare class DataSource {
     /**
      * Synchronizes to the server all record changes (creates, updates, and deletes) pending in
      * JSDO memory for the current Data Object resource
-     * @param {boolean} useSubmit Optional parameter. By default points to 'false' where all
-     * record modifications are sent to server individually. When 'true' is used all record
-     * modifications are batched together and are sent in single transaction
-     * @returns {object} Promise
+     * If jsdo.hasSubmitOperation is false, all record modifications are sent to server individually.
+     * When 'true', modifications are batched together and sent in single request
+     * @returns {object} Observable
      */
     saveChanges(): Observable<Array<object>>;
-    private normalizeError(result, defaultMsg);
+    /**
+     * First, retrieves data from JSDO local memory
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
+     * Returns array of record objects
+     * @returns Array<object>
+     */
+    private getJsdoData();
+    /**
+     * This method is used for fetching the 'count' of records from backend
+     * This method is used as part of read() operation when serverOperations is set by client
+     * @param {string} name Name of the method pertaining to 'Count' functionality
+     * @param {any} object JSDO parameters object
+     */
+    private getRecCount(name, object);
+    /**
+     * This method is called after an error has occurred on a jsdo operation, and is
+     * used to get an error message.
+     * @param {any} result Object containing error info returned after execution of jsdo operation
+     * @param {string} operation String containing operation performed when error occurred
+     * @param {string} genericMsg If multiple errors are found in result object, if specified,
+     * this string will be returned. If not specified, first error string will be returned.
+     * @returns A single error message
+     */
+    private normalizeError(result, operation, genericMsg);
     private _copyRecord(source, target);
     /**
      * This method is responsible for building a valid responseObject when multiple records

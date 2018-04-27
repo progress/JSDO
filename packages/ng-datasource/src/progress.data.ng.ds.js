@@ -66,10 +66,27 @@ var DataSource = /** @class */ (function () {
                 + this._options.tableRef + "' is not present in underlying JSDO definition.");
         }
         this._tableRef = this._options.tableRef;
+        // Find out the name of 'Count' function from Catalog if defined as 'Count' operation
+        // instead of an INVOKE 
+        if (this._options.countFnName !== undefined) {
+            if (typeof (this.jsdo[this._options.countFnName]) !== "function") {
+                throw new Error("Invoke operation '" +
+                    this._options.countFnName + "' for countFnName is not defined.");
+            }
+        }
+        else if (this.jsdo['_resource'].generic.count !== undefined) {
+            for (var fnName in this.jsdo['_resource'].fn) {
+                if (this.jsdo['_resource'].generic.count === this.jsdo['_resource'].fn[fnName]['function']) {
+                    this._options.countFnName = fnName;
+                    break;
+                }
+            }
+        }
     }
     /**
      * Calls the jsdo.fill() retrieving data from the backend service
-     * @returns Observable<Array<object>>
+     * @returns An Observable which includes an Array<Object> followed
+     * by an attribute for specifying 'total' records
      */
     DataSource.prototype.read = function (params) {
         var _this = this;
@@ -110,7 +127,24 @@ var DataSource = /** @class */ (function () {
             jsdo.fill(filter)
                 .then(function (result) {
                 _this._initFromServer = true;
-                resolve(_this.getJsdoData());
+                var data = _this.getJsdoData();
+                if ((_this._options.countFnName && _this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
+                    _this.getRecCount(_this._options.countFnName, params)
+                        .then(function (result) {
+                        if (result == undefined && result == null) {
+                            reject(new Error(_this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
+                        }
+                        resolve({ data: data, total: result });
+                    }, function (error) {
+                        reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
+                    }).catch(function (e) {
+                        reject(new Error(_this.normalizeError(e, 'Unknown error occurred calling count.', "")));
+                    });
+                }
+                else {
+                    // Client side operations
+                    resolve({ data: data, total: data.length });
+                }
             }).catch(function (result) {
                 reject(new Error(_this.normalizeError(result, "read", "")));
             });
@@ -306,7 +340,7 @@ var DataSource = /** @class */ (function () {
                     else if (result.info.batch.operations.length === 0) {
                         resolve({});
                     }
-                    else {
+                    else { // Reject promise if either of above cases are met
                         reject(new Error(_this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     }
                 }
@@ -339,6 +373,37 @@ var DataSource = /** @class */ (function () {
         // Make copy of jsdo data for datasource
         data = (data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
         return data;
+    };
+    /**
+     * This method is used for fetching the 'count' of records from backend
+     * This method is used as part of read() operation when serverOperations is set by client
+     * @param {string} name Name of the method pertaining to 'Count' functionality
+     * @param {any} object JSDO parameters object
+     */
+    DataSource.prototype.getRecCount = function (name, object) {
+        var _this = this;
+        var countVal;
+        var getRecCountPromise;
+        getRecCountPromise = new Promise(function (resolve, reject) {
+            _this.jsdo.invoke(name, object)
+                .then(function (result) {
+                try {
+                    if (typeof (result.request.response) === 'object' && Object.keys(result.request.response).length === 1) {
+                        countVal = Object.values(result.request.response)[0];
+                        if (typeof (countVal) !== 'number') {
+                            countVal = undefined;
+                        }
+                    }
+                    resolve(countVal);
+                }
+                catch (e) {
+                    reject(new Error(_this.normalizeError(e, "getRecCount", "")));
+                }
+            }).catch(function (result) {
+                reject(new Error(_this.normalizeError(result, "Error invoking the 'Count' operation", "")));
+            });
+        });
+        return getRecCountPromise;
     };
     /**
      * This method is called after an error has occurred on a jsdo operation, and is
