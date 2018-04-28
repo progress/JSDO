@@ -985,11 +985,6 @@ export module progress {
             top?: any;
         }
 
-        interface DataResult {
-            data?: Array<object>;
-            length?: number;
-        }
-
         
 
         interface JSDORequest {

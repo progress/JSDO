@@ -43,6 +43,11 @@ export class DataSourceOptions {
     countFnName?: string;
 }
 
+export interface DataResult {
+    data: Array<object>;
+    total: number;
+}
+
 // tslint:disable max-classes-per-file
 @Injectable()
 export class DataSource {
@@ -100,9 +105,9 @@ export class DataSource {
      * @returns An Observable which includes an Array<Object> followed
      * by an attribute for specifying 'total' records
      */
-    read(params?: progress.data.FilterOptions): Observable<Array<object>> {
+    read(params?: progress.data.FilterOptions): Observable<DataResult> {
         let wrapperPromise;
-        let obs: Observable<Array<object>>;
+        let obs: Observable<DataResult>;
         let filter: any = {};
         const jsdo = this.jsdo;
         const tableRef = this._tableRef;

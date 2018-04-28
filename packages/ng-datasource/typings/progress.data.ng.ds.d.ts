@@ -14,6 +14,10 @@ export declare class DataSourceOptions {
     readLocal?: boolean;
     countFnName?: string;
 }
+export interface DataResult {
+    data: Array<object>;
+    total: number;
+}
 export declare class DataSource {
     jsdo: progress.data.JSDO;
     readLocal: boolean;
@@ -27,7 +31,7 @@ export declare class DataSource {
      * @returns An Observable which includes an Array<Object> followed
      * by an attribute for specifying 'total' records
      */
-    read(params?: progress.data.FilterOptions): Observable<Array<object>>;
+    read(params?: progress.data.FilterOptions): Observable<DataResult>;
     /**
      * Returns array of record objects from local memory
      * @returns Array<object>
