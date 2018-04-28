@@ -48,7 +48,7 @@ export class DataSourceOptions {
 export class DataSource {
     jsdo: progress.data.JSDO = undefined;
     readLocal: boolean;
-    _skipRec: number;    
+    _skipRec: number;
     private _options: DataSourceOptions;
     private _tableRef: string;
     private _initFromServer: boolean;
@@ -80,14 +80,14 @@ export class DataSource {
         // Find out the name of 'Count' function from Catalog if defined as 'Count' operation
         // instead of an INVOKE 
         if (this._options.countFnName !== undefined) {
-            if (typeof(this.jsdo[this._options.countFnName]) !== "function") {
+            if (typeof (this.jsdo[this._options.countFnName]) !== "function") {
                 throw new Error("Invoke operation '" +
                     this._options.countFnName + "' for countFnName is not defined.");
             }
-        } 
+        }
         else if (this.jsdo['_resource'].generic.count !== undefined) {
             for (const fnName in this.jsdo['_resource'].fn) {
-                if (this.jsdo['_resource'].generic.count === this.jsdo['_resource'].fn[fnName]['function']) {                    
+                if (this.jsdo['_resource'].generic.count === this.jsdo['_resource'].fn[fnName]['function']) {
                     this._options.countFnName = fnName;
                     break;
                 }
@@ -141,22 +141,23 @@ export class DataSource {
             (resolve, reject) => {
                 jsdo.fill(filter)
                     .then((result) => {
-                        this._initFromServer = true;                        
+                        this._initFromServer = true;
 
                         let data = this.getJsdoData();
 
                         if ((this._options.countFnName && this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
                             this.getRecCount(this._options.countFnName, params)
                                 .then((result) => {
-                                    if (result == undefined && result == null) {                                      
+                                    if (result == undefined && result == null) {
                                         reject(new Error(this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
-                                    }                               
-                                    resolve({ data: data, total: result });
+                                    } else {
+                                        resolve({ data: data, total: result });
+                                    }
                                 }, (error) => {
-                                        reject(new Error(this.normalizeError(error, "Problems invoking getRecCount function", "")));
-                                    }).catch((e) => {
-                                        reject(new Error(this.normalizeError(e, 'Unknown error occurred calling count.', "")));
-                                    });
+                                    reject(new Error(this.normalizeError(error, "Problems invoking getRecCount function", "")));
+                                }).catch((e) => {
+                                    reject(new Error(this.normalizeError(e, 'Unknown error occurred calling count.', "")));
+                                });
                         } else {
                             // Client side operations
                             resolve({ data: data, total: data.length })

@@ -134,7 +134,9 @@ var DataSource = /** @class */ (function () {
                         if (result == undefined && result == null) {
                             reject(new Error(_this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
                         }
-                        resolve({ data: data, total: result });
+                        else {
+                            resolve({ data: data, total: result });
+                        }
                     }, function (error) {
                         reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
                     }).catch(function (e) {
