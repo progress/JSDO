@@ -124,7 +124,8 @@ export class DataSource {
 
         if (this.readLocal && this._initFromServer) {
             return Observable.create((observer) => {
-                observer.next(this.getJsdoData());
+                const data = this.getJsdoData();
+                observer.next({ data: data, total: data.length });
             });
         }
 

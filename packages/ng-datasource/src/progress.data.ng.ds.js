@@ -108,7 +108,8 @@ var DataSource = /** @class */ (function () {
         }
         if (this.readLocal && this._initFromServer) {
             return Observable_1.Observable.create(function (observer) {
-                observer.next(_this.getJsdoData());
+                var data = _this.getJsdoData();
+                observer.next({ data: data, total: data.length });
             });
         }
         if (params) {
