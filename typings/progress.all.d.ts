@@ -27,7 +27,7 @@ export module progress {
          * @param name - A string with an operative value that you define to enable page refresh
          * support for the returned JSDOSession object
          */
-        public static getSession(options: GetSessionOptions): Promise<data.JSDOSessionPingInfo>;
+        public static getSession(options: GetSessionOptions): Promise<data.JSDOSessionInfo>;
 
         /**
          * A stand-alone function that invalidates all current progress.data.JSDOSession instances
@@ -782,7 +782,7 @@ export module progress {
              * the web application that it manages, and for an OpenEdge web application, from detecting
              * if its associated application server is running.
              */
-            ping(): Promise<JSDOSessionPingInfo>;
+            ping(): Promise<JSDOSessionInfo>;
 
             /**
              * Subscribes a given event callback function to an event of the current JSDOSession object.
@@ -1047,7 +1047,7 @@ export module progress {
 
         // This is the object returned by the resolved/rejected Promise returned by
         // JSDOSession.ping()
-        interface JSDOSessionPingInfo {
+        interface JSDOSessionInfo {
             jsdosession: JSDOSession;
             
             // This boolean is true if the session is still authenticated and false if not
