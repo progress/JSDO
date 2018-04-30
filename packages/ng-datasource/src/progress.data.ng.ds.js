@@ -133,8 +133,7 @@ var DataSource = /** @class */ (function () {
                         .then(function (result) {
                         if (result == undefined && result == null) {
                             reject(new Error(_this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
-                        }
-                        else {
+                        } else {
                             resolve({ data: data, total: result });
                         }
                     }, function (error) {

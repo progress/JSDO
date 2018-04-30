@@ -89,8 +89,7 @@ export class DataSource {
                 throw new Error("Invoke operation '" +
                     this._options.countFnName + "' for countFnName is not defined.");
             }
-        }
-        else if (this.jsdo['_resource'].generic.count !== undefined) {
+        } else if (this.jsdo['_resource'].generic.count !== undefined) {
             for (const fnName in this.jsdo['_resource'].fn) {
                 if (this.jsdo['_resource'].generic.count === this.jsdo['_resource'].fn[fnName]['function']) {
                     this._options.countFnName = fnName;
