@@ -1449,28 +1449,34 @@ limitations under the License.
             var urlPlusCCID,
                 that = this;
 
-            function afterOpenAndAuthorize(xhr) {
-                // add CCID header
-                if (that.clientContextId && (that.clientContextId !== "0")) {
-                    xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", that.clientContextId);
-                }
-                // set X-CLIENT-PROPS header
-                setRequestHeaderFromContextProps(that, xhr);
-
-                if (typeof that.onOpenRequest === 'function') {
-                    var params = {
-                        "xhr": xhr,
-                        "verb": verb,
-                        "uri": urlPlusCCID,
-                        "async": async,
-                        "formPreTest": false,
-                        "session": that
-                    };
-                    that.onOpenRequest(params);
-                    // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
-                }
-                if (callback) {
-                    callback();
+            function afterOpenAndAuthorize(arg) {
+                // _openRequestAndAuthorize can return either an Error or an xhr
+                // TODO: we might need to fix this 
+                if (arg instanceof Error) {
+                    throw arg;
+                } else {
+                    // add CCID header
+                    if (that.clientContextId && (that.clientContextId !== "0")) {
+                        xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", that.clientContextId);
+                    }
+                    // set X-CLIENT-PROPS header
+                    setRequestHeaderFromContextProps(that, xhr);
+    
+                    if (typeof that.onOpenRequest === 'function') {
+                        var params = {
+                            "xhr": xhr,
+                            "verb": verb,
+                            "uri": urlPlusCCID,
+                            "async": async,
+                            "formPreTest": false,
+                            "session": that
+                        };
+                        that.onOpenRequest(params);
+                        // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
+                    }
+                    if (callback) {
+                        callback();
+                    }
                 }
             }
 
