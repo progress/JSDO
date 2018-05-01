@@ -118,12 +118,12 @@ limitations under the License.
                 }
 
                 progress.data.Session._setNoCacheHeaders(xhr);
+                callback(xhr);
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                callback(errorObject);
             }
-
-            callback(errorObject);
         };
     };
 

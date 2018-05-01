@@ -188,8 +188,12 @@ limitations under the License.
         function (xhr, verb, uri, async, callback) {
 
             function afterSuper(errorObject) {
-                xhr.withCredentials = true;
-                callback(errorObject);
+                if (errorObject instanceof Error) {
+                    callback(errorObject);
+                } else {
+                    xhr.withCredentials = true;
+                    callback(xhr);
+                }
             }
             
             try {
