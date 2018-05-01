@@ -285,10 +285,12 @@ limitations under the License.
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
                         [xhr, verb, uri, async, function (errorObject) {
-                            if (!errorObject) {
+                            if (errorObject instanceof Error) {
+                                callback(errorObject);
+                            } else {
                                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
+                                callback(xhr);
                             }
-                            callback(errorObject);
                         }]
                     );
                 }
