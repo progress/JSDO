@@ -7,10 +7,9 @@ export declare class DataSourceOptions {
     tableRef?: string;
     filter?: any;
     sort?: any;
-    top?: any;
-    skip?: any;
-    mergeMode?: any;
-    pageSize?: any;
+    top?: number;
+    skip?: number;
+    mergeMode?: number;
     readLocal?: boolean;
     countFnName?: string;
 }
