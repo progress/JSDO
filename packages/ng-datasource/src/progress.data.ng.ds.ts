@@ -37,7 +37,7 @@ export class DataSourceOptions {
     sort?: any;
     top?: number;
     skip?: number;
-    mergeMode?: any;
+    mergeMode?: number;
     readLocal?: boolean;
     countFnName?: string;
 }
