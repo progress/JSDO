@@ -17,7 +17,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 | ------- | ------- | 
 | [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - Progress Data Source for NativeScript and Angular |
 
-The Progress Data Source can be used by mobile apps built using NativeScript.
+The Data Source can be used by mobile apps built using NativeScript.
 
 ### License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
