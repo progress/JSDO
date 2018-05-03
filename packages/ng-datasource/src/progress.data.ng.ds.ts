@@ -150,7 +150,7 @@ export class DataSource {
                         let data = this.getJsdoData();
 
                         if ((this._options.countFnName && this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
-                            this.getRecCount(this._options.countFnName, {filter: result.request.objParam.filter})
+                            this.getRecCount(this._options.countFnName, { filter: result.request.objParam.filter })
                                 .then((result) => {
                                     if (result == undefined && result == null) {
                                         reject(new Error(this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
