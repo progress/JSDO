@@ -423,7 +423,7 @@ export class DataSource {
      * This method is used for fetching the 'count' of records from backend
      * This method is used as part of read() operation when serverOperations is set by client
      * @param {string} name Name of the method pertaining to 'Count' functionality
-     * @param {any} object Valid 'filter' object
+     * @param {any} object Filter object
      */
     private getRecCount(name: string, object: any): Promise<any> {
         let countVal: any;
