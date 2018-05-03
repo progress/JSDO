@@ -84,7 +84,7 @@ export declare class DataSource {
     saveChanges(): Observable<Array<object>>;
     /**
      * First, retrieves data from JSDO local memory
-     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru Data Source API
      * Returns array of record objects
      * @returns Array<object>
      */

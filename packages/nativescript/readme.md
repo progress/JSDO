@@ -1,10 +1,10 @@
-# DataSource for NativeScript
-The DataSource is a TypeScript implementation - Progress DataSource class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript"  
+# Progress Data Source for NativeScript
+The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript"  
 
 ### Documentation
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
 
-The DataSource can be used by mobile apps built using NativeScript.
+The Data Source can be used by mobile apps built using NativeScript.
 
 ### License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
