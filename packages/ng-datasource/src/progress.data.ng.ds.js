@@ -130,7 +130,7 @@ var DataSource = /** @class */ (function () {
                 _this._initFromServer = true;
                 var data = _this.getJsdoData();
                 if ((_this._options.countFnName && _this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
-                    _this.getRecCount(_this._options.countFnName, params)
+                    _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam.filter })
                         .then(function (result) {
                         if (result == undefined && result == null) {
                             reject(new Error(_this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
@@ -380,7 +380,7 @@ var DataSource = /** @class */ (function () {
      * This method is used for fetching the 'count' of records from backend
      * This method is used as part of read() operation when serverOperations is set by client
      * @param {string} name Name of the method pertaining to 'Count' functionality
-     * @param {any} object JSDO parameters object
+     * @param {any} object Valid 'filter' object
      */
     DataSource.prototype.getRecCount = function (name, object) {
         var _this = this;
