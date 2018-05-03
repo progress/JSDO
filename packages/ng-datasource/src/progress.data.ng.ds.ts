@@ -1,5 +1,5 @@
 /*
-Progress JSDO DataSource for Angular: 5.0.0
+Progress Progress Data Source for Angular: 5.0.0
 
 Copyright 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -17,7 +17,7 @@ limitations under the License.
 
 progress.data.ng.ds.ts    Version: v5.0.0
 
-Progress DataSource class for NativeScript, Angular. This will provide a seamless integration
+Progress Data Source class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.
 
 Author(s): maura, anikumar, egarcia

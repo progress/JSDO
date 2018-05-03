@@ -1,5 +1,5 @@
-# JSDODataSource for NativeScript and Angular
-The JSDO DataSource is a TypeScript implementation - Progress DataSource class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript"  
+# Progress Data Source for NativeScript and Angular
+The Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript"  
 
 ### Documentation
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
@@ -9,15 +9,15 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 
 | Source File| Purpose | 
 | ---------- | ------- | 
-| [progress.data.ng.ds.ts](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | TypeScript - JSDO DataSource for NativeScript and Angular |
-| [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - JSDO DataSource for NativeScript and Angular |
+| [progress.data.ng.ds.ts](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | TypeScript - Progress Data Source for NativeScript and Angular |
+| [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - Progress Data Source for NativeScript and Angular |
 
 
 | Lib File| Purpose | 
 | ------- | ------- | 
-| [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - JSDO DataSource for NativeScript and Angular |
+| [progress.data.ng.ds.js](https://github.com/progress/JSDO/blob/master/src/progress.data.ng.ds.js) | JavaScript - Progress Data Source for NativeScript and Angular |
 
-The JSDODataSource can be used by mobile apps built using NativeScript
+The Progress Data Source can be used by mobile apps built using NativeScript.
 
 ### License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
