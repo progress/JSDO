@@ -150,7 +150,7 @@ export class DataSource {
                         let data = this.getJsdoData();
 
                         if ((this._options.countFnName && this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
-                            this.getRecCount(this._options.countFnName, params)
+                            this.getRecCount(this._options.countFnName, {filter: result.request.objParam.filter})
                                 .then((result) => {
                                     if (result == undefined && result == null) {
                                         reject(new Error(this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
@@ -423,7 +423,7 @@ export class DataSource {
      * This method is used for fetching the 'count' of records from backend
      * This method is used as part of read() operation when serverOperations is set by client
      * @param {string} name Name of the method pertaining to 'Count' functionality
-     * @param {any} object JSDO parameters object
+     * @param {any} object Valid 'filter' oject
      */
     private getRecCount(name: string, object: any): Promise<any> {
         let countVal: any;
