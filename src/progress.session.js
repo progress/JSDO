@@ -3815,7 +3815,8 @@ limitations under the License.
                 // running the constructor
                 _pdsession._authProvider = new progress.data.AuthenticationProvider({
                     uri: this.serviceURI,
-                    authenticationModel: this.authenticationModel
+                    authenticationModel: this.authenticationModel,
+                    authConfig: this.authenticationModel === "adal" ? username : undefined
                 });
             }
             
