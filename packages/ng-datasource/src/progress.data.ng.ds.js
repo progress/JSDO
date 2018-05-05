@@ -48,6 +48,7 @@ var DataSource = /** @class */ (function () {
         this.jsdo = undefined;
         this.jsdo = options.jsdo;
         this._initFromServer = false;
+        this._isLastResultSetEmpty = false;
         this._options = options;
         this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
         // Make sure autoApplyChanges = true
@@ -67,7 +68,7 @@ var DataSource = /** @class */ (function () {
         }
         this._tableRef = this._options.tableRef;
         // Find out the name of 'Count' function from Catalog if defined as 'Count' operation
-        // instead of an INVOKE 
+        // instead of an INVOKE
         if (this._options.countFnName !== undefined) {
             if (typeof (this.jsdo[this._options.countFnName]) !== "function") {
                 throw new Error("Invoke operation '" +
@@ -127,20 +128,28 @@ var DataSource = /** @class */ (function () {
         wrapperPromise = new Promise(function (resolve, reject) {
             jsdo.fill(filter)
                 .then(function (result) {
+                // Verifying the latest resultset value and setting _isLastResultSetEmpty flag if empty
+                if (result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef].length == 0) {
+                    _this._isLastResultSetEmpty = true;
+                }
+                else if (result.request.response[_this.jsdo["_dataSetName"]] && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] === undefined) {
+                    _this._isLastResultSetEmpty = true;
+                }
                 _this._initFromServer = true;
                 var data = _this.getJsdoData();
-                if ((_this._options.countFnName && _this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
+                if ((_this._options.countFnName && _this._options.countFnName !== undefined) && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                     _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam.filter })
                         .then(function (result) {
-                        if (result == undefined && result == null) {
+                        if (result === undefined && result == null) {
                             reject(new Error(_this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
-                        } else {
+                        }
+                        else {
                             resolve({ data: data, total: result });
                         }
                     }, function (error) {
                         reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
                     }).catch(function (e) {
-                        reject(new Error(_this.normalizeError(e, 'Unknown error occurred calling count.', "")));
+                        reject(new Error(_this.normalizeError(e, "Unknown error occurred calling count.", "")));
                     });
                 }
                 else {
@@ -390,9 +399,9 @@ var DataSource = /** @class */ (function () {
             _this.jsdo.invoke(name, object)
                 .then(function (result) {
                 try {
-                    if (typeof (result.request.response) === 'object' && Object.keys(result.request.response).length === 1) {
+                    if (typeof (result.request.response) === "object" && Object.keys(result.request.response).length === 1) {
                         countVal = Object.values(result.request.response)[0];
-                        if (typeof (countVal) !== 'number') {
+                        if (typeof (countVal) !== "number") {
                             countVal = undefined;
                         }
                     }

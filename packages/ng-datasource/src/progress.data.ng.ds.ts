@@ -53,6 +53,7 @@ export class DataSource {
     jsdo: progress.data.JSDO = undefined;
     readLocal: boolean;
     _skipRec: number;
+    _isLastResultSetEmpty: boolean;
     private _options: DataSourceOptions;
     private _tableRef: string;
     private _initFromServer: boolean;
@@ -60,6 +61,7 @@ export class DataSource {
     constructor(options: DataSourceOptions) {
         this.jsdo = options.jsdo;
         this._initFromServer = false;
+        this._isLastResultSetEmpty = false;
         this._options = options;
         this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
 
@@ -82,7 +84,7 @@ export class DataSource {
         this._tableRef = this._options.tableRef;
 
         // Find out the name of 'Count' function from Catalog if defined as 'Count' operation
-        // instead of an INVOKE 
+        // instead of an INVOKE
         if (this._options.countFnName !== undefined) {
             if (typeof (this.jsdo[this._options.countFnName]) !== "function") {
                 throw new Error("Invoke operation '" +
@@ -145,14 +147,22 @@ export class DataSource {
             (resolve, reject) => {
                 jsdo.fill(filter)
                     .then((result) => {
+
+                        // Verifying the latest resultset value and setting _isLastResultSetEmpty flag if empty
+                        if (result.request.response[this.jsdo["_dataSetName"]][this._tableRef] && result.request.response[this.jsdo["_dataSetName"]][this._tableRef].length == 0) {
+                            this._isLastResultSetEmpty = true;
+                        } else if (result.request.response[this.jsdo["_dataSetName"]] && result.request.response[this.jsdo["_dataSetName"]][this._tableRef] === undefined) {
+                            this._isLastResultSetEmpty = true;
+                        }
+
                         this._initFromServer = true;
 
                         let data = this.getJsdoData();
 
-                        if ((this._options.countFnName && this._options.countFnName !== undefined) && !(params.skip == 0 && params.top > data.length)) { // Server-side operations
+                        if ((this._options.countFnName && this._options.countFnName !== undefined) && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                             this.getRecCount(this._options.countFnName, { filter: result.request.objParam.filter })
                                 .then((result) => {
-                                    if (result == undefined && result == null) {
+                                    if (result === undefined && result == null) {
                                         reject(new Error(this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
                                     } else {
                                         resolve({ data: data, total: result });
@@ -160,11 +170,11 @@ export class DataSource {
                                 }, (error) => {
                                     reject(new Error(this.normalizeError(error, "Problems invoking getRecCount function", "")));
                                 }).catch((e) => {
-                                    reject(new Error(this.normalizeError(e, 'Unknown error occurred calling count.', "")));
+                                    reject(new Error(this.normalizeError(e, "Unknown error occurred calling count.", "")));
                                 });
                         } else {
                             // Client side operations
-                            resolve({ data: data, total: data.length })
+                            resolve({ data: data, total: data.length });
                         }
 
                     }).catch((result) => {
@@ -435,9 +445,9 @@ export class DataSource {
                     .then((result) => {
 
                         try {
-                            if (typeof (result.request.response) === 'object' && Object.keys(result.request.response).length === 1) {
+                            if (typeof (result.request.response) === "object" && Object.keys(result.request.response).length === 1) {
                                 countVal = Object.values(result.request.response)[0];
-                                if (typeof (countVal) !== 'number') {
+                                if (typeof (countVal) !== "number") {
                                     countVal = undefined;
                                 }
                             }
