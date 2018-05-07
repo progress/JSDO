@@ -3979,14 +3979,25 @@ limitations under the License.
                         fulfill = true;
                         settleResult = progress.data.Session.SUCCESS;
                     }
-                    if (settleResult !== progress.data.Session.SUCCESS) {
+                    if (settleResult === progress.data.Session.SUCCESS) {
                         if (xhr._deferred._results.length === 1) {
                             info = xhr._deferred._results[0];
                         } else {
                             info = {
                                 xhr: xhr,
+                                result: settleResult,
+                                details: xhr._deferred._results
+                            };
+                        }
+                    } else {
+                        if (xhr._deferred._results.length === 1) {
+                            info = xhr._deferred._results[0];
+                        } else {
+                            info = {
+                                xhr: xhr,
+                                result: settleResult,
                                 errorObject: new Error(progress.data._getMsgText("jsdoMSG512")),
-                                errorDetails: xhr._deferred._results
+                                details: xhr._deferred._results
                             };
                         }
                     }
