@@ -128,7 +128,10 @@ export class DataSource {
             });
         }
 
-        if (params) {
+        if (Object.keys(params).length === 0) {
+            filter = undefined;
+        }
+        else if (params) {
             filter = params;
         } else {
             // Initial read() where the params are empty and we are assigning the filter criteria
@@ -139,7 +142,9 @@ export class DataSource {
         }
 
         // tableRef required for multi-table DataSets
-        filter.tableRef = this._tableRef;
+        if (filter) {
+            filter.tableRef = this._tableRef;
+        }
 
         wrapperPromise = new Promise(
             (resolve, reject) => {
