@@ -3932,7 +3932,8 @@ limitations under the License.
         function onAfterAddCatalog(pdsession, result, errorObject, xhr) {
             var deferred,
                 fulfill = false,
-                settleResult;
+                settleResult,
+                info;
 
             if (result === progress.data.Session.EXPIRED_TOKEN) {
                 settleResult = progress.data.Session.EXPIRED_TOKEN;
@@ -3978,11 +3979,33 @@ limitations under the License.
                         fulfill = true;
                         settleResult = progress.data.Session.SUCCESS;
                     }
+                    if (settleResult === progress.data.Session.SUCCESS) {
+                        if (xhr._deferred._results.length === 1) {
+                            info = xhr._deferred._results[0];
+                        } else {
+                            info = {
+                                xhr: xhr,
+                                result: settleResult,
+                                details: xhr._deferred._results
+                            };
+                        }
+                    } else {
+                        if (xhr._deferred._results.length === 1) {
+                            info = xhr._deferred._results[0];
+                        } else {
+                            info = {
+                                xhr: xhr,
+                                result: settleResult,
+                                errorObject: new Error(progress.data._getMsgText("jsdoMSG512")),
+                                details: xhr._deferred._results
+                            };
+                        }
+                    }
                     settlePromise(
                         xhr._deferred,
                         fulfill,
                         settleResult,
-                        xhr._deferred._results
+                        info
                     );
                 }
             }
