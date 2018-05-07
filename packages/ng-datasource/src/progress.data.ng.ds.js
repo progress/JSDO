@@ -112,7 +112,11 @@ var DataSource = /** @class */ (function () {
                 observer.next({ data: data, total: data.length });
             });
         }
-        if (params) {
+        
+        if (Object.keys(params).length === 0) {
+            filter = undefined;
+        }
+        else if (params) {
             filter = params;
         }
         else {
@@ -122,8 +126,11 @@ var DataSource = /** @class */ (function () {
             filter.top = this._options.top;
             filter.skip = this._options.skip;
         }
+        
         // tableRef required for multi-table DataSets
-        filter.tableRef = this._tableRef;
+         if (filter) {
+            filter.tableRef = this._tableRef;
+         }
         wrapperPromise = new Promise(function (resolve, reject) {
             jsdo.fill(filter)
                 .then(function (result) {
