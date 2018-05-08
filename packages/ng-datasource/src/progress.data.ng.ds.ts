@@ -126,19 +126,20 @@ export class DataSource {
                 const data = this.getJsdoData();
                 observer.next({ data: data, total: data.length });
             });
-        }
-
-        if (Object.keys(params).length === 0) {
-            filter = undefined;
-        }
-        else if (params) {
+        } 
+        
+        if (params && Object.keys(params).length > 0) {
             filter = params;
         } else {
-            // Initial read() where the params are empty and we are assigning the filter criteria
-            filter.filter = this._options.filter;
-            filter.sort = this._options.sort;
-            filter.top = this._options.top;
-            filter.skip = this._options.skip;
+            // If params has no properties, use default values for filter criteria
+            if (this._options.filter || this._options.sort || this._options.top || this._options.skip) {
+                filter.filter = this._options.filter;
+                filter.sort = this._options.sort;
+                filter.top = this._options.top;
+                filter.skip = this._options.skip;
+            } else {
+                filter = undefined;
+            }
         }
 
         // tableRef required for multi-table DataSets
