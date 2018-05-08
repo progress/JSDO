@@ -22,11 +22,10 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false */
 
     var fn;
     
-// ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
+    // ADD AN OPTIONS PARAM THAT CAN INCLUDE A NAME FOR PAGE REFRESH?    
     progress.data.AuthenticationProviderSSO = function (uri) {
         var that = this,
             // SSO specific
@@ -181,7 +180,7 @@ limitations under the License.
             }
 
             that._settlePromise(deferred, result, {"xhr": xhr,
-                                                   "errorObject": errorObject});  // OK if undefined
+                "errorObject": errorObject});  // OK if undefined
         }
 
         
@@ -231,13 +230,16 @@ limitations under the License.
                 // log out if there was an error processing the response so the app can try to log in again
                 if (result !== progress.data.Session.SUCCESS) {
                     // call logout, but ignore its outcome -- just tell caller that login failed
+                    var callback = function (params) {
+                        params = progress.util.Deferred.getParamObject(params);
+                        params.provider._settlePromise(deferred, result, {"xhr": xhr,
+                            "errorObject": errorObject});
+                    };
+                    // finally
                     this.logout()
-                        .always(function (authProv) {
-                            authProv._settlePromise(deferred, result, {"xhr": xhr,
-                                                                       "errorObject": errorObject});
-                        });
+                        .then(callback, callback);
                     return;   // so we don't execute the reject below, which could invoke the fail handler 
-                              // before we're done with the logout
+                    // before we're done with the logout
                 }
                         
             } else if (xhr.status === 401) {
@@ -264,10 +266,10 @@ limitations under the License.
         // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
         // it to use promises
         this._openRequestAndAuthorize = function (xhr,
-                                                  verb,
-                                                  uri,
-                                                  async,
-                                                  callback) {
+            verb,
+            uri,
+            async,
+            callback) {
             var that = this,
                 date,
                 errorObject;
@@ -283,10 +285,12 @@ limitations under the License.
                     progress.data.AuthenticationProviderSSO.prototype._openRequestAndAuthorize.apply(
                         that,
                         [xhr, verb, uri, async, function (errorObject) {
-                            if (!errorObject) {
+                            if (errorObject instanceof Error) {
+                                callback(errorObject);
+                            } else {
                                 xhr.setRequestHeader('Authorization', "oecp " + getToken());
+                                callback(xhr);
                             }
-                            callback(errorObject);
                         }]
                     );
                 }
@@ -302,10 +306,13 @@ limitations under the License.
                     this.hasRefreshToken() &&    
                     date.getTime() > retrieveAccessTokenExpiration()) {
                     try {
+                        var callback = function (params, result, info) {
+                            params = progress.util.Deferred.getParamObject(params, result, info);
+                            afterRefreshCheck(params.provider, params.result, params.info);
+                        };
+                        // finally
                         this.refresh()
-                            .always(function (provider, result, info) {
-                                afterRefreshCheck(provider, result, info);
-                            });
+                            .then(callback, callback);
                     } catch (e) {
                         callback(e);
                     }
@@ -330,32 +337,42 @@ limitations under the License.
         
         
         this.refresh = function () {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 xhr;
 
-            if (!this._loggedIn) {
-                // "The refresh method was not executed because the AuthenticationProvider is not logged in." 
-                throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "refresh"));
-            }
-
-            if (!this.hasRefreshToken()) {
-                // "Token refresh was not executed because the AuthenticationProvider does not have a 
-                // refresh token." 
-                throw new Error(progress.data._getMsgText("jsdoMSG054", "AuthenticationProvider"));
-            }
-
-            xhr = new XMLHttpRequest();
-            openRefreshRequest(xhr);
-
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    // process the response from the Web application
-                    processRefreshResult(xhr, deferred);
+            try {
+                if (!this._loggedIn) {
+                    // "The refresh method was not executed because the AuthenticationProvider is not logged in." 
+                    throw new Error(progress.data._getMsgText("jsdoMSG053", "AuthenticationProvider", "refresh"));
                 }
-            };
 
-            xhr.send('{"token_type":"' + retrieveTokenType() + '","refresh_token":"' +
-                      retrieveRefreshToken() + '"}');
+                if (!this.hasRefreshToken()) {
+                    // "Token refresh was not executed because the AuthenticationProvider does not have a 
+                    // refresh token." 
+                    throw new Error(progress.data._getMsgText("jsdoMSG054", "AuthenticationProvider"));
+                }
+
+                xhr = new XMLHttpRequest();
+                openRefreshRequest(xhr);
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        // process the response from the Web application
+                        processRefreshResult(xhr, deferred);
+                    }
+                };
+
+                xhr.send('{"token_type":"' + retrieveTokenType() + '","refresh_token":"' +
+                        retrieveRefreshToken() + '"}');
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
+                }                
+            }
             return deferred.promise();
         };
         
@@ -367,11 +384,11 @@ limitations under the License.
 
         // PROCESS CONSTRUCTOR ARGUMENTS, CREATE API PROPERTIES, ETC.
         this._initialize(uri,
-                         progress.data.Session.AUTH_TYPE_FORM_SSO,
-                         {"_loginURI": progress.data.AuthenticationProvider._springFormTokenLoginURIBase,
-                          "_logoutURI": progress.data.AuthenticationProvider._springLogoutURIBase,
-                          "_refreshURI": progress.data.AuthenticationProvider._springFormTokenRefreshURIBase
-                         });
+            progress.data.Session.AUTH_TYPE_FORM_SSO,
+            {"_loginURI": progress.data.AuthenticationProvider._springFormTokenLoginURIBase,
+                "_logoutURI": progress.data.AuthenticationProvider._springLogoutURIBase,
+                "_refreshURI": progress.data.AuthenticationProvider._springFormTokenRefreshURIBase
+            });
         
         // in addition to the standard AuthenticationProvider properties, an SSO provider also has a property
         // to control automatic token refresh (it's enabled by default on the assumption that developers
@@ -387,8 +404,8 @@ limitations under the License.
                         _automaticTokenRefresh = value;
                     } else {
                         throw new Error(progress.data._getMsgText("jsdoMSG061",
-                                                                  "AuthenticationProvider",
-                                                                  "automaticTokenRefresh"));
+                            "AuthenticationProvider",
+                            "automaticTokenRefresh"));
                     }
                 },
                 enumerable: true
@@ -418,10 +435,10 @@ limitations under the License.
             this._loggedIn = true;
         }
         
-      // END OF CONSTRUCTOR PROCESSING
+        // END OF CONSTRUCTOR PROCESSING
         
     };
-   // END OF AuthenticationProviderSSO CONSTRUCTOR
+    // END OF AuthenticationProviderSSO CONSTRUCTOR
 
     // NOTE: This is used only for the SSO authentication.
     // Define the prototype as an instance of an AuthenticationProviderForm object
@@ -443,7 +460,7 @@ limitations under the License.
         function () {
             progress.data.AuthenticationProviderSSO.prototype._storeInfo._super.apply(this);
             this._storage.setItem(this._dataKeys.automaticTokenRefresh,
-                                  JSON.stringify(this._automaticTokenRefresh));
+                JSON.stringify(this._automaticTokenRefresh));
         };
     progress.data.AuthenticationProviderSSO.prototype._storeInfo._super = fn;
 

@@ -1,7 +1,7 @@
 /* 
-progress.js    Version: 4.4.1-01
+progress.js    Version: 5.0.0
 
-Copyright (c) 2012-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 
  */
 
+/*global $, progress:true*/
 (function () {
 
     // "use strict";
@@ -53,9 +54,9 @@ limitations under the License.
 
     var msg = {};
     msg.msgs = {};
-//        msg numbers   0 -  99 are related to use of the API (methods and properties we expose to developers)
-//                    100 - 109 relate to network errors
-//                    110 - 998 are for miscellaneous errors
+    //        msg numbers   0 -  99 are related to use of the API (methods and properties we expose to developers)
+    //                    100 - 109 relate to network errors
+    //                    110 - 998 are for miscellaneous errors
                     
     msg.msgs.jsdoMSG000 = "JSDO, Internal Error: {1}";
     msg.msgs.jsdoMSG001 = "JSDO: JSDO has multiple tables. Please use {1} at the table reference level.";
@@ -115,6 +116,7 @@ limitations under the License.
     msg.msgs.jsdoMSG060 = "AuthenticationProvider: AuthenticationProvider is no longer logged in. " +
         "Tried to refresh SSO token but failed due to authentication error at token server.";
     msg.msgs.jsdoMSG061 = "{1}: Attempted to set {2} property to an invalid value.";
+    msg.msgs.jsdoMSG062 = "{1}: Cannot call {2} when an AuthenticationProvider is already available and logged in.";
     
     //                    100 - 109 relate to network errors
     msg.msgs.jsdoMSG100 = "JSDO: Unexpected HTTP response. Too many records.";
@@ -131,10 +133,10 @@ limitations under the License.
     msg.msgs.jsdoMSG115 = "JSDO: Invalid option specified in {1}() call.";
     msg.msgs.jsdoMSG116 = "JSDO: {1} parameter must be a string in {2} call.";
     msg.msgs.jsdoMSG117 = "JSDO: Schema from storage area '{1}' does not match JSDO schema";
-	msg.msgs.jsdoMSG118 = "JSDO: Plugin '{1}' was not found.";
-	msg.msgs.jsdoMSG119 = "JSDO: A mappingType is expected when 'capabilities' is set." +
+    msg.msgs.jsdoMSG118 = "JSDO: Plugin '{1}' was not found.";
+    msg.msgs.jsdoMSG119 = "JSDO: A mappingType is expected when 'capabilities' is set." +
                                 " Please specify a plugin (ex: JFP).";
-	msg.msgs.jsdoMSG120 = "JSDO: Parameter '{2}' requires capability '{1}' in the catalog.";
+    msg.msgs.jsdoMSG120 = "JSDO: Parameter '{2}' requires capability '{1}' in the catalog.";
     msg.msgs.jsdoMSG121 = "{1}: Argument {2} must be of type {3} in {4} call.";
     msg.msgs.jsdoMSG122 = "{1}: Incorrect number of arguments in {2} call. There should be {3}.";
     msg.msgs.jsdoMSG123 = "{1}: A server response included an invalid '{2}' header.";
@@ -152,9 +154,9 @@ limitations under the License.
     msg.msgs.jsdoMSG503 = "{1}: '{2}' must be of type '{3}'.";
     msg.msgs.jsdoMSG504 = "{1}: {2} has an invalid value for the '{3}' property.";
     msg.msgs.jsdoMSG505 = "{1}: '{2}' objects must have a '{3}' method.";
-                // use message below if invalid parameter value is an object    
+    // use message below if invalid parameter value is an object    
     msg.msgs.jsdoMSG506 = "{1}: Invalid argument for the {2} parameter in {3} call.";
-                // use message below if invalid parameter value is a primitive
+    // use message below if invalid parameter value is a primitive
     msg.msgs.jsdoMSG507 = "{1}: '{2}' is an invalid value for the {3} parameter in {4} call.";
     msg.msgs.jsdoMSG508 = "JSDOSession: If a JSDOSession object is using the SSO authentication model, " +
         "the options object passed to its constructor must include an authProvider property.";
@@ -163,6 +165,7 @@ limitations under the License.
     msg.msgs.jsdoMSG510 = "{1}: This session has been invalidated and cannot be used.";
     msg.msgs.jsdoMSG511 = "JSDOSession: addCatalog() can only be called if an AuthenticationProvider was passed as an argument or " +
         "connect() has been successfully called.";
+    msg.msgs.jsdoMSG512 = "JSDOSession: Error while loading multiple catalogs.";
     
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 
@@ -181,17 +184,17 @@ limitations under the License.
 
     progress.data._getMsgText = msg.getMsgText;
 	
-	progress.data.PluginManager = {};
-	progress.data.PluginManager._plugins = {};
+    progress.data.PluginManager = {};
+    progress.data.PluginManager._plugins = {};
 	
-	progress.data.PluginManager.addPlugin = function(name, plugin) {
+    progress.data.PluginManager.addPlugin = function(name, plugin) {
         if (progress.data.PluginManager._plugins[name] === undefined) {
             progress.data.PluginManager._plugins[name] = plugin;
-		}
+        }
         else {
             throw new Error("A plugin named '" + name + "' is already registered.");
-		}
-	};
+        }
+    };
 		
     progress.data.PluginManager.getPlugin = function (name) {
         return progress.data.PluginManager._plugins[name];
@@ -216,6 +219,7 @@ limitations under the License.
         // Data structure
         this._data = [];
         this._index = {};
+        this._tmpIndex = {};
         this._hasEmptyBlocks = false;
 
         // Arrays to keep track of changes
@@ -229,6 +233,7 @@ limitations under the License.
         this._createIndex = function () {
             var i, block, id, idProperty;
             this._index = {};
+            this._tmpIndex = {};
             this._hasEmptyBlocks = false;
             for (i = 0; i < this._data.length; i += 1) {
                 block = this._data[i];
@@ -241,7 +246,7 @@ limitations under the License.
                     idProperty = this._jsdo._resource.idProperty;
                     if (typeof(idProperty) == "string") {
                         id = this._data[i][idProperty];
-                        if (!id) {
+                        if (id === undefined) {
                             throw new Error(msg.getMsgText("jsdoMSG114", idProperty, this._name));
                         }
                         id += "";
@@ -249,6 +254,7 @@ limitations under the License.
                     else {
                         id = progress.data._getNextId();
                     }
+                    id += ""; // ID Property
                     this._data[i]._id = id;
                 }
                 this._index[id] = new progress.data.JSIndexEntry(i);
@@ -281,9 +287,10 @@ limitations under the License.
                 jsrecord,
                 tmpDataIndex,
                 tmpDeletedIndex,
-                i;
+                i,
+                j;
 
-                if (prodsBeforeData && prodsBeforeData[this._name]) {
+            if (prodsBeforeData && prodsBeforeData[this._name]) {
 
                 if ((Object.keys(this._beforeImage).length !== 0) && keyFields && (keyFields.length !== 0)) {
                     tmpKeyIndex = {};
@@ -327,7 +334,7 @@ limitations under the License.
                             }
 
                             // We also want to check if _deleted record already exists
-                            for (var j = 0; j < this._deleted.length; j++) {
+                            for (j = 0; j < this._deleted.length; j++) {
                                 record2 = this._deleted[j].data;
                                 if (!record2) continue;
 
@@ -371,54 +378,54 @@ limitations under the License.
             // First check if there is after-data for table. Can be called with just before-image data
             var tableObject = jsonObject[this._jsdo._dataSetName][this._name];
             if (tableObject) {
-                for (var i = 0; i < jsonObject[this._jsdo._dataSetName][this._name].length; i++) {
+                for (i = 0; i < jsonObject[this._jsdo._dataSetName][this._name].length; i++) {
                     record = jsonObject[this._jsdo._dataSetName][this._name][i];
                     recordId = undefined;
                     if (beforeImageJsonIndex && record["prods:id"]) {
                         recordId = beforeImageJsonIndex[record["prods:id"]];
                     }
                     switch (record["prods:rowState"]) {
-                        case "created":
-                            if (recordId === undefined) {
-                                recordId = record._id;
-                            }
+                    case "created":
+                        if (recordId === undefined) {
+                            recordId = record._id;
+                        }
 
-                            // If recordId and record._id are undefined, the record was not processed
-                            if (recordId !== undefined) {
-                                this._beforeImage[recordId] = null;
-                                this._added.push(recordId);
-                            }
-                            break;
-                        case "modified":
-                            var beforeRecord = tmpIndex[record["prods:id"]];
-                            if (beforeRecord === undefined) {
-                                beforeRecord = {};
-                            }
+                        // If recordId and record._id are undefined, the record was not processed
+                        if (recordId !== undefined) {
+                            this._beforeImage[recordId] = null;
+                            this._added.push(recordId);
+                        }
+                        break;
+                    case "modified":
+                        var beforeRecord = tmpIndex[record["prods:id"]];
+                        if (beforeRecord === undefined) {
+                            beforeRecord = {};
+                        }
 
-                            if (recordId === undefined) {
-                                recordId = record._id;
-                            }
-                            // If recordId and record._id are undefined, the record was not processed
-                            if (recordId !== undefined) {
-                                beforeRecord._id = record._id;
+                        if (recordId === undefined) {
+                            recordId = record._id;
+                        }
+                        // If recordId and record._id are undefined, the record was not processed
+                        if (recordId !== undefined) {
+                            beforeRecord._id = record._id;
 
-                                var copy = {};
-                                this._jsdo._copyRecord(
-                                    this._tableRef, beforeRecord, copy);
-                                this._jsdo._deleteProdsProperties(copy);
+                            var copy = {};
+                            this._jsdo._copyRecord(
+                                this._tableRef, beforeRecord, copy);
+                            this._jsdo._deleteProdsProperties(copy);
 
-                                this._beforeImage[recordId] = copy;
-                                this._changed[recordId] = record;
+                            this._beforeImage[recordId] = copy;
+                            this._changed[recordId] = record;
 
-                                this._beforeImage[beforeRecord._id] = copy;
-                                this._changed[beforeRecord._id] = record;
-                            }
-                            break;
-                        case undefined:
-                            break; // rowState is only specified for records that have changed
-                        default:
-                            throw new Error(msg.getMsgText("jsdoMSG030", 
-                                "rowState value in before-image data", "'created' or 'modified'"));
+                            this._beforeImage[beforeRecord._id] = copy;
+                            this._changed[beforeRecord._id] = record;
+                        }
+                        break;
+                    case undefined:
+                        break; // rowState is only specified for records that have changed
+                    default:
+                        throw new Error(msg.getMsgText("jsdoMSG030", 
+                            "rowState value in before-image data", "'created' or 'modified'"));
                     }
                 }
             }
@@ -426,7 +433,7 @@ limitations under the License.
             // Process prods:errors
             var prodsErrors = jsonObject[this._jsdo._dataSetName]["prods:errors"];
             if (prodsErrors) {
-                for (var i = 0; i < prodsErrors[this._name].length; i++) {
+                for (i = 0; i < prodsErrors[this._name].length; i++) {
                     var item = prodsErrors[this._name][i];
                     var recordId = beforeImageJsonIndex[item["prods:id"]];
                     var jsrecord = this._findById(recordId, false);
@@ -448,6 +455,7 @@ limitations under the License.
             // Data structure
             this._data = [];
             this._index = {};
+            this._tmpIndex = {};
             this._createIndex();
 
             // Arrays to keep track of changes
@@ -480,12 +488,24 @@ limitations under the License.
             return data.length !== 0;
         };
 
+        // Public method that returns data. Before returning data,
+        // a compaction is performed (removal of null record entries)
         this.getData = function (params) {
+            if (this._needCompaction || this._hasEmptyBlocks) {
+                this._compact();
+            }
+
+            return this._getData(params);
+        }
+
+        // Private method that returns data. It optimizes compaction (removal of null record entries)
+        this._getData = function (params) {
             var i, 
                 data,
                 numEmptyBlocks,
                 newDataArray,
-                block;
+                block,
+                field;
                 
             if (this._needCompaction) {
                 this._compact();
@@ -535,7 +555,7 @@ limitations under the License.
             if (params && (params.sort || params.top)) {
                 if (params.sort) {
                     // Converts sort option from Kendo UI to sort option used by the JSDO
-                    sortFields = [];
+                    var sortFields = [];
                     for (i = 0; i < params.sort.length; i += 1) {
                         field = params.sort[i].field;
                         if (params.sort[i].dir == "desc") {
@@ -691,7 +711,7 @@ limitations under the License.
                 if (schema[i].type == "array") {
                     record[fieldName] = [];
                     if (schema[i].maxItems) {
-                        for (var j = 0; j < schema[i].maxItems; j++) {
+                        for (j = 0; j < schema[i].maxItems; j++) {
                             record[fieldName][j] = this._jsdo._getDefaultValue(schema[i]);
                         }
                     }
@@ -717,8 +737,8 @@ limitations under the License.
                                 delete values[prefixElement.name + (j+1)];                            
                                 if (typeof value == 'string' && schema[i].items.type != 'string') {
                                     value = this._jsdo._convertType(value,
-                                                                              schema[i].items.type,
-                                                                              null);
+                                        schema[i].items.type,
+                                        null);
                                 }                                
                                 record[fieldName][j] = value;                                
                             }
@@ -733,7 +753,7 @@ limitations under the License.
             // Assign values based on a relationship
             if (this._jsdo.useRelationships && this._relationship && this._parent) {
                 if (this._jsdo._buffers[this._parent].record) {
-                    for (var j = 0; j < this._relationship.length; j++) {
+                    for (j = 0; j < this._relationship.length; j++) {
                         record[this._relationship[j].childFieldName] =
                         this._jsdo._buffers[this._parent].record.data[this._relationship[j].parentFieldName];
                     }
@@ -746,7 +766,7 @@ limitations under the License.
                 record[v] = values[v];
             }
 
-            // Specify _id field - do not use schema default        
+            // Specify _id field - do not use schema default
             var id;
             var idProperty;
             if ((idProperty = this._jsdo._resource.idProperty) !== undefined) {
@@ -758,6 +778,7 @@ limitations under the License.
             else {
                 id += "";
             }
+            id += ""; // ID Property
             record._id = id;
 
             if (this.autoSort
@@ -769,7 +790,7 @@ limitations under the License.
                 }
                 else {
                     // Find position of new record in _data and use splice
-                    for (var i = 0; i < this._data.length; i++) {
+                    for (i = 0; i < this._data.length; i++) {
                         if (this._data[i] === null) continue; // Skip null elements
                         var ret = this._sortFn ?
                             this._sortFn(record, this._data[i]) :
@@ -1002,10 +1023,10 @@ limitations under the License.
                 return 0;
         };
 
-		// getErrors() - JSTableRef
-		this.getErrors = function () {
-			return this._lastErrors;
-		};
+        // getErrors() - JSTableRef
+        this.getErrors = function () {
+            return this._lastErrors;
+        };
 
         this.getErrorString = function () {
             if (this.record) {
@@ -1129,7 +1150,7 @@ limitations under the License.
                 var value = record[fieldName];
 
                 if (!jsdo[tableName].caseSensitive) {
-                    field = jsdo[tableName]._fields[fieldName.toLowerCase()];
+                    var field = jsdo[tableName]._fields[fieldName.toLowerCase()];
                     if (field && field.type == "string") {
                         if (value !== undefined && value !== null)
                             value = value.toUpperCase();
@@ -1265,18 +1286,18 @@ limitations under the License.
                         fieldName = sortObject.sortFields[i].substring(0, idx);
                         var sortOrder = sortObject.sortFields[i].substring(idx + 1);
                         switch (sortOrder.toUpperCase()) {
-                            case 'ASCENDING':
-                            case 'ASC':
-                                sortObject.sortAscending[i] = true;
-                                break;
-                            case 'DESCENDING':
-                            case 'DESC':
-                                sortObject.sortAscending[i] = false;
-                                break;
-                            default:
-                                throw new Error(msg.getMsgText("jsdoMSG030", 
-                                    "sort order '" + sortObject.sortFields[i].substring(idx + 1) + "'", 
-                                    "ASCENDING or DESCENDING"));
+                        case 'ASCENDING':
+                        case 'ASC':
+                            sortObject.sortAscending[i] = true;
+                            break;
+                        case 'DESCENDING':
+                        case 'DESC':
+                            sortObject.sortAscending[i] = false;
+                            break;
+                        default:
+                            throw new Error(msg.getMsgText("jsdoMSG030", 
+                                "sort order '" + sortObject.sortFields[i].substring(idx + 1) + "'", 
+                                "ASCENDING or DESCENDING"));
                         }
                     }
                     else {
@@ -1485,7 +1506,38 @@ limitations under the License.
                 result.push(item);
             }
             return result;
-        };        
+        };
+
+        /*
+         * Private method to clear out _errorString for the specified table reference.
+         * If a row change was rejected, _errorString was set.
+         * If saveChanges() is called to retry the row change, _errorString needs to be reset.
+         * This could occur if the autoApplyChanges property is false.
+         */
+        this._clearErrorStrings = function () {
+            var record = null;
+
+            for (var id in this._beforeImage) {
+                // Create has id only in _beforeImage entry
+                if (this._beforeImage[id] === null) {
+                    record = this._findById(id, false);
+                    if (record) {
+                        delete record.data._errorString;
+                    }
+                }
+                else {
+                    // Get Updated entry
+                    record = this._findById(id, false);
+                    if (record) {
+                        delete record.data._errorString;
+                    }
+                    else {
+                        //  Deleted entry only in beforeImage table
+                        delete this._beforeImage[id]._errorString;
+                    }
+                }
+            }
+        }; 
 
         /*
          * Private method to apply changes for the specified table reference.
@@ -1493,10 +1545,23 @@ limitations under the License.
          * If it has not been set, acceptRowChanges() is called.
          */
         this._applyChanges = function () {
+            var i;
+
             for (var id in this._beforeImage) {
                 //  Create
                 if (this._beforeImage[id] === null) {
                     var jsrecord = this._findById(id, false);
+                    
+                    // Check _tmpIndex for temporary _id
+                    if (jsrecord === null
+                        && this._jsdo._resource.idProperty !== undefined) {
+                        if (this._tmpIndex[id]) {
+                            var record = this._data[this._tmpIndex[id].index];
+                            jsrecord = record ? (new progress.data.JSRecord(this, record)) : null;
+                            delete this._tmpIndex[id];
+                        }
+                    }
+
                     if (jsrecord !== null) {
                         if (jsrecord.data._rejected
                             || (jsrecord.data._errorString !== undefined)) {
@@ -1542,7 +1607,7 @@ limitations under the License.
                         }
                         else {
                             var found = false;
-                            for (var i = 0; i < this._deleted.length; i++) {
+                            for (i = 0; i < this._deleted.length; i++) {
                                 found = (this._deleted[i].data._id == id);
                                 if (found) break;
                             }
@@ -1751,8 +1816,8 @@ limitations under the License.
                                 if (!this._tableRef._fields[name.toLowerCase()]) {                                
                                     if (typeof value == 'string' && schema[i].items.type != 'string') {
                                         value = this._tableRef._jsdo._convertType(value,
-                                                                                  schema[i].items.type,
-                                                                                  null);
+                                            schema[i].items.type,
+                                            null);
                                     }                                
                                     this.data[fieldName][j] = value;
                                 }
@@ -1987,6 +2052,39 @@ limitations under the License.
                 });
         };
 
+        Object.defineProperty(
+            this,
+            'hasSubmitOperation',
+            {
+                get: function () {
+                    return this._hasSubmitOperation;
+                },
+                enumerable: true
+            }
+        );
+
+        Object.defineProperty(
+            this,
+            'hasCUDOperations',
+            {
+                get: function () {
+                    return this._hasCUDOperations;
+                },
+                enumerable: true
+            }
+        );
+
+        Object.defineProperty(
+            this,
+            'defaultTableRef',
+            {
+                get: function () {
+                    return this._defaultTableRef;
+                },
+                enumerable: true
+            }
+        );		
+		
         // Initial values
         this._buffers = {};         // Object of table references
         this._numBuffers = 0;
@@ -2009,6 +2107,7 @@ limitations under the License.
         this._lastErrors = [];
         this._localStorage = null;
         this._convertForServer;
+        this._fillMergeMode;
         var autoFill = false;
 
         // Initialize JSDO using init values
@@ -2018,27 +2117,27 @@ limitations under the License.
 
         if (typeof(arguments[0]) == "string") {
             this.name = arguments[0];
-//		if ( arguments[1] && (typeof(arguments[1]) ==  "string") )
-//			localServiceName = serviceName;
+            //		if ( arguments[1] && (typeof(arguments[1]) ==  "string") )
+            //			localServiceName = serviceName;
         }
         else if (typeof(arguments[0]) == "object") {
             var args = arguments[0];
             for (var v in args) {
                 switch (v) {
-                    case 'autoFill':
-                        autoFill = args[v];
-                        break;
-                    case 'events':
-                        this._events = {};
-                        for (var eventName in args[v]) {
-                            this._events[eventName.toLowerCase()] = args[v][eventName];
-                        }
-                        break;
-                    case 'dataProperty':
-                        this._dataProperty = args[v];
-                        break;
-                    default:
-                        this[v] = args[v];
+                case 'autoFill':
+                    autoFill = args[v];
+                    break;
+                case 'events':
+                    this._events = {};
+                    for (var eventName in args[v]) {
+                        this._events[eventName.toLowerCase()] = args[v][eventName];
+                    }
+                    break;
+                case 'dataProperty':
+                    this._dataProperty = args[v];
+                    break;
+                default:
+                    this[v] = args[v];
                 }
             }
         }
@@ -2111,6 +2210,21 @@ limitations under the License.
                     this._buffers[tableName] = new progress.data.JSTableRef(this, tableName);
                     if (tableName)
                         this[tableName] = this._buffers[tableName];
+                }
+
+                // Set idProperty from table reference level at the resource level
+                var properties,
+                    tableName;
+                if (this._dataSetName
+                    && this._resource.schema
+                    && this._resource.schema.properties[this._dataSetName]) {
+                    properties = this._resource.schema.properties[this._dataSetName].properties;
+                    if (Object.keys(properties).length === 1) {
+                        tableName = Object.keys(properties)[0];
+                        if (properties[tableName].idProperty) {
+                            this._resource.idProperty = properties[tableName].idProperty;
+                        }
+                    }
                 }
 
                 // Add functions for operations to JSDO object
@@ -2210,14 +2324,14 @@ limitations under the License.
         this._properties = {};
         if ((typeof Object.defineProperty) == 'function') {
             Object.defineProperty( this, 
-                                   "this._properties",
-                                   {  
-                                       get: function () {
-                                            return this._properties;
-                                       },
-                                       enumerable: false
-                                   }
-                                 );
+                "this._properties",
+                {  
+                    get: function () {
+                        return this._properties;
+                    },
+                    enumerable: false
+                }
+            );
             
         }
 
@@ -2250,16 +2364,16 @@ limitations under the License.
                         if (typeof(this._buffers[buf][fieldName]) == 'undefined') {
                             this._defineProperty(buf, fieldName);
                         }
-						if (fieldInfo.type === "array") {
-							for (var j = 0; j < fieldInfo.maxItems; j += 1) {
+                        if (fieldInfo.type === "array") {
+                            for (var j = 0; j < fieldInfo.maxItems; j += 1) {
                                 var name = fieldName + progress.data.JSDO.ARRAY_INDEX_SEPARATOR + (j + 1);
                                 // Skip element if a field with the same name exists                                
                                 // Only create property if the name is not being used
                                 if (!this._buffers[buf]._fields[name.toLowerCase()]) {
                                     this._defineProperty(buf, name);
                                 }
-							}
-						}                        
+                            }
+                        }                        
                     }
                 }
             }
@@ -2338,7 +2452,8 @@ limitations under the License.
                     this._buffers[relationship.parentName]._children.push(relationship.childName);
                 }
             }
-        }      
+        }
+
         
         this._getDefaultValue = function (field) {
             var defaultValue,
@@ -2361,23 +2476,23 @@ limitations under the License.
             
             if (isDate) {
                 switch (field["default"].toUpperCase()) {
-                    case "NOW":
-                        defaultValue = new Date().toISOString();
-                        break;
-                    case "TODAY":
-                        t = new Date();
-                        m = String((t.getMonth() + 1));
-                        if (m.length === 1) {
-                            m = '0' + m;
-                        }
-                        d = String((t.getDate()));
-                        if (d.length === 1) {
-                            d = '0' + d;
-                        }
-                        defaultValue = t.getFullYear() + '-' + m + '-' + d;
-                        break;
-                    default:
-                        defaultValue = field["default"];
+                case "NOW":
+                    defaultValue = new Date().toISOString();
+                    break;
+                case "TODAY":
+                    t = new Date();
+                    m = String((t.getMonth() + 1));
+                    if (m.length === 1) {
+                        m = '0' + m;
+                    }
+                    d = String((t.getDate()));
+                    if (d.length === 1) {
+                        d = '0' + d;
+                    }
+                    defaultValue = t.getFullYear() + '-' + m + '-' + d;
+                    break;
+                default:
+                    defaultValue = field["default"];
                 }
             }
             
@@ -2415,7 +2530,7 @@ limitations under the License.
                 else {
                     request.deferred.reject(jsdo, success, request);
                 }
-            }            
+            }
         };
 
         /* handler for invoke operation success */
@@ -2497,8 +2612,8 @@ limitations under the License.
             this._session._openRequest(xhr, method, url, request.async, afterOpenRequest);
 
             return request;  // Note: for the async case, this does not give us exactly the same behavior
-                             // as when afterOpenRequest is called synchronously, because this returns
-                             // request before its xhr has had its open() called
+            // as when afterOpenRequest is called synchronously, because this returns
+            // request before its xhr has had its open() called
         };
 
 
@@ -2701,7 +2816,7 @@ limitations under the License.
                     var elements = value.split(',');
                     var convertItem = (itemType && (itemType != 'string'));
                     for (var i = 0; i < elements.length; i++) {
-                       result[i] = convertItem ? this._convertType(elements[i], itemType, null) : elements[i];
+                        result[i] = convertItem ? this._convertType(elements[i], itemType, null) : elements[i];
                     }
                 }
                 else if (type == 'integer') {
@@ -2746,12 +2861,12 @@ limitations under the License.
             throw new Error(msg.getMsgText("jsdoMSG001", "getId()"));
         };
 
-		// getErrors() - JSDO
-		this.getErrors = function () {
+        // getErrors() - JSDO
+        this.getErrors = function () {
             if (this._defaultTableRef)
                 return this._defaultTableRef.getErrors();
             throw new Error(msg.getMsgText("jsdoMSG001", "getErrors()"));
-		};
+        };
 
         this.getErrorString = function () {
             if (this._defaultTableRef)
@@ -2792,12 +2907,22 @@ limitations under the License.
             throw new Error(msg.getMsgText("jsdoMSG001", "sort()"));
         };
 
-		this._clearErrors = function () {
-			this._lastErrors = [];
+        this._clearErrors = function (clearErrorString) {
+            /* Default to false */
+            if (typeof(clearErrorString) == 'undefined') {
+                clearErrorString = false;
+            }
+            
+            this._lastErrors = [];
             for (var buf in this._buffers) {
-				this._buffers[buf]._lastErrors = [];
-			}
-		};
+                this._buffers[buf]._lastErrors = [];
+                
+                // Clears out errorString for any rejected row change
+                if (clearErrorString) {
+                    this._buffers[buf]._clearErrorStrings()
+                }
+            }
+        };
 
         /**
          * setAllRecordsRejected
@@ -2808,7 +2933,7 @@ limitations under the License.
          * 
          * @param {*} param - Array with changes or boolean with value
          */
-		this._setAllRecordsRejected = function (param) {
+        this._setAllRecordsRejected = function (param) {
             var changes,
                 hasErrors,
                 hasRejected,
@@ -2892,7 +3017,7 @@ limitations under the License.
                 this._allRecordsRejected = param;
                 this._someRecordsRejected = param;
             }
-		};
+        };
 
         /*
          * Loads data from the HTTP resource.
@@ -2900,128 +3025,157 @@ limitations under the License.
         this.fill = function () {
             var objParam,
                 promise,
-				properties,
-				mapping;
+                properties,
+                mapping;
 
-            // Clear errors before sending request                
-			this._clearErrors();
+            try {
+                // Clear errors before sending request                
+                this._clearErrors();
 
-            // Reset _allRecordsRejected
-            this._setAllRecordsRejected(undefined);
+                // Reset _allRecordsRejected
+                this._setAllRecordsRejected(undefined);
 
-            // Process parameters
-            if (arguments.length !== 0) {
-                // Call to fill() has parameters
-                if (typeof(arguments[0]) == 'function') {
-                    throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "fill() or read()"));                
-                }
-
-                properties = this.getMethodProperties("read");
-                
-                // Get plugin if mappingType is not undefined, null, or ""
-                if (properties && properties.mappingType) {
-                    mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
-                    if (!mapping) {
-                        throw new Error(msg.getMsgText("jsdoMSG118", properties.mappingType));		
+                // Process parameters
+                if (arguments.length !== 0) {
+                    // Call to fill() has parameters
+                    if (typeof(arguments[0]) == 'function') {
+                        throw new Error(msg.getMsgText("jsdoMSG024", "JSDO", "fill() or read()"));                
                     }
-                }
 
-                // fill( string);
-                var filter;
-                if (arguments[0] === null || arguments[0] === undefined) {
-                    filter = "";
-                }
-                else if (typeof(arguments[0]) == "string") {
-                    filter = arguments[0];
-					objParam = {filter: filter};     
-				}
-                else if (typeof(arguments[0]) == "object") {
-                    // options 
-                    // ablFilter, id, top, skip, sort
-					
-                    // Use plugin if mappingType is not undefined, null, or ""
-					if (mapping) {
-						if (typeof(mapping.requestMapping) === "function") {
-							objParam = mapping.requestMapping(this, arguments[0], { operation: "read" });
-						}
-						else {
-							objParam = arguments[0];
-						} 
-					}
-					else {
-                        if (properties.capabilities) {
-                            throw new Error(msg.getMsgText("jsdoMSG119"));
+                    properties = this.getMethodProperties("read");
+                    
+                    // Get plugin if mappingType is not undefined, null, or ""
+                    if (properties && properties.mappingType) {
+                        mapping = progress.data.PluginManager.getPlugin(properties.mappingType);
+                        if (!mapping) {
+                            throw new Error(msg.getMsgText("jsdoMSG118", properties.mappingType));		
                         }
-						objParam = arguments[0];						
-					}
+                    }
+
+                    // fill( string);
+                    var filter;
+                    if (arguments[0] === null || arguments[0] === undefined) {
+                        filter = "";
+                    }
+                    else if (typeof(arguments[0]) == "string") {
+                        filter = arguments[0];
+                        objParam = {filter: filter};     
+                    }
+                    else if (typeof(arguments[0]) == "object") {
+                        // options 
+                        // ablFilter, id, top, skip, sort
+
+                        if (arguments[0].mergeMode){
+                            this._fillMergeMode = arguments[0].mergeMode
+                            switch(arguments[0].mergeMode) {
+                                case progress.data.JSDO.MODE_APPEND: 
+                                case progress.data.JSDO.MODE_EMPTY:
+                                case progress.data.JSDO.MODE_MERGE:
+                                case progress.data.JSDO.MODE_REPLACE:
+                                        break;
+                                default:
+                                    throw new Error(msg.getMsgText("jsdoMSG022"));
+                            }
+                            
+                        }
+                        
+                        // Use plugin if mappingType is not undefined, null, or ""
+                        if (mapping) {
+                            if (typeof(mapping.requestMapping) === "function") {
+                                objParam = mapping.requestMapping(this, arguments[0], { operation: "read" });
+                            }
+                            else {
+                                objParam = arguments[0];
+                            } 
+                        }
+                        else {
+                            if (properties.capabilities) {
+                                throw new Error(msg.getMsgText("jsdoMSG119"));
+                            }
+                            objParam = arguments[0];
+                        }
+                    }
+                    else {
+                        throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "fill() or read()"));
+                    }                  
                 }
                 else {
-                    throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "fill() or read()"));
-                }                  
-            }
-            else {
-                // fill();			
-                objParam = null;
-            }
+                    // fill();			
+                    objParam = null;
+                }
 
-            var xhr = new XMLHttpRequest();
-            var request = {
-                xhr: xhr,
-                jsdo: this,
-                objParam: objParam
-            };
+                var xhr = new XMLHttpRequest();
+                var request = {
+                    xhr: xhr,
+                    jsdo: this,
+                    objParam: objParam
+                };
 
-            xhr.request = request;
-            xhr.jsdo = this;
+                xhr.request = request;
+                xhr.jsdo = this;
 
-            xhr.onSuccessFn = this._fillSuccess;
-            xhr.onErrorFn = this._fillError;
-            xhr.onCompleteFn = this._fillComplete;
-            xhr.onreadystatechange = this.onReadyStateChangeGeneric;
+                xhr.onSuccessFn = this._fillSuccess;
+                xhr.onErrorFn = this._fillError;
+                xhr.onCompleteFn = this._fillComplete;
+                xhr.onreadystatechange = this.onReadyStateChangeGeneric;
 
-            this.trigger("beforeFill", this, request);
+                this.trigger("beforeFill", this, request);
 
-            if (this._resource) {
-                if (typeof(this._resource.generic.read) == "function") {
-                    xhr.objParam = objParam;
-                    this._resource.generic.read.call(this, xhr, this._async);
-                    if (xhr.request.deferred) {
-                        promise = xhr.request.deferred.promise();
+                if (this._resource) {
+                    if (typeof(this._resource.generic.read) == "function") {
+                        xhr.objParam = objParam;
+                        this._resource.generic.read.call(this, xhr, this._async);
+                        if (xhr.request.deferred) {
+                            promise = xhr.request.deferred.promise();
+                        }
+                    }
+                    else {
+                        throw new Error("JSDO: READ operation is not defined.");
                     }
                 }
-                else {
-                    throw new Error("JSDO: READ operation is not defined.");
+                else {                
+                    // Old approach to call READ
+                    this._session._openRequest(xhr, 'GET', this.url, this._async);
+                    try {
+                        xhr.send(null);
+                    }
+                    catch (e) {
+                        request.exception = e;
+                        // get the Client Context ID (AppServer ID)
+                        xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+                    }
                 }
-            }
-            else {                
-                // Old approach to call READ
-                this._session._openRequest(xhr, 'GET', this.url, this._async);
-                try {
-                    xhr.send(null);
-                }
-                catch (e) {
-                    request.exception = e;
+            
+                // This is the scenario where the read.call did not reach server. i.e.,
+                // some problem in between making successful call to server and we are 
+                // completing the fill() operation with necessary cleanup operations
+                if (request.success == false && request.exception) {                
+
+                    if ((typeof xhr.onErrorFn) == 'function') {
+                        xhr.onErrorFn(xhr.jsdo, request.success, request);
+                    }
+
                     // get the Client Context ID (AppServer ID)
                     xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+
+                    if ((typeof xhr.onCompleteFn) == 'function') {
+                        xhr.onCompleteFn(xhr.jsdo, request.success, request);
+                    }
+                }
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    var deferred;
+                    if (!(xhr && xhr.deferred)) {
+                        deferred = new progress.util.Deferred();
+                        promise = deferred.promise();
+                    }
+                    deferred.reject(this, false, {
+                        errorObject: error
+                    });
                 }
             }
-			
-			// This is the scenario where the read.call did not reach server. i.e.,
-            // some problem in between making successful call to server and we are 
-            // completing the fill() operation with necessary cleanup operations
-            if (request.success == false && request.exception) {
-                if ((typeof xhr.onErrorFn) == 'function') {
-                    xhr.onErrorFn(xhr.jsdo, request.success, request);
-                }
-
-                // get the Client Context ID (AppServer ID)
-                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
-
-                if ((typeof xhr.onCompleteFn) == 'function') {
-                    xhr.onCompleteFn(xhr.jsdo, request.success, request);
-                }
-            }
-
             return promise;
         };
 
@@ -3041,7 +3195,7 @@ limitations under the License.
          * Executes a CRUD operation using the built-in API.
          */
         this._execGenericOperation = function (operation, objParam, request, 
-                                               onCompleteFn, onSuccessFn, onErrorFn) {
+            onCompleteFn, onSuccessFn, onErrorFn) {
 
             var xhr = new XMLHttpRequest();
             request.xhr = xhr;
@@ -3059,15 +3213,15 @@ limitations under the License.
 
             var operationStr;
             switch (operation) {
-                case progress.data.JSDO._OP_READ:
-                case progress.data.JSDO._OP_CREATE:
-                case progress.data.JSDO._OP_UPDATE:
-                case progress.data.JSDO._OP_DELETE:
-                case progress.data.JSDO._OP_SUBMIT:
-                    operationStr = PROGRESS_JSDO_OP_STRING[operation];
-                    break;
-                default:
-                    throw new Error("JSDO: Unexpected operation " + operation + " in HTTP request.");
+            case progress.data.JSDO._OP_READ:
+            case progress.data.JSDO._OP_CREATE:
+            case progress.data.JSDO._OP_UPDATE:
+            case progress.data.JSDO._OP_DELETE:
+            case progress.data.JSDO._OP_SUBMIT:
+                operationStr = PROGRESS_JSDO_OP_STRING[operation];
+                break;
+            default:
+                throw new Error("JSDO: Unexpected operation " + operation + " in HTTP request.");
             }
 
             if (this._resource) {
@@ -3101,7 +3255,7 @@ limitations under the License.
                 for (i = 0; i < schema.length; i++) {
                     if (schema[i].ablType && this._ablTypeNeedsConversion(schema[i].ablType)) {
                         this._buffers[buf]._convertFieldsForServer.push({name: schema[i].name, 
-                                                                         ablType: schema[i].ablType});
+                            ablType: schema[i].ablType});
                     }
                 }
                 if (this._buffers[buf]._convertFieldsForServer.length > 0) {
@@ -3177,21 +3331,21 @@ limitations under the License.
             
             try {
                 switch (ablType.toUpperCase()) {
-                    case "DATE":
-                    case "DATETIME":
-                        if (typeof value === 'string') {
-                            result = value;
-                        }
-                        else if (value instanceof Date) {
-                            result = this._convertDate(value, ablType.toUpperCase());
-                        }
-                        else {
-                            throw new Error("Unexpected value for  " + ablType.toUpperCase() + ".");
-                        }
-                        break;
-                    default:
+                case "DATE":
+                case "DATETIME":
+                    if (typeof value === 'string') {
                         result = value;
-                        break;
+                    }
+                    else if (value instanceof Date) {
+                        result = this._convertDate(value, ablType.toUpperCase());
+                    }
+                    else {
+                        throw new Error("Unexpected value for  " + ablType.toUpperCase() + ".");
+                    }
+                    break;
+                default:
+                    result = value;
+                    break;
                 }
             }
             catch (e) {
@@ -3223,7 +3377,7 @@ limitations under the License.
                 }              
             }
             
-             return result;
+            return result;
         };
         
         
@@ -3232,10 +3386,10 @@ limitations under the License.
             var needsConversion = false;
             
             switch (ablType.toUpperCase()) {
-                case "DATE":
-                case "DATETIME":
-                    needsConversion =  true;
-                    break;
+            case "DATE":
+            case "DATETIME":
+                needsConversion =  true;
+                break;
             }
             
             return needsConversion;     
@@ -3254,59 +3408,71 @@ limitations under the License.
          * Saves changes in the JSDO. Save any outstanding changes for CREATES, UPDATE, and DELETEs
          */
         this.saveChanges = function (useSubmit) {
-            var promise,
+            var deferred,
+                promise,
                 request;
 
-            if (useSubmit === undefined) {
-                useSubmit = false;
-            }
-            else if (typeof(useSubmit) != 'boolean') {
-                throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "saveChanges()"));
-            }
-            
-            // _fireCUDTriggersForSubmit() needs to know how saveChanges() was called
-            this._useSubmit = useSubmit; 
+            try {
+                if (useSubmit === undefined) {
+                    useSubmit = false;
+                }
+                else if (typeof(useSubmit) != 'boolean') {
+                    throw new Error(msg.getMsgText("jsdoMSG025", "JSDO", "saveChanges()"));
+                }
+                
+                // _fireCUDTriggersForSubmit() needs to know how saveChanges() was called
+                this._useSubmit = useSubmit; 
 
-            // confirm the availability of the operations required for executing this saveChanges call
-            // (_checkThatJSDOHasRequiredOperations() throws an error if there's a missing operation,
-            // which this method deliberately allows to bubble up to the caller)
-            this._checkThatJSDOHasRequiredOperations(); 
-            
-            // Don't allow Submit with just a temp-table if autoApplyChanges is true
-            if ( !this._dataSetName && this._useSubmit && this.autoApplyChanges) {
-                  /* error message: "autoApplyChanges is not supported for submit with a temp-table */
-                  /* Use jsdo.autoApplyChanges = false." */
-                  throw new Error(msg.getMsgText("jsdoMSG124")); 
-            }
-            
-            // Check if any data being sent to server needs to first be converted
-            this._initConvertForServer();
-            
-            // Clear errors before sending request
-			this._clearErrors();
+                // confirm the availability of the operations required for executing this saveChanges call
+                // (_checkThatJSDOHasRequiredOperations() throws an error if there's a missing operation,
+                // which this method deliberately allows to bubble up to the caller)
+                this._checkThatJSDOHasRequiredOperations(); 
+                
+                // Don't allow Submit with just a temp-table if autoApplyChanges is true
+                if ( !this._dataSetName && this._useSubmit && this.autoApplyChanges) {
+                    /* error message: "autoApplyChanges is not supported for submit with a temp-table */
+                    /* Use jsdo.autoApplyChanges = false." */
+                    throw new Error(msg.getMsgText("jsdoMSG124")); 
+                }
+                
+                // Check if any data being sent to server needs to first be converted
+                this._initConvertForServer();
+                
+                // Clear errors before sending request
+                this._clearErrors(true);
 
-            // Reset _allRecordsRejected
-            this._setAllRecordsRejected(undefined);
+                // Reset _allRecordsRejected
+                this._setAllRecordsRejected(undefined);
 
-            request = {
-                jsdo: this
-            };
+                request = {
+                    jsdo: this
+                };
 
-            this.trigger("beforeSaveChanges", this, request);
+                this.trigger("beforeSaveChanges", this, request);
 
-            if (useSubmit) {
-                /* Pass in request object. 
-                 * Need to use same request object so before and after saveChanges events 
-                 * are in sync in JSDO Submit Service. */
-                promise = this._syncDataSetForSubmit(request);
+                if (useSubmit) {
+                    /* Pass in request object. 
+                    * Need to use same request object so before and after saveChanges events 
+                    * are in sync in JSDO Submit Service. */
+                    promise = this._syncDataSetForSubmit(request);
+                }
+                else if (this._dataSetName) {
+                    promise = this._syncDataSetForCUD();
+                }
+                else {
+                    promise = this._syncSingleTable();
+                }
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred = new progress.util.Deferred();
+                    promise = deferred.promise();
+                    deferred.reject(this, false, {
+                        errorObject: error
+                    });    
+                }
             }
-            else if (this._dataSetName) {
-                promise = this._syncDataSetForCUD();
-            }
-            else {
-                promise = this._syncSingleTable();
-            }
-            
             return promise;
         };
 
@@ -3387,12 +3553,28 @@ limitations under the License.
         };
         
         this.invoke = function (name, object) {
-            var request = this[name](object);
-            if (request.deferred) {
-                return request.deferred.promise();
+            var deferred, promise;
+
+            try {
+                var request = this[name](object);
+                if (request.deferred) {
+                    deferred = request.deferred;
+                    promise = request.deferred.promise();
+                }    
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    if (!deferred) {
+                        deferred = new progress.util.Deferred();
+                        promise = deferred.promise();
+                    }
+                    deferred.reject(this, false, {
+                        errorObject: error
+                    });    
+                }
             }
-            
-            return undefined;
+            return promise;
         };
 
         /*
@@ -3406,7 +3588,8 @@ limitations under the License.
         this._syncTableRef = function (operation, tableRef, batch) {
             var rowData,
                 requestData,
-                jsonObject;
+                jsonObject,
+                dataSetObject;
             
             if (tableRef._visited) return;
             tableRef._visited = true;
@@ -3423,158 +3606,159 @@ limitations under the License.
             // Before children
             // Create parent records before children
             switch (operation) {
-                case progress.data.JSDO._OP_CREATE:
-                    for (var i = 0; i < tableRef._added.length; i++) {
-                        var id = tableRef._added[i];
-                        var jsrecord = tableRef._findById(id, false);
+            case progress.data.JSDO._OP_CREATE:
+                for (var i = 0; i < tableRef._added.length; i++) {
+                    var id = tableRef._added[i];
+                    var jsrecord = tableRef._findById(id, false);
 
-                        if (!jsrecord) continue;
-                        if (tableRef._processed[id]) continue;
-                        tableRef._processed[id] = jsrecord.data;
+                    if (!jsrecord) continue;
+                    if (tableRef._processed[id]) continue;
+                    tableRef._processed[id] = jsrecord.data;
                         
-                        rowData = {};
-                        jsonObject = {};
+                    rowData = {};
+                    jsonObject = {};
                         
-                        // Make copy of row data, in case we need to convert data for backend..
-                        tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                    // Make copy of row data, in case we need to convert data for backend..
+                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
 
-                        if (this.isDataSet()) {
-                            if (this._useBeforeImage("create")) {
-                                jsonObject[this._dataSetName] = {};
-                                var dataSetObject = jsonObject[this._dataSetName];
-                                dataSetObject["prods:hasChanges"] = true;
-
-                                dataSetObject[tableRef._name] = [];
+                    if (this.isDataSet()) {
+                        jsonObject[this._dataSetName] = {};
+                        dataSetObject = jsonObject[this._dataSetName];
+                        if (this._useBeforeImage("create")) {
+                            dataSetObject["prods:hasChanges"] = true;
+                            dataSetObject[tableRef._name] = [];
                                 
-                                // Dont need to send prods:id for create, 
-                                // no before table or error table to match
-                                // Dont need to send prods:clientId - since only sending one record
-                                rowData["prods:rowState"] = "created";
-                                rowData["prods:clientId"] = jsrecord.data._id;
+                            // Dont need to send prods:id for create, 
+                            // no before table or error table to match
+                            // Dont need to send prods:clientId - since only sending one record
+                            rowData["prods:rowState"] = "created";
+                            rowData["prods:clientId"] = jsrecord.data._id;
 
-                                delete rowData["_id"];
+                            delete rowData["_id"];
 
-                                dataSetObject[tableRef._name].push(rowData);
+                            dataSetObject[tableRef._name].push(rowData);
+                        }
+                        else {
+                            dataSetObject[tableRef._name] = [];
+                            dataSetObject[tableRef._name].push(rowData);
+                        }
+                    }
+                    else {
+                        jsonObject = rowData;
+                    }
+                            
+
+                    var request = {
+                        operation: operation,
+                        batch: batch,
+                        jsrecord: jsrecord,
+                        jsdo: this
+                    };
+                    batch.operations.push(request);
+
+                    jsrecord._tableRef.trigger("beforeCreate", this, jsrecord, request);
+                    this.trigger("beforeCreate", this, jsrecord, request);
+
+                    this._execGenericOperation(
+                        progress.data.JSDO._OP_CREATE, jsonObject, request, this._createComplete, 
+                        this._createSuccess, this._createError);
+                }
+                break;
+            case progress.data.JSDO._OP_UPDATE:
+                for (var id in tableRef._changed) {
+                    var jsrecord = tableRef._findById(id, false);
+
+                    if (!jsrecord) continue;
+                    if (tableRef._processed[id]) continue;
+                    tableRef._processed[id] = jsrecord.data;
+                        
+                    rowData = {};
+                    jsonObject = {};
+                    requestData = {};
+                        
+                    // Make copy of row data, in case we need to convert data for backend..
+                    tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
+                        
+                    var useBeforeImageFormat = false;
+                    if (this.isDataSet()) {
+                        if (this._useBeforeImage("update")) {
+                            useBeforeImageFormat = true;
+                            jsonObject[this._dataSetName] = {};
+                            dataSetObject = jsonObject[this._dataSetName];
+                            dataSetObject["prods:hasChanges"] = true;
+                            dataSetObject[tableRef._name] = [];
+
+                            // Dont need to send prods:clientId - since only sending one record
+                            rowData["prods:id"] = jsrecord.data._id;
+                            rowData["prods:rowState"] = "modified";
+                            rowData["prods:clientId"] = jsrecord.data._id;
+                            delete rowData["_id"];
+
+                            dataSetObject[tableRef._name].push(rowData);
+
+                            // Now create before-table data
+                            dataSetObject["prods:before"] = {};
+                            var beforeObject = dataSetObject["prods:before"];
+                            beforeObject[tableRef._name] = [];
+
+                            var beforeRowData = {};
+                            // Dont need to send prods:clientId - since only sending one record
+                            beforeRowData["prods:id"] = jsrecord.data._id;
+
+                            tableRef._jsdo._copyRecord(tableRef, 
+                                tableRef._beforeImage[jsrecord.data._id], beforeRowData);
+                            delete beforeRowData["_id"];
+
+                            beforeObject[tableRef._name].push(beforeRowData);
+                        }
+                    }
+
+                    if (!useBeforeImageFormat) {
+                        if (this._resource.service
+                                && this._resource.service.settings
+                                && this._resource.service.settings.sendOnlyChanges) {
+                            tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData, 
+                                tableRef._beforeImage[jsrecord.data._id]);
+
+                            if (this._resource.idProperty) {
+                                requestData[this._resource.idProperty] = 
+                                        jsrecord.data[this._resource.idProperty];
                             }
                             else {
-                                jsonObject[tableRef._name] = [];
-                                jsonObject[tableRef._name].push(rowData);
+                                throw new Error(msg.getMsgText("jsdoMSG110", this._resource.name, 
+                                    " for sendOnlyChanges property"));
                             }
+                        }
+                        else
+                            requestData = rowData;
+
+                        if (this.isDataSet()) {
+                            jsonObject[this._dataSetName] = {};
+                            dataSetObject = jsonObject[this._dataSetName];
+                            dataSetObject[tableRef._name] = [];
+                            dataSetObject[tableRef._name].push(requestData);
                         }
                         else {
                             jsonObject = rowData;
                         }
-                            
-
-                        var request = {
-                            operation: operation,
-                            batch: batch,
-                            jsrecord: jsrecord,
-                            jsdo: this
-                        };
-                        batch.operations.push(request);
-
-                        jsrecord._tableRef.trigger("beforeCreate", this, jsrecord, request);
-                        this.trigger("beforeCreate", this, jsrecord, request);
-
-                        this._execGenericOperation(
-                            progress.data.JSDO._OP_CREATE, jsonObject, request, this._createComplete, 
-                                this._createSuccess, this._createError);
                     }
-                    break;
-                case progress.data.JSDO._OP_UPDATE:
-                    for (var id in tableRef._changed) {
-                        var jsrecord = tableRef._findById(id, false);
 
-                        if (!jsrecord) continue;
-                        if (tableRef._processed[id]) continue;
-                        tableRef._processed[id] = jsrecord.data;
-                        
-                        rowData = {};
-                        jsonObject = {};
-                        requestData = {};
-                        
-                        // Make copy of row data, in case we need to convert data for backend..
-                        tableRef._jsdo._copyRecord(tableRef, jsrecord.data, rowData);
-                        
-                        var useBeforeImageFormat = false;
-                        if (this.isDataSet()) {
-                            if (this._useBeforeImage("update")) {
-                                useBeforeImageFormat = true;
-                                jsonObject[this._dataSetName] = {};
-                                var dataSetObject = jsonObject[this._dataSetName];
-                                dataSetObject["prods:hasChanges"] = true;
-                                dataSetObject[tableRef._name] = [];
+                    var request = {
+                        jsrecord: jsrecord,
+                        operation: operation,
+                        batch: batch,
+                        jsdo: this
+                    };
+                    batch.operations.push(request);
 
-                                // Dont need to send prods:clientId - since only sending one record
-                                rowData["prods:id"] = jsrecord.data._id;
-                                rowData["prods:rowState"] = "modified";
-                                rowData["prods:clientId"] = jsrecord.data._id;
-                                delete rowData["_id"];
+                    jsrecord._tableRef.trigger("beforeUpdate", this, jsrecord, request);
+                    this.trigger("beforeUpdate", this, jsrecord, request);
 
-                                dataSetObject[tableRef._name].push(rowData);
-
-                                // Now create before-table data
-                                dataSetObject["prods:before"] = {};
-                                var beforeObject = dataSetObject["prods:before"];
-                                beforeObject[tableRef._name] = [];
-
-                                var beforeRowData = {};
-                                // Dont need to send prods:clientId - since only sending one record
-                                beforeRowData["prods:id"] = jsrecord.data._id;
-
-                                tableRef._jsdo._copyRecord(tableRef, 
-                                    tableRef._beforeImage[jsrecord.data._id], beforeRowData);
-                                delete beforeRowData["_id"];
-
-                                beforeObject[tableRef._name].push(beforeRowData);
-                            }
-                        }
-
-                        if (!useBeforeImageFormat) {
-                            if (this._resource.service
-                                && this._resource.service.settings
-                                && this._resource.service.settings.sendOnlyChanges) {
-                                tableRef._jsdo._copyRecord(tableRef, jsrecord.data, requestData, 
-                                    tableRef._beforeImage[jsrecord.data._id]);
-
-                                if (this._resource.idProperty) {
-                                    requestData[this._resource.idProperty] = 
-                                        jsrecord.data[this._resource.idProperty];
-                                }
-                                else {
-                                    throw new Error(msg.getMsgText("jsdoMSG110", this._resource.name, 
-                                        " for sendOnlyChanges property"));
-                                }
-                            }
-                            else
-                                requestData = rowData;
-
-                            if (this.isDataSet()) {
-                                jsonObject[tableRef._name] = [];
-                                jsonObject[tableRef._name].push(requestData);
-                            }
-                            else {
-                                jsonObject = rowData;
-                            }
-                        }
-
-                        var request = {
-                            jsrecord: jsrecord,
-                            operation: operation,
-                            batch: batch,
-                            jsdo: this
-                        };
-                        batch.operations.push(request);
-
-                        jsrecord._tableRef.trigger("beforeUpdate", this, jsrecord, request);
-                        this.trigger("beforeUpdate", this, jsrecord, request);
-
-                        this._execGenericOperation(
-                            progress.data.JSDO._OP_UPDATE, jsonObject, request, this._updateComplete,
-                            this._updateSuccess, this._updateError);
-                    }
-                    break;
+                    this._execGenericOperation(
+                        progress.data.JSDO._OP_UPDATE, jsonObject, request, this._updateComplete,
+                        this._updateSuccess, this._updateError);
+                }
+                break;
             }
 
             // Call _syncTableRef on child tables
@@ -3607,7 +3791,7 @@ limitations under the License.
                         if (this._useBeforeImage("delete")) {
                             useBeforeImageFormat = true;
                             jsonObject[this._dataSetName] = {};
-                            var dataSetObject = jsonObject[this._dataSetName];
+                            dataSetObject = jsonObject[this._dataSetName];
                             dataSetObject["prods:hasChanges"] = true;
 
                             // There is no after tables for deletes, so just create before-table data
@@ -3646,8 +3830,10 @@ limitations under the License.
                         }
 
                         if (this.isDataSet()) {
-                            jsonObject[tableRef._name] = [];
-                            jsonObject[tableRef._name].push(requestData);
+                            jsonObject[this._dataSetName] = {};
+                            dataSetObject = jsonObject[this._dataSetName];
+                            dataSetObject[tableRef._name] = [];
+                            dataSetObject[tableRef._name].push(requestData);
                         }
                         else {
                             jsonObject = rowData;
@@ -3701,11 +3887,9 @@ limitations under the License.
                 deferred,
                 promise;
             
-            if (typeof($) == 'function' && typeof($.Deferred) == 'function') {
-                deferred = $.Deferred();
-                promise = deferred.promise();
-                batch.deferred = deferred;
-            }            
+            deferred = new progress.util.Deferred();
+            promise = deferred.promise();
+            batch.deferred = deferred;
             
             // Process buffers
             // Synchronize deletes
@@ -3750,7 +3934,9 @@ limitations under the License.
 
             // OE00229270 If _async is false, this ensures that afterSaveChanges() is called just once 
             // We now do this after all operations have been processed
-            if (!this._async) {
+            // Alternatively, scenario where the saveChanges() is invoked without
+            // performing any operations. In that scenario we have to process this.
+            if (!this._async || (batch.operations && batch.operations.length === 0)) {
                 if (this._isBatchComplete(batch)) {
                     var success = this._isBatchSuccess(batch);
                     var request = {
@@ -3787,11 +3973,9 @@ limitations under the License.
                 operations: []
             };
             
-            if (typeof($) == 'function' && typeof($.Deferred) == 'function') {
-                deferred = $.Deferred();
-                promise = deferred.promise();
-                batch.deferred = deferred;
-            }                
+            deferred = new progress.util.Deferred();
+            promise = deferred.promise();
+            batch.deferred = deferred;
 
             var fireAfterSaveChanges = false;
 
@@ -4107,15 +4291,13 @@ limitations under the License.
                 jsonObject,
                 completeFn = this._saveChangesComplete,
                 successFn = this._saveChangesSuccess,
-                errorFn =  this._saveChangesError;                
+                errorFn =  this._saveChangesError;
             
-            if (typeof($) == 'function' && typeof($.Deferred) == 'function') {
-                deferred = $.Deferred();
-                promise = deferred.promise();
-                request.deferred = deferred;
-            }                        
+            deferred = new progress.util.Deferred();
+            promise = deferred.promise();
+            request.deferred = deferred;
             
-            request.jsrecords = [];            
+            request.jsrecords = [];
 
             // First thing to do is to create jsonObject with before and after image data for all 
             // records in change-set (creates, updates and deletes)
@@ -4232,7 +4414,7 @@ limitations under the License.
                     if (jsrecord) {
                         if ( !tableRef._processed[jsrecord.data._id] ) {
                             this._addRowToTTChangeSet(tableRef, jsrecord, tempTableJsonObject,
-                                                       request, "beforeCreate");
+                                request, "beforeCreate");
                         }
                     }
                 }              
@@ -4244,7 +4426,7 @@ limitations under the License.
                         if (jsrecord) {
                             if ( !tableRef._processed[jsrecord.data._id] ) {
                                 this._addRowToTTChangeSet(tableRef, jsrecord, tempTableJsonObject, 
-                                                          request, "beforeUpdate");
+                                    request, "beforeUpdate");
                             }
                         }
                     }
@@ -4714,13 +4896,13 @@ limitations under the License.
                 throw new Error(msg.getMsgText("jsdoMSG021"));
 
             switch (addMode) {
-                case progress.data.JSDO.MODE_APPEND:
-                case progress.data.JSDO.MODE_EMPTY:
-                case progress.data.JSDO.MODE_MERGE:
-                case progress.data.JSDO.MODE_REPLACE:
-                    break;
-                default:
-                    throw new Error(msg.getMsgText("jsdoMSG022"));
+            case progress.data.JSDO.MODE_APPEND:
+            case progress.data.JSDO.MODE_EMPTY:
+            case progress.data.JSDO.MODE_MERGE:
+            case progress.data.JSDO.MODE_REPLACE:
+                break;
+            default:
+                throw new Error(msg.getMsgText("jsdoMSG022"));
             }
 
             if (!keyFields)
@@ -4777,7 +4959,7 @@ limitations under the License.
 
 
                     if (data instanceof Array) {
-                        saveJsonObject = jsonObject;
+                        // saveJsonObject = jsonObject;
                         jsonObject = data;
                     }
                     else if ((addMode == progress.data.JSDO.MODE_EMPTY)
@@ -4894,28 +5076,28 @@ limitations under the License.
                                 }
 
                                 switch (addMode) {
-                                    case progress.data.JSDO.MODE_APPEND:
-                                        throw new Error(msg.getMsgText("jsdoMSG023"));
-                                    case progress.data.JSDO.MODE_MERGE:
-                                        /* Ignore duplicate */
-                                        if (beforeImageJsonIndex && jsonObject[i]["prods:id"]) {
-                                            beforeImageJsonIndex[jsonObject[i]["prods:id"]] = record._id;
-                                        }
-                                        break;
-                                    case progress.data.JSDO.MODE_REPLACE:
-                                        if (beforeImageJsonIndex && jsonObject[i]["prods:id"]) {
-                                            beforeImageJsonIndex[jsonObject[i]["prods:id"]] = record._id;
-                                        }
+                                case progress.data.JSDO.MODE_APPEND:
+                                    throw new Error(msg.getMsgText("jsdoMSG023"));
+                                case progress.data.JSDO.MODE_MERGE:
+                                    /* Ignore duplicate */
+                                    if (beforeImageJsonIndex && jsonObject[i]["prods:id"]) {
+                                        beforeImageJsonIndex[jsonObject[i]["prods:id"]] = record._id;
+                                    }
+                                    break;
+                                case progress.data.JSDO.MODE_REPLACE:
+                                    if (beforeImageJsonIndex && jsonObject[i]["prods:id"]) {
+                                        beforeImageJsonIndex[jsonObject[i]["prods:id"]] = record._id;
+                                    }
 
-                                        if (jsonObject[i]._id === undefined)
-                                            jsonObject[i]._id = record._id;
-                                        this._copyRecord(
-                                            this._buffers[tableName],
-                                            jsonObject[i], record);
-                                        this._deleteProdsProperties(record);
-                                        break;
-                                    default:
-                                        break;
+                                    if (jsonObject[i]._id === undefined)
+                                        jsonObject[i]._id = record._id;
+                                    this._copyRecord(
+                                        this._buffers[tableName],
+                                        jsonObject[i], record);
+                                    this._deleteProdsProperties(record);
+                                    break;
+                                default:
+                                    break;
                                 }
                             }
                             else {
@@ -5011,7 +5193,37 @@ limitations under the License.
                         else
                             data = null;
                         data = data ? data : [];
-                        this._buffers[buf]._data = data;
+
+                        // We want to merge records based on the mergeMode that is coming to fill() operation.
+                        // i.e., a mergeMode can be APPEND, MERGE, REPLACE or EMPTY. Excluding EMPTY because this is already
+                        // taken care in the _fillSuccess
+                        
+                        if (this._fillMergeMode) {
+
+                            // Check for the availability of the buffer (temp-table). If we don't find any, then we want to assign an
+                            // empty array such that we proceed with addRecords() operation with an empty dataset
+                            if (this.isDataSet() && jsonObject[this._dataSetName] && !jsonObject[this._dataSetName][this._buffers[buf]._name]) {
+                                jsonObject[this._dataSetName][this._buffers[buf]._name] = [];
+                            }
+
+                            switch (this._fillMergeMode) {
+                                case progress.data.JSDO.MODE_APPEND:                                     
+                                    this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_APPEND);
+                                    break;
+                                case progress.data.JSDO.MODE_MERGE:                                    
+                                    this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_MERGE, this._buffers[buf]._primaryKeys);
+                                    break;
+                                case progress.data.JSDO.MODE_REPLACE:                                    
+                                    this._buffers[buf].addRecords(jsonObject, progress.data.JSDO.MODE_REPLACE, this._buffers[buf]._primaryKeys);
+                                    break;
+                                default:
+                                    throw new Error(msg.getMsgText("jsdoMSG022"));
+                            }
+                            
+                        } else {
+                            this._buffers[buf]._data = data;
+                        }
+                        
                         if (this._buffers[buf].autoSort) {
                             this._buffers[buf]._sort();
                         }
@@ -5021,6 +5233,10 @@ limitations under the License.
                             this._buffers[buf]._loadBeforeImageData(jsonObject);
                         }
                     }
+
+                    // Reset the fillMergeMode back to default such that it will not affect upcoming fill() operations
+                    this._fillMergeMode = undefined;
+                    
                     // Load nested data into _data
                     if (this._numBuffers > 1) {
                         for (var buf in this._buffers) {
@@ -5087,8 +5303,17 @@ limitations under the License.
             if (tableRef._jsdo._resource.idProperty !== undefined) {
                 var id = tableRef._data[index][tableRef._jsdo._resource.idProperty];
                 if (id !== undefined) {
+                    id += ""; // ID Property
+
+                    // Delete index entry for recordId (_id)
                     delete tableRef._index[recordId];
-                    id += "";
+
+                    if (tableRef._beforeImage[recordId] === null) {
+                        // Save old recordId (_id) to _tmpIndex
+                        tableRef._tmpIndex[recordId] = new progress.data.JSIndexEntry(index);
+                    }
+
+                    // Create index entry with new id
                     tableRef._index[id] = new progress.data.JSIndexEntry(index);
                     record._id = id;
                 }
@@ -5243,7 +5468,7 @@ limitations under the License.
             var hasError = false;
             var tableRef = xhr.request.jsrecord._tableRef;
 
-            beforeJsonObject = dataSetJsonObject["prods:before"];
+            var beforeJsonObject = dataSetJsonObject["prods:before"];
 
             // No merge is necessary for deletes, but we need to see 
             // if there are any errors on deletes records.
@@ -5407,18 +5632,18 @@ limitations under the License.
             for (var idx = 0; idx < request.jsrecords.length; idx++) {
                 var jsrecord = request.jsrecords[idx];
                 switch (jsrecord.data["prods:rowState"]) {
-                    case "created":
-                        jsrecord._tableRef.trigger("afterCreate", this, jsrecord, request.success, request);
-                        this.trigger("afterCreate", this, jsrecord, request.success, request);
-                        break;
-                    case "modified":
-                        jsrecord._tableRef.trigger("afterUpdate", this, jsrecord, request.success, request);
-                        this.trigger("afterUpdate", this, jsrecord, request.success, request);
-                        break;
-                    case "deleted":
-                        jsrecord._tableRef.trigger("afterDelete", this, jsrecord, request.success, request);
-                        this.trigger("afterDelete", this, jsrecord, request.success, request);
-                        break;
+                case "created":
+                    jsrecord._tableRef.trigger("afterCreate", this, jsrecord, request.success, request);
+                    this.trigger("afterCreate", this, jsrecord, request.success, request);
+                    break;
+                case "modified":
+                    jsrecord._tableRef.trigger("afterUpdate", this, jsrecord, request.success, request);
+                    this.trigger("afterUpdate", this, jsrecord, request.success, request);
+                    break;
+                case "deleted":
+                    jsrecord._tableRef.trigger("afterDelete", this, jsrecord, request.success, request);
+                    this.trigger("afterDelete", this, jsrecord, request.success, request);
+                    break;
                 }
             }
         };
@@ -5453,7 +5678,8 @@ limitations under the License.
 
         this._fillSuccess = function (jsdo, success, request) {
             var xhr = request.xhr,
-                properties;     
+                properties,
+                mapping;
             
             // Need to check if responseMapping was specified; developer can specify
             // plug-in to manipulate response 
@@ -5470,7 +5696,11 @@ limitations under the License.
                 }                
             } 
 
-            jsdo._clearData();
+            // Here check for the mergeMode flag of fill() operation and performing accordingly.
+            // When the mergeMode is EMPTY or if the fillMergeMode is NOT set then only we will be performing clearData operation
+            if(!request.jsdo._fillMergeMode || request.jsdo._fillMergeMode === progress.data.JSDO.MODE_EMPTY) {
+                jsdo._clearData();
+            }
             jsdo._mergeRead(request.response, xhr);   
 
             // Set working record
@@ -5727,11 +5957,11 @@ limitations under the License.
             jsdo._mergeUpdateForSubmit(records, request.xhr);
 
             // Ensure that that the _lastErrors variable has been cleared 
-			jsdo._clearErrors();
+            jsdo._clearErrors();
             var changes = jsdo.getChanges();
             jsdo._updateLastErrors(jsdo, null, changes);
 
-			jsdo._setAllRecordsRejected(changes);            
+            jsdo._setAllRecordsRejected(changes);            
 
             if (jsdo.autoApplyChanges) {
                 jsdo._applyChanges();
@@ -5740,7 +5970,7 @@ limitations under the License.
 
 
         this._saveChangesError = function (jsdo, success, request) {
-			jsdo._setAllRecordsRejected(true);
+            jsdo._setAllRecordsRejected(true);
             if (jsdo.autoApplyChanges) {
                 jsdo.rejectChanges();
             }            
@@ -5843,9 +6073,9 @@ limitations under the License.
                 i;
 
             if (request && !request.success) {
-               if (request.xhr.status >= 400 && request.xhr.status < 600) {
+                if (request.xhr.status >= 400 && request.xhr.status < 600) {
                     try {
-                        responseObject = JSON.parse(request.xhr.responseText);
+                        var responseObject = JSON.parse(request.xhr.responseText);
                         
                         // responseText could be an array, an object or just text.
                         // If it is an array, each object would have properties _errors and optional _retVal.
@@ -5924,9 +6154,9 @@ limitations under the License.
                             jsdo._lastErrors.push({errorString: request.jsrecord.data._errorString});
                             // Add error object to jsdo.<table-ref>._lastErrors
                             jsdo._buffers[request.jsrecord._tableRef._name]._lastErrors.push({
-                                    type: progress.data.JSDO.DATA_ERROR,
-                                    id: request.jsrecord.data._id,
-                                    error: request.jsrecord.data._errorString});
+                                type: progress.data.JSDO.DATA_ERROR,
+                                id: request.jsrecord.data._id,
+                                error: request.jsrecord.data._errorString});
                         }                        
                         else {
                             errors = this._getErrorsFromRequest(request);
@@ -5962,9 +6192,9 @@ limitations under the License.
                     if (changes[i].record && changes[i].record.data._errorString !== undefined) {
                         jsdo._lastErrors.push({errorString: changes[i].record.data._errorString});
                         jsdo._buffers[changes[i].record._tableRef._name]._lastErrors.push({
-                                type: progress.data.JSDO.DATA_ERROR,                            
-                                id: changes[i].record.data._id,
-                                error: changes[i].record.data._errorString});
+                            type: progress.data.JSDO.DATA_ERROR,                            
+                            id: changes[i].record.data._id,
+                            error: changes[i].record.data._errorString});
                     }
                 }
             }
@@ -6059,7 +6289,8 @@ limitations under the License.
         };
 
         this._mergeInvoke = function (jsonObject, xhr) {
-            var operation;
+            var operation, i;
+
             if (xhr.request.fnName !== undefined
                 && xhr.jsdo._resource.fn[xhr.request.fnName] !== undefined) {
                 operation = xhr.jsdo._resource.fn[xhr.request.fnName].operation;
@@ -6069,7 +6300,7 @@ limitations under the License.
             if (operation === undefined) {
                 // Operation data is only required for invoke operations with mergeMode: true
                 operation = null;
-                for (var i = 0; i < xhr.jsdo._resource.operations.length; i++) {
+                for (i = 0; i < xhr.jsdo._resource.operations.length; i++) {
                     if (xhr.jsdo._resource.operations[i].name == xhr.request.fnName) {
                         operation = xhr.jsdo._resource.operations[i];
                         break;
@@ -6103,7 +6334,7 @@ limitations under the License.
                     }
 
                     var found = false;
-                    for (var i = 0; i < operation.params.length; i++) {
+                    for (i = 0; i < operation.params.length; i++) {
                         if (operation.params[i].name == dataParameterName) {
                             if (operation.params[i].type.indexOf('RESPONSE_BODY') != -1) {
                                 if ((operation.params[i].xType !== undefined)
@@ -6270,7 +6501,7 @@ limitations under the License.
          * Sets complete set of properties for the jsdo. All existing properties are replaced with new set
          */
         this.setProperties = function( propertiesObject ) {
-           var prop;
+            var prop;
 
             if (arguments.length < 1) {
                 // {1}: Incorrect number of arguments in {2} call. There should be {3}.
@@ -6300,7 +6531,7 @@ limitations under the License.
             else {
                 // {1}: Parameter {1} must be of type {3} in {4} call.
                 throw new Error(progress.data._getMsgText("jsdoMSG121", 'JSDO', 1, 'Object',
-                                                          'setProperties')); 
+                    'setProperties')); 
             }
         };
 
@@ -6316,17 +6547,17 @@ limitations under the License.
             if (arguments.length < 2) {
                 // {1}: Incorrect number of arguments in {2} call. There should be {3}.
                 throw new Error(progress.data._getMsgText("jsdoMSG122", 'JSDO', 
-                                                           'setProperty', 2)); 
+                    'setProperty', 2)); 
             }
             if (arguments.length !== 2) {
                 // {1}: Incorrect number of arguments in {2} call. There should be only {3}.";
                 throw new Error(progress.data._getMsgText("jsdoMSG122", "JSDO",
-                                                          "setProperty", 2)); 
+                    "setProperty", 2)); 
             }
             if (typeof propertyName !== "string") {
                 // {1}: Parameter {1} must be of type {3} in {4} call.
                 throw new Error(progress.data._getMsgText("jsdoMSG121", 'JSDO', 1, 'string',
-                                                          'setProperty')); 
+                    'setProperty')); 
             }
 
             if ( propertyValue === undefined ) {
@@ -6401,11 +6632,11 @@ limitations under the License.
             }
             else {
                 switch (dataMode) {
-                    case progress.data.JSDO.ALL_DATA:
-                    case progress.data.JSDO.CHANGES_ONLY:
-                        break;
-                    default:
-                        throw new Error(msg.getMsgText("jsdoMSG115", arguments.callee.name));
+                case progress.data.JSDO.ALL_DATA:
+                case progress.data.JSDO.CHANGES_ONLY:
+                    break;
+                default:
+                    throw new Error(msg.getMsgText("jsdoMSG115", arguments.callee.name));
                 }
             }
 
@@ -6605,37 +6836,37 @@ limitations under the License.
             // DataSets
             if (this._dataSetName) {
                 switch (option) {
-                    case progress.data.JSDO.ALL_DATA:
-                        storageObject = this._createDataAndChangeSet(this._dataSetName);
-                        break;
+                case progress.data.JSDO.ALL_DATA:
+                    storageObject = this._createDataAndChangeSet(this._dataSetName);
+                    break;
 
-                    case progress.data.JSDO.CHANGES_ONLY:
-                        storageObject = this._createChangeSet(this._dataSetName, true);
-                        break;
+                case progress.data.JSDO.CHANGES_ONLY:
+                    storageObject = this._createChangeSet(this._dataSetName, true);
+                    break;
                 }
             }
             // Arrays
             else if (this._dataProperty) {
                 switch (option) {
-                    case progress.data.JSDO.ALL_DATA:
-                        storageObject = this._createDataAndChangeSet("_localStorage");
-                        break;
+                case progress.data.JSDO.ALL_DATA:
+                    storageObject = this._createDataAndChangeSet("_localStorage");
+                    break;
 
-                    case progress.data.JSDO.CHANGES_ONLY:
-                        storageObject = this._createChangeSet("_localStorage", true);
-                        break;
+                case progress.data.JSDO.CHANGES_ONLY:
+                    storageObject = this._createChangeSet("_localStorage", true);
+                    break;
                 }
             }
             // Temp Tables
             else {
                 switch (option) {
-                    case progress.data.JSDO.ALL_DATA:
-                        storageObject = this._createDataAndChangeSet("_localStorage");
-                        break;
+                case progress.data.JSDO.ALL_DATA:
+                    storageObject = this._createDataAndChangeSet("_localStorage");
+                    break;
 
-                    case progress.data.JSDO.CHANGES_ONLY:
-                        storageObject = this._createChangeSet("_localStorage", true);
-                        break;
+                case progress.data.JSDO.CHANGES_ONLY:
+                    storageObject = this._createChangeSet("_localStorage", true);
+                    break;
                 }
             }
 
@@ -6691,8 +6922,8 @@ limitations under the License.
             }
         };
 
-		this.getMethodProperties = function(operation, name) {
-			var idx;
+        this.getMethodProperties = function(operation, name) {
+            var idx;
 			
             if (this._resource._operations) {
                 if (this._resource._operations[operation]) {
@@ -6707,7 +6938,7 @@ limitations under the License.
                     return (this._resource._operations[operation] = this._resource.operations[idx]);
                 }
             }
-		};
+        };
 		
         ///////////////////////////////////////////////////////////////////////////
 
@@ -6773,49 +7004,49 @@ limitations under the License.
     // Separator must have at least one characters
     progress.data.JSDO.ARRAY_INDEX_SEPARATOR = "_";
 
-// setup inheritance for JSDO
+    // setup inheritance for JSDO
     progress.data.JSDO.prototype = new progress.util.Observable();
     progress.data.JSDO.prototype.constructor = progress.data.JSDO;
     progress.data.JSDO.prototype.toString = function (radix) {
         return "JSDO";
     };
 
-// setup inheritance for table reference
+    // setup inheritance for table reference
     progress.data.JSTableRef.prototype = new progress.util.Observable();
     progress.data.JSTableRef.prototype.constructor = progress.data.JSTableRef;
     progress.data.JSTableRef.prototype.toString = function (radix) {
         return "JSTableRef";
     };
 
-	// Built-in Plugins
-	progress.data.PluginManager.addPlugin("JFP", {
-		requestMapping: function(jsdo, params, info) {
-			var sortFields,
-			field,
-            fieldName,
-            fieldInfo,
-            tableName,
-            filter,
-            sortDir,
-			ablFilter,
-            sqlQuery,
-            methodProperties,
-            capabilities,
-            index,
-            position,
-            option,
-            capabilitiesObject,
-            reqCapabilities = {
-                filter: { options: [ "ablFilter", "sqlQuery" ], mapping: undefined },
-                top:    { options: [ "top" ], mapping: undefined },
-                skip:   { options: [ "skip" ], mapping: undefined },
-                id:     { options: [ "id" ], mapping: undefined },
-                sort:   { options: [ "orderBy" ], mapping: undefined }
-            },
-            doConversion = true,
-            param;
+    // Built-in Plugins
+    progress.data.PluginManager.addPlugin("JFP", {
+        requestMapping: function(jsdo, params, info) {
+            var sortFields,
+                field,
+                fieldName,
+                fieldInfo,
+                tableName,
+                filter,
+                sortDir,
+                ablFilter,
+                sqlQuery,
+                methodProperties,
+                capabilities,
+                index,
+                position,
+                option,
+                capabilitiesObject,
+                reqCapabilities = {
+                    filter: { options: [ "ablFilter", "sqlQuery" ], mapping: undefined },
+                    top:    { options: [ "top" ], mapping: undefined },
+                    skip:   { options: [ "skip" ], mapping: undefined },
+                    id:     { options: [ "id" ], mapping: undefined },
+                    sort:   { options: [ "orderBy" ], mapping: undefined }
+                },
+                doConversion = true,
+                param;
 			
-			if (info.operation === "read") {
+            if (info.operation === "read") {
                 capabilitiesObject = {};
                 methodProperties = jsdo.getMethodProperties(info.operation);
                 capabilities = methodProperties.capabilities;
@@ -6849,16 +7080,16 @@ limitations under the License.
                     tableName = params.tableRef;
                 }
 
-				if (params.sort) {
+                if (params.sort) {
                     // Convert sort expression to JFP format
 
                     if (typeof(params.sort) === "object" && !(params.sort instanceof Array)) {
                         // Kendo UI sort format - object
                         // Make params.sort an array
-                        params.sort = [params.sort];
+                        params.sort = (Object.keys( params.sort).length > 1) ? [params.sort] : [];  
                     }
-					sortFields = "";
-					for (index = 0; index < params.sort.length; index += 1) {
+                    sortFields = "";
+                    for (index = 0; index < params.sort.length; index += 1) {
                         field = params.sort[index];
                         sortDir = "";
 						
@@ -6889,7 +7120,7 @@ limitations under the License.
                             // Use original fieldName instead of serialized name
                             fieldInfo = jsdo[tableName]._fields[fieldName.toLowerCase()];
                             if (fieldInfo && fieldInfo.origName) {
-								fieldName = fieldInfo.origName;
+                                fieldName = fieldInfo.origName;
                             }
                         }
                         if (sortDir === "desc") {
@@ -6899,10 +7130,14 @@ limitations under the License.
                         if (index < params.sort.length - 1) {
                             sortFields += ",";
                         }                     
-					}                                                                             
-				}
+                    }                                                                             
+                }
+                // Check for empty object
+                if (typeof(params.filter) === "object" && !(params.filter instanceof Array)) {
+                    params.filter = (Object.keys(params.filter).length >= 1) ? params.filter : undefined;
+                }
 				
-				if (params.filter) {
+                if (params.filter) {
                     // If filter is specified as string, then no conversion is necessary
                     if (typeof params.filter === 'string') {
                         doConversion = false;
@@ -6912,13 +7147,13 @@ limitations under the License.
                     
                     if (doConversion && (params.tableRef === undefined)) {
                         throw new Error(msg.getMsgText("jsdoMSG045", "fill() or read()", "params", 
-                                                       "tableRef"));
-					}  
+                            "tableRef"));
+                    }  
                        
                     if (reqCapabilities["filter"].mapping === "ablFilter") {
                         if (doConversion) {
                             ablFilter = progress.util._convertToABLWhereString(
-                                        jsdo._buffers[params.tableRef], params.filter);
+                                jsdo._buffers[params.tableRef], params.filter);
                         }
                         else {
                             ablFilter = params.filter;
@@ -6927,27 +7162,28 @@ limitations under the License.
                     else if (reqCapabilities["filter"].mapping === "sqlQuery") {
                         if (doConversion) {
                             sqlQuery = progress.util._convertToSQLQueryString(
-                                        jsdo._buffers[params.tableRef], params.filter, true);
+                                jsdo._buffers[params.tableRef], params.filter, true);
                         }
                         else {
                             sqlQuery = params.filter;
                         }
                     }
-				}
+                }
                 
-				filter = JSON.stringify({
-					ablFilter: ablFilter,
+                filter = JSON.stringify({
+                    ablFilter: ablFilter,
                     sqlQuery: sqlQuery,
-					orderBy: sortFields,
-					skip: params.skip,
-					top: params.top
-					});				
+                    orderBy: sortFields,
+                    skip: params.skip,
+                    top: params.top,
+                    id: params.id
+                });
 				
-				params = {filter: filter};
-			}
-			return params;
-		}
-	});
+                params = {filter: filter};
+            }
+            return params;
+        }
+    });
 	
     if (typeof progress.ui == 'undefined')
         progress.ui = {};
@@ -6981,7 +7217,7 @@ limitations under the License.
             for (var field in this._tableRef.record.data) {
                 var value = this._tableRef.record.data[field];
                 text = text.replace(new RegExp('{' + field + '}', 'g'), 
-                                            (value !== undefined && value !== null) ? value : "");
+                    (value !== undefined && value !== null) ? value : "");
             }
 
             this._listviewContent += text;
@@ -6998,7 +7234,7 @@ limitations under the License.
         };
 
         this._getFormFieldValue = function (fieldName, detailPageName) {
-            var value = null;
+            var value = null, field;
 
             if (detailPageName === undefined) {
                 if (this._detailPage && this._detailPage.name)
@@ -7142,8 +7378,8 @@ limitations under the License.
                     if (element && element.childElementCount > 0) {
                         for (var i = 0; i < element.children.length; i++) {
                             element.children[i].onclick = function () {
-                                var jsrecord = uihelper.getListViewRecord(this);
-                                uihelper.display();
+                                var jsrecord = this.getListViewRecord(this);
+                                this.display();
                                 if (typeof(uiTableRef._listview.onSelect) == 'function') {
                                     uiTableRef._listview.onSelect(event, this, jsrecord);
                                 }
@@ -7157,13 +7393,15 @@ limitations under the License.
         };
 
         this.getFormFields = function (fields) {
+            var i;
+
             if (!this._tableRef._schema)
                 return '';
             if (!(fields instanceof Array))
                 fields = null;
             else {
                 var tmpFields = {};
-                for (var i = 0; i < fields.length; i++) {
+                for (i = 0; i < fields.length; i++) {
                     tmpFields[fields[i]] = fields[i];
                 }
                 fields = tmpFields;
@@ -7176,7 +7414,7 @@ limitations under the License.
                 htmltext = '';
             htmltext += '<fieldset data-role="controlgroup">';
 
-            for (var i = 0; i < this._tableRef._schema.length; i++) {
+            for (i = 0; i < this._tableRef._schema.length; i++) {
                 var fieldName = this._tableRef._schema[i].name;
                 if (fieldName == '_id') continue;
                 if (fieldName.length > 0 && fieldName.charAt(0) == '_') continue;
@@ -7242,7 +7480,7 @@ limitations under the License.
                     for (var i = 0; i < this._tableRef._schema.length; i++) {
                         var fieldName = this._tableRef._schema[i].name;
 
-                        field = $("#" + this._listview.name + ' [dsid="' + fieldName + '"]');
+                        var field = $("#" + this._listview.name + ' [dsid="' + fieldName + '"]');
                         if (field && field.length == 1) {
                             field.html('{' + fieldName + '}');
                         }
