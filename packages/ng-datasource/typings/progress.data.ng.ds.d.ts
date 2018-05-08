@@ -21,6 +21,7 @@ export declare class DataSource {
     jsdo: progress.data.JSDO;
     readLocal: boolean;
     _skipRec: number;
+    _isLastResultSetEmpty: boolean;
     private _options;
     private _tableRef;
     private _initFromServer;
@@ -93,7 +94,7 @@ export declare class DataSource {
      * This method is used for fetching the 'count' of records from backend
      * This method is used as part of read() operation when serverOperations is set by client
      * @param {string} name Name of the method pertaining to 'Count' functionality
-     * @param {any} object JSDO parameters object
+     * @param {any} object Filter object
      */
     private getRecCount(name, object);
     /**
