@@ -129,26 +129,36 @@ var DataSource = /** @class */ (function () {
             jsdo.fill(filter)
                 .then(function (result) {
                 // Verifying the latest resultset value and setting _isLastResultSetEmpty flag if empty
-                if (result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef].length == 0) {
+                // tslint:disable-next-line:max-line-length
+                if (result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef].length === 0) {
                     _this._isLastResultSetEmpty = true;
+                    // tslint:disable-next-line:max-line-length
                 }
                 else if (result.request.response[_this.jsdo["_dataSetName"]] && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] === undefined) {
                     _this._isLastResultSetEmpty = true;
+                    // tslint:disable-next-line:max-line-length
+                }
+                else if (result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef].length !== 0) {
+                    _this._isLastResultSetEmpty = false;
                 }
                 _this._initFromServer = true;
                 var data = _this.getJsdoData();
+                // tslint:disable-next-line:max-line-length
                 if ((_this._options.countFnName && _this._options.countFnName !== undefined) && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                     _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam.filter })
-                        .then(function (result) {
-                        if (result === undefined && result == null) {
-                            reject(new Error(_this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
+                        .then(function (res) {
+                        if (res === undefined && res == null) {
+                            // tslint:disable-next-line:max-line-length
+                            reject(new Error(_this.normalizeError(res, "Unexpected response from 'Count Function' Operation", "")));
                         }
                         else {
-                            resolve({ data: data, total: result });
+                            resolve({ data: data, total: res });
                         }
                     }, function (error) {
+                        // tslint:disable-next-line:max-line-length
                         reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
                     }).catch(function (e) {
+                        // tslint:disable-next-line:max-line-length
                         reject(new Error(_this.normalizeError(e, "Unknown error occurred calling count.", "")));
                     });
                 }
@@ -352,6 +362,7 @@ var DataSource = /** @class */ (function () {
                         resolve({});
                     }
                     else { // Reject promise if either of above cases are met
+                        // tslint:disable-next-line:max-line-length
                         reject(new Error(_this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     }
                 }
@@ -359,6 +370,7 @@ var DataSource = /** @class */ (function () {
                 if (_this.jsdo.autoApplyChanges) {
                     _this.jsdo[_this._tableRef].rejectChanges();
                 }
+                // tslint:disable-next-line:max-line-length
                 reject(new Error(_this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
             });
         });
@@ -399,6 +411,7 @@ var DataSource = /** @class */ (function () {
             _this.jsdo.invoke(name, object)
                 .then(function (result) {
                 try {
+                    // tslint:disable-next-line:max-line-length
                     if (typeof (result.request.response) === "object" && Object.keys(result.request.response).length === 1) {
                         countVal = Object.values(result.request.response)[0];
                         if (typeof (countVal) !== "number") {
@@ -493,7 +506,8 @@ var DataSource = /** @class */ (function () {
      */
     DataSource.prototype._buildResponse = function (source, target) {
         var newEntry = source;
-        var firstKey = Object.keys(source)[0], secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
+        var firstKey = Object.keys(source)[0];
+        var secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
         // Delete's on no submit services return empty datasets so
         // don't add anything.
         if (typeof source[firstKey] !== "undefined"

@@ -149,27 +149,35 @@ export class DataSource {
                     .then((result) => {
 
                         // Verifying the latest resultset value and setting _isLastResultSetEmpty flag if empty
-                        if (result.request.response[this.jsdo["_dataSetName"]][this._tableRef] && result.request.response[this.jsdo["_dataSetName"]][this._tableRef].length == 0) {
+                        // tslint:disable-next-line:max-line-length
+                        if (result.request.response[this.jsdo["_dataSetName"]][this._tableRef] && result.request.response[this.jsdo["_dataSetName"]][this._tableRef].length === 0) {
                             this._isLastResultSetEmpty = true;
+                            // tslint:disable-next-line:max-line-length
                         } else if (result.request.response[this.jsdo["_dataSetName"]] && result.request.response[this.jsdo["_dataSetName"]][this._tableRef] === undefined) {
                             this._isLastResultSetEmpty = true;
+                            // tslint:disable-next-line:max-line-length
+                        } else if (result.request.response[this.jsdo["_dataSetName"]][this._tableRef] && result.request.response[this.jsdo["_dataSetName"]][this._tableRef].length !== 0) {
+                            this._isLastResultSetEmpty = false;
                         }
 
                         this._initFromServer = true;
 
                         let data = this.getJsdoData();
-
+                        // tslint:disable-next-line:max-line-length
                         if ((this._options.countFnName && this._options.countFnName !== undefined) && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                             this.getRecCount(this._options.countFnName, { filter: result.request.objParam.filter })
-                                .then((result) => {
-                                    if (result === undefined && result == null) {
-                                        reject(new Error(this.normalizeError(result, "Unexpected response from 'Count Function' Operation", "")));
+                                .then((res) => {
+                                    if (res === undefined && res == null) {
+                                        // tslint:disable-next-line:max-line-length
+                                        reject(new Error(this.normalizeError(res, "Unexpected response from 'Count Function' Operation", "")));
                                     } else {
-                                        resolve({ data: data, total: result });
+                                        resolve({ data: data, total: res });
                                     }
                                 }, (error) => {
+                                    // tslint:disable-next-line:max-line-length
                                     reject(new Error(this.normalizeError(error, "Problems invoking getRecCount function", "")));
                                 }).catch((e) => {
+                                    // tslint:disable-next-line:max-line-length
                                     reject(new Error(this.normalizeError(e, "Unknown error occurred calling count.", "")));
                                 });
                         } else {
@@ -388,6 +396,7 @@ export class DataSource {
                             } else if (result.info.batch.operations.length === 0) {
                                 resolve({});
                             } else { // Reject promise if either of above cases are met
+                                // tslint:disable-next-line:max-line-length
                                 reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                             }
                         }
@@ -395,6 +404,7 @@ export class DataSource {
                         if (this.jsdo.autoApplyChanges) {
                             this.jsdo[this._tableRef].rejectChanges();
                         }
+                        // tslint:disable-next-line:max-line-length
                         reject(new Error(this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     });
             }
@@ -445,8 +455,9 @@ export class DataSource {
                     .then((result) => {
 
                         try {
+                            // tslint:disable-next-line:max-line-length
                             if (typeof (result.request.response) === "object" && Object.keys(result.request.response).length === 1) {
-                                countVal = Object.values(result.request.response)[0];
+                                countVal = Object.values(result.request.response)[0];                                
                                 if (typeof (countVal) !== "number") {
                                     countVal = undefined;
                                 }
@@ -543,8 +554,8 @@ export class DataSource {
      */
     private _buildResponse(source, target) {
         const newEntry = source;
-        let firstKey = Object.keys(source)[0],
-            secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
+        let firstKey = Object.keys(source)[0];
+        const secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
 
         // Delete's on no submit services return empty datasets so
         // don't add anything.
