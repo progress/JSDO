@@ -346,7 +346,7 @@ var DataSource = /** @class */ (function () {
                 tableRefVal = _this._tableRef;
                 if (_this.jsdo.hasSubmitOperation) {
                     // Submit case
-                    _this._copyRecord(result.request.xhr.response, responseData);
+                    _this._copyRecord(result.request.response, responseData);
                     resolve(responseData);
                 }
                 else {

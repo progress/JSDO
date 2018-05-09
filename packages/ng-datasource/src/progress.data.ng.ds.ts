@@ -386,7 +386,7 @@ export class DataSource {
                         tableRefVal = this._tableRef;
                         if (this.jsdo.hasSubmitOperation) {
                             // Submit case
-                            this._copyRecord(result.request.xhr.response, responseData);
+                            this._copyRecord(result.request.response, responseData);
                             resolve(responseData);
                         } else {
                             // Non-Submit case
