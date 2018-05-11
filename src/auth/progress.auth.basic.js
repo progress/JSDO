@@ -34,6 +34,10 @@ limitations under the License.
         this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
             {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
 
+        // We don't support refresh for BASIC so get rid of anything in sessionStorage
+        // Remember to take this out when we support refresh for BASIC.
+        this._reset(); 
+
         // PRIVATE FUNCTIONS
 
         // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
