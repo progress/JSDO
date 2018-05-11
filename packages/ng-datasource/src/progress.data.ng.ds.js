@@ -46,6 +46,7 @@ exports.DataSourceOptions = DataSourceOptions;
 var DataSource = /** @class */ (function () {
     function DataSource(options) {
         this.jsdo = undefined;
+        // useArray === false means that arrays would be flattened
         this.useArrays = false;
         this.jsdo = options.jsdo;
         this._initFromServer = false;
@@ -129,6 +130,7 @@ var DataSource = /** @class */ (function () {
     DataSource.prototype._convertDataTypes = function (data) {
         var transport = this;
         var i, k, fieldName, schemaInfo, prefixElement, elementName, copy;
+        // Use transport_jsdo as any to avoid exposing internal JSDO methods
         var transport_jsdo = transport.jsdo;
         if (!transport.useArrays && transport._convertTypes && (transport._convertFields._arrayFields.length > 0)) {
             copy = {};
@@ -289,7 +291,7 @@ var DataSource = /** @class */ (function () {
                 var data = _this.getJsdoData();
                 if ((_this._options.countFnName && _this._options.countFnName !== undefined)
                     && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
-                    _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam.filter })
+                    _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                         .then(function (res) {
                         if (res === undefined && res == null) {
                             reject(new Error(_this.normalizeError(res, "Unexpected response from 'Count Function' Operation", "")));
@@ -541,12 +543,15 @@ var DataSource = /** @class */ (function () {
         if (this._convertTypes) {
             array = [];
             data.forEach(function (item) {
-                if (!_this._convertFields._arrayFields) {
-                    copy = Object.assign({}, item);
+                if (!_this.useArrays && _this._convertFields._arrayFields) {
+                    // Use a reference
+                    // _convertDataTypes() will create the copy for this case
+                    copy = item;
                 }
                 else {
-                    copy = _this._convertDataTypes(item);
+                    copy = Object.assign({}, item);
                 }
+                copy = _this._convertDataTypes(copy);
                 array.push(copy);
             });
             data = array;
