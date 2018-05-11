@@ -60,6 +60,8 @@ export class DataSource {
 
     private _convertFields: any;
     private _convertTypes: boolean;
+
+    // useArray === false means that arrays would be flattened
     private useArrays = false;
 
     constructor(options: DataSourceOptions) {
@@ -169,6 +171,8 @@ export class DataSource {
             prefixElement,
             elementName,
             copy;
+
+        // Use transport_jsdo as any to avoid exposing internal JSDO methods
         const transport_jsdo: any = transport.jsdo;
 
         if (!transport.useArrays && transport._convertTypes && (transport._convertFields._arrayFields.length > 0)) {
@@ -352,7 +356,9 @@ export class DataSource {
 
                         if ((this._options.countFnName && this._options.countFnName !== undefined)
                             && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
-                            this.getRecCount(this._options.countFnName, { filter: result.request.objParam.filter })
+                            this.getRecCount(
+                                    this._options.countFnName, 
+                                    { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                                 .then((res) => {
                                     if (res === undefined && res == null) {
                                         reject(new Error(this.normalizeError(res,
@@ -626,11 +632,15 @@ export class DataSource {
         if (this._convertTypes) {
             array = [];
             data.forEach(item => {
-                if (!this._convertFields._arrayFields) {
-                    copy = Object.assign({}, item);
+                if (!this.useArrays && this._convertFields._arrayFields) {
+                    // Use a reference
+                    // _convertDataTypes() will create the copy for this case
+                    copy = item;                    
                 } else {
-                    copy = this._convertDataTypes(item);
+                    copy = Object.assign({}, item);                    
                 }
+
+                copy = this._convertDataTypes(copy);
                 array.push(copy);
             });
             data = array;
