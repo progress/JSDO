@@ -58,7 +58,6 @@ export class DataSource {
     private _tableRef: string;
     private _initFromServer: boolean;
 
-    private transport: any;
     private _convertFields: any;
     private _convertTypes: boolean;
     private useArrays = false;
@@ -104,7 +103,6 @@ export class DataSource {
             }
         }
 
-        this.transport = {};
         this._initConvertTypes();
     }
 

@@ -84,7 +84,6 @@ var DataSource = /** @class */ (function () {
                 }
             }
         }
-        this.transport = {};
         this._initConvertTypes();
     }
     // _convertStringToDate:
