@@ -46,6 +46,7 @@ exports.DataSourceOptions = DataSourceOptions;
 var DataSource = /** @class */ (function () {
     function DataSource(options) {
         this.jsdo = undefined;
+        this.useArrays = false;
         this.jsdo = options.jsdo;
         this._initFromServer = false;
         this._isLastResultSetEmpty = false;
@@ -75,15 +76,151 @@ var DataSource = /** @class */ (function () {
                     this._options.countFnName + "' for countFnName is not defined.");
             }
         }
-        else if (this.jsdo['_resource'].generic.count !== undefined) {
-            for (var fnName in this.jsdo['_resource'].fn) {
-                if (this.jsdo['_resource'].generic.count === this.jsdo['_resource'].fn[fnName]['function']) {
+        else if (this.jsdo["_resource"].generic.count !== undefined) {
+            for (var fnName in this.jsdo["_resource"].fn) {
+                if (this.jsdo["_resource"].generic.count === this.jsdo["_resource"].fn[fnName]["function"]) {
                     this._options.countFnName = fnName;
                     break;
                 }
             }
         }
+        this._initConvertTypes();
     }
+    // _convertStringToDate:
+    DataSource.prototype._convertStringToDate = function (data, fieldName, targetFieldName) {
+        var transport = this;
+        var array, ablType, orig;
+        if (!targetFieldName) {
+            targetFieldName = fieldName;
+        }
+        // Check if string is <year>-<month>-<day>
+        array = transport._convertFields._datePattern.exec(data[targetFieldName]) || [];
+        if (array.length > 0) {
+            data[targetFieldName] = new Date(parseInt(array[1], 10), parseInt(array[2], 10) - 1, parseInt(array[3], 10));
+        }
+        else {
+            ablType = transport.jsdo[transport._tableRef]._fields[fieldName.toLowerCase()].ablType;
+            if (ablType === "DATETIME") {
+                array = transport._convertFields._dateTimePattern.exec(data[targetFieldName]) || [];
+                if (array.length > 0) {
+                    // Convert date to local time zone
+                    data[targetFieldName] = new Date(parseInt(array[1], 10), parseInt(array[2], 10) - 1, parseInt(array[3], 10), parseInt(array[4], 10), parseInt(array[5], 10), parseInt(array[6], 10), parseInt(array[7], 10));
+                }
+            }
+            // Check to see if it was converted
+            if (typeof (data[targetFieldName]) === "string") {
+                orig = data[targetFieldName];
+                try {
+                    data[targetFieldName] = new Date(data[targetFieldName]);
+                }
+                catch (e) {
+                    // Conversion to a date object was not successful
+                    data[targetFieldName] = orig;
+                    console.log("DataSource: Internal Error: _convertStringToDate() could not convert to date object: " + orig);
+                }
+            }
+        }
+    };
+    // _convertDataTypes:
+    // Converts data types in the specified data record.
+    // Data record could come from the JSDO or from the Kendo UI DataSource.
+    // Returns a reference to the record.
+    // Returns a copy when useArrays is undefined or false.
+    DataSource.prototype._convertDataTypes = function (data) {
+        var transport = this;
+        var i, k, fieldName, schemaInfo, prefixElement, elementName, copy;
+        var transport_jsdo = transport.jsdo;
+        if (!transport.useArrays && transport._convertTypes && (transport._convertFields._arrayFields.length > 0)) {
+            copy = {};
+            transport_jsdo._copyRecord(transport_jsdo._buffers[transport._tableRef], data, copy);
+            data = copy;
+        }
+        if (!transport._convertTypes) {
+            return data;
+        }
+        for (k = 0; k < transport._convertFields._arrayFields.length; k += 1) {
+            fieldName = transport._convertFields._arrayFields[k];
+            if (data[fieldName]) {
+                schemaInfo = transport.jsdo[transport._tableRef]._fields[fieldName.toLowerCase()];
+                prefixElement = transport_jsdo._getArrayField(fieldName);
+                for (i = 0; i < schemaInfo.maxItems; i += 1) {
+                    // ABL arrays are 1-based
+                    elementName = prefixElement.name + (i + 1);
+                    if (!transport.jsdo[transport._tableRef]._fields[elementName.toLowerCase()]) {
+                        // Skip element if a field with the same name exists
+                        // Extract value from array field into individual field
+                        // Array is removed later
+                        data[elementName] = data[fieldName][i];
+                        // Convert string DATE fields to JS DATE
+                        if ((schemaInfo.ablType)
+                            && (schemaInfo.ablType.indexOf("DATE") === 0) && (typeof (data[elementName]) === "string")) {
+                            transport._convertStringToDate(data, fieldName, elementName);
+                        }
+                    }
+                }
+                if (!transport.useArrays) {
+                    delete data[fieldName];
+                }
+            }
+        }
+        for (k = 0; k < transport._convertFields._dateFields.length; k += 1) {
+            fieldName = transport._convertFields._dateFields[k];
+            if (typeof (data[fieldName]) === "string") {
+                transport._convertStringToDate(data, fieldName);
+            }
+        }
+        return data;
+    };
+    // _initConvertTypes:
+    // Initializes transport._convertTypes to indicate whether a conversion of the data is needed
+    // when it is passed to Kendo UI.
+    // This operation is currently only needed for date fields that are stored as strings.
+    // Sets array _dateFields to the fields of date fields to convert.
+    DataSource.prototype._initConvertTypes = function () {
+        var transport = this;
+        var i, schema, fieldName, convertDateFields = false;
+        var dateFields = [], arrayFields = [];
+        transport._convertTypes = false;
+        schema = transport.jsdo[transport._tableRef].getSchema();
+        for (i = 0; i < schema.length; i += 1) {
+            fieldName = schema[i].name;
+            if (fieldName.length > 0 && fieldName.charAt(0) !== "_") {
+                if (schema[i].type === "string" &&
+                    schema[i].format &&
+                    (schema[i].format.indexOf("date") !== -1)) {
+                    dateFields.push(fieldName);
+                    if (!convertDateFields) {
+                        convertDateFields = true;
+                    }
+                }
+                else if (!transport.useArrays && schema[i].type === "array") {
+                    arrayFields.push(fieldName);
+                    if (!convertDateFields && schema[i].ablType &&
+                        schema[i].ablType.indexOf("DATE") === 0) {
+                        convertDateFields = true;
+                    }
+                }
+            }
+        }
+        if (dateFields.length > 0 || arrayFields.length > 0) {
+            transport._convertTypes = true;
+            // _convertFields: Object containing arrays for each data type to convert
+            transport._convertFields = {};
+            transport._convertFields._arrayFields = [];
+            transport._convertFields._dateFields = [];
+        }
+        if (dateFields.length > 0) {
+            transport._convertFields._dateFields = dateFields;
+        }
+        if (convertDateFields) {
+            transport._convertFields._datePattern = new RegExp("^([0-9]+)?-([0-9]{2})?-([0-9]{2})?$");
+            transport._convertFields._dateTimePattern = new RegExp("^([0-9]+)?-([0-9]{2})?-([0-9]{2})?" +
+                "T([0-9]{2})?:([0-9]{2})?:([0-9]{2})?.([0-9]{3})?$");
+        }
+        if (arrayFields.length > 0) {
+            transport._convertFields._arrayFields = arrayFields;
+        }
+    };
     /**
      * Calls the jsdo.fill() retrieving data from the backend service
      * @returns An Observable which includes an Array<Object> followed
@@ -113,26 +250,25 @@ var DataSource = /** @class */ (function () {
                 observer.next({ data: data, total: data.length });
             });
         }
-
         if (params && Object.keys(params).length > 0) {
             filter = params;
-        } else {
+        }
+        else {
             // If params has no properties, use default values for filter criteria
             if (this._options.filter || this._options.sort || this._options.top || this._options.skip) {
                 filter.filter = this._options.filter;
                 filter.sort = this._options.sort;
                 filter.top = this._options.top;
                 filter.skip = this._options.skip;
-            } else {
+            }
+            else {
                 filter = undefined;
             }
         }
-
         // tableRef required for multi-table DataSets
         if (filter) {
             filter.tableRef = this._tableRef;
         }
-
         wrapperPromise = new Promise(function (resolve, reject) {
             jsdo.fill(filter)
                 .then(function (result) {
@@ -392,14 +528,32 @@ var DataSource = /** @class */ (function () {
      * @returns Array<object>
      */
     DataSource.prototype.getJsdoData = function () {
+        var _this = this;
         var jsdo = this.jsdo;
         var saveUseRelationships = jsdo.useRelationships;
         var data;
+        var copy;
+        var array;
         jsdo.useRelationships = false;
         data = jsdo[this._tableRef].getData();
         jsdo.useRelationships = saveUseRelationships;
         // Make copy of jsdo data for datasource
-        data = (data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
+        if (this._convertTypes) {
+            array = [];
+            data.forEach(function (item) {
+                if (!_this._convertFields._arrayFields) {
+                    copy = Object.assign({}, item);
+                }
+                else {
+                    copy = _this._convertDataTypes(item);
+                }
+                array.push(copy);
+            });
+            data = array;
+        }
+        else {
+            data = (data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
+        }
         return data;
     };
     /**
