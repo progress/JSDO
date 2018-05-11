@@ -632,7 +632,7 @@ export class DataSource {
         if (this._convertTypes) {
             array = [];
             data.forEach(item => {
-                if (!this.useArrays && this._convertFields._arrayFields) {
+                if (!this.useArrays && this._convertFields._arrayFields.length > 0) {
                     // Use a reference
                     // _convertDataTypes() will create the copy for this case
                     copy = item;                    
