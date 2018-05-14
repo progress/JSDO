@@ -165,6 +165,7 @@ limitations under the License.
     msg.msgs.jsdoMSG510 = "{1}: This session has been invalidated and cannot be used.";
     msg.msgs.jsdoMSG511 = "JSDOSession: addCatalog() can only be called if an AuthenticationProvider was passed as an argument or " +
         "connect() has been successfully called.";
+    msg.msgs.jsdoMSG512 = "JSDOSession: Error while loading multiple catalogs.";
     
     msg.msgs.jsdoMSG998 = "JSDO: JSON object in addRecords() must be DataSet or Temp-Table data.";
 

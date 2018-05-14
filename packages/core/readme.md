@@ -1,5 +1,5 @@
 # JSDO Core Module
-The JSDO Core Module is an implementation of the JSDO used to provide support to the DataSource component.
+The JSDO Core Module is an implementation of the JSDO used to provide support to the Progress Data Source component.
 
 ### Documentation
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>

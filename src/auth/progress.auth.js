@@ -251,12 +251,12 @@ limitations under the License.
 
             // Check out why we do this in _loginProto
             xhr.setRequestHeader("Accept", "application/json");
+            callback(xhr);
         } else {
             // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
             errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            callback(errorObject);
         }
-        
-        callback(errorObject);
     };
 
     // GENERAL PURPOSE "INTERNAL" METHODS, NOT RELATED TO SPECIFIC API ELEMENTS
