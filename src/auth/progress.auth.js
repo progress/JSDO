@@ -22,7 +22,7 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false, storage, XMLHttpRequest*/
+    /*global storage, XMLHttpRequest*/
 
     /* define these if not defined yet - they may already be defined if
        progress.js was included first */
@@ -39,7 +39,7 @@ limitations under the License.
     // NOTE: If we support multiple AuthenticationProviders that get different tokens from the same
     //       server, we may need to add a "name" property to the initObject to use as a storage key
 
-    progress.data.AuthenticationProvider = function (initObject) {
+    progress.data.AuthenticationProvider = function AuthenticationProvider (initObject) {
         var authProv,
             authModel,
             uri;
@@ -76,7 +76,7 @@ limitations under the License.
         switch (authModel) {
         case progress.data.Session.AUTH_TYPE_ANON:
             this._initialize(initObject.uri, progress.data.Session.AUTH_TYPE_ANON,
-                     {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
+                {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
             authProv = this;
             break;
         case progress.data.Session.AUTH_TYPE_BASIC:
@@ -111,45 +111,55 @@ limitations under the License.
     // (technically, they don't override it, they each have small login methods that call this)
     progress.data.AuthenticationProvider.prototype._loginProto =
         function (sendParam) {
-            var deferred = $.Deferred(),
+            var deferred = new progress.util.Deferred(),
                 xhr,
                 uriForRequest,
                 header,
                 that = this;
 
-            if (this._loggedIn) {
-                // "The login method was not executed because the AuthenticationProvider is 
-                // already logged in." 
-                throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
-            }
-
-            xhr = new XMLHttpRequest();
-
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    // process the response from the Web application
-                    that._processLoginResult(xhr, deferred);
+            try {                
+                if (this._loggedIn) {
+                    // "The login method was not executed because the AuthenticationProvider is 
+                    // already logged in." 
+                    throw new Error(progress.data._getMsgText("jsdoMSG051", "AuthenticationProvider"));
                 }
-            };
 
-            if (progress.data.Session._useTimeStamp) {
-                uriForRequest = progress.data.Session._addTimeStampToURL(this._loginURI);
-            } else {
-                uriForRequest = this._loginURI;
+                xhr = new XMLHttpRequest();
+
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        // process the response from the Web application
+                        that._processLoginResult(xhr, deferred);
+                    }
+                };
+
+                if (progress.data.Session._useTimeStamp) {
+                    uriForRequest = progress.data.Session._addTimeStampToURL(this._loginURI);
+                } else {
+                    uriForRequest = this._loginURI;
+                }
+
+                this._openLoginRequest(xhr, uriForRequest);
+
+                // We specify application/json for the response so that, if a bad request is sent, an 
+                // OE Web application will directly send back a 401 with error info in the body as JSON. 
+                // So we force the accept header to application/json because if we make an anonymous
+                // request to a FORM/BASIC backend, it might redirect us to a login page since we have
+                // no credentials. And since we can technically access JUST the login page, the XHR
+                // will identify it as SUCCESS. If we specify "application/json", no redirects will
+                // happen, just a plain old "401 GET OUTTA HERE" code.
+                xhr.setRequestHeader("Accept", "application/json");
+            
+                xhr.send(sendParam);
+            } catch (error) {
+                if (progress.util.Deferred.useJQueryPromises) {
+                    throw error;
+                } else {
+                    deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                        errorObject: error
+                    });
+                }
             }
-
-            this._openLoginRequest(xhr, uriForRequest);
-
-            // We specify application/json for the response so that, if a bad request is sent, an 
-            // OE Web application will directly send back a 401 with error info in the body as JSON. 
-            // So we force the accept header to application/json because if we make an anonymous
-            // request to a FORM/BASIC backend, it might redirect us to a login page since we have
-            // no credentials. And since we can technically access JUST the login page, the XHR
-            // will identify it as SUCCESS. If we specify "application/json", no redirects will
-            // happen, just a plain old "401 GET OUTTA HERE" code.
-            xhr.setRequestHeader("Accept", "application/json");
-        
-            xhr.send(sendParam);
             return deferred.promise();
         };
         
@@ -192,10 +202,20 @@ limitations under the License.
     
     // logout API METHOD -- SOME CONSTRUCTORS OR PROTOTYPES WILL OVERRIDE THIS
     progress.data.AuthenticationProvider.prototype.logout = function () {
-        var deferred = $.Deferred();
+        var deferred = new progress.util.Deferred();
 
-        this._reset();
-        deferred.resolve(this, progress.data.Session.SUCCESS, {});
+        try {
+            this._reset();
+            deferred.resolve(this, progress.data.Session.SUCCESS, {});    
+        } catch (error) {
+            if (progress.util.Deferred.useJQueryPromises) {
+                throw error;
+            } else {
+                deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                    errorObject: error
+                });
+            }
+        }
         return deferred.promise();
     };
     
@@ -220,10 +240,10 @@ limitations under the License.
     // TODO: This method uses a callback, primarily to avoid breaking tdriver tests. We should change 
     // it to use promises
     progress.data.AuthenticationProvider.prototype._openRequestAndAuthorize = function (xhr,
-                                                                                        verb,
-                                                                                        uri,
-                                                                                        async,
-                                                                                        callback) {
+        verb,
+        uri,
+        async,
+        callback) {
         var errorObject;
         
         if (this.hasClientCredentials()) {
@@ -231,12 +251,12 @@ limitations under the License.
 
             // Check out why we do this in _loginProto
             xhr.setRequestHeader("Accept", "application/json");
+            callback(xhr);
         } else {
             // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
             errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+            callback(errorObject);
         }
-        
-        callback(errorObject);
     };
 
     // GENERAL PURPOSE "INTERNAL" METHODS, NOT RELATED TO SPECIFIC API ELEMENTS
@@ -244,8 +264,8 @@ limitations under the License.
 
     // General purpose method for initializing an object
     progress.data.AuthenticationProvider.prototype._initialize = function (uriParam,
-                                                                        authModel,
-                                                                        targetURIs) {
+        authModel,
+        targetURIs) {
         var tempURI,
             target;
         
@@ -297,8 +317,8 @@ limitations under the License.
         if (typeof sessionStorage === "undefined") {
             // "AuthenticationProvider: No support for sessionStorage."
             throw new Error(progress.data._getMsgText("jsdoMSG126",
-                                                      "AuthenticationProvider",
-                                                      "sessionStorage"));
+                "AuthenticationProvider",
+                "sessionStorage"));
         }
         // if you switch to a different type of storage, change the error message argument above
         this._storage = sessionStorage;
@@ -374,9 +394,9 @@ limitations under the License.
     
     // General purpose utility method, no overrides expected
     progress.data.AuthenticationProvider.prototype._checkStringArg = function (fnName,
-                                                                              argToCheck,
-                                                                              argPosition,
-                                                                              argName) {
+        argToCheck,
+        argPosition,
+        argName) {
         // TODO: ? distinguish between undefined (so we can give developer a clue that they
         // may be missing a property) and defined but wrong type
         if (typeof argToCheck !== "string") {

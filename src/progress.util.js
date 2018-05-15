@@ -1,16 +1,18 @@
-/* 
-progress.util.js    Version: 4.4.0-7
+/*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
+/*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
+/*
+progress.util.js    Version: 5.0.0
 
-Copyright (c) 2014-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Contains support objects used by the jsdo and/or session object
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
- 
+
     http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,12 +20,126 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
  */
-/*global progress:true*/
+/*global progress:true, btoa:true*/
 /*jslint nomen: true*/
+
+(function () {
+    // Pre-release code to detect enviroment and load required modules for Node.js and NativeScript
+    // Requirements:
+    // - XMLHttpRequest
+    // - localStorage
+    // - sessionStorage
+    // - Promise object (Promises with the same interface as jQuery Promises)
+
+    // Notes:
+    // Required packages should be installed before loading progress-jsdo.
+    // Node.js:
+    // - xmlhttprequest
+    // - node-localstorage
+    // NativeScript:
+    // - nativescript-localstorage
+    // - base-64
+
+    var isNativeScript = false,
+        isNodeJS = false;
+
+    var pkg_xmlhttprequest              = "xmlhttprequest",
+        pkg_nodeLocalstorage            = "node-localstorage",
+        pkg_nativescriptLocalstorage    = "nativescript-localstorage",
+        pkg_fileSystemAccess            = "file-system/file-system-access"
+        ;
+
+    // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
+    // load xmlhttprequest module
+    // Web browser and NativeScript clients have a built-in XMLHttpRequest object
+    if (typeof XMLHttpRequest === "undefined") {
+        isNodeJS = true;
+        try {
+            XMLHttpRequest = require("" + pkg_xmlhttprequest).XMLHttpRequest;
+            // xhrc = require("xmlhttprequest-cookie");
+            // XMLHttpRequest = xhrc.XMLHttpRequest;
+        } catch(e) {
+            console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
+            + "Please install xmlhttprequest package.");
+        }
+    }
+
+    // Detect if the environment is NativeScript
+    if (!isNodeJS
+        && (typeof localStorage === "undefined"
+            || typeof sessionStorage === "undefined")) {
+        try {
+            require("" + pkg_fileSystemAccess);
+            isNativeScript = true;
+        } catch(exception1) {
+            isNativeScript = false;
+        }
+    }
+
+    // If localStorage or sessionStorage is not defined,
+    // we need to load the corresponding support module
+
+    // If environment is NativeScript, load required modules
+    if (isNativeScript) {
+        try {
+            // load module nativescript-localstorage
+            if (typeof sessionStorage === "undefined") {
+                sessionStorage = require("" + pkg_nativescriptLocalstorage);
+            }
+            if (typeof localStorage === "undefined") {
+                localStorage = require("" + pkg_nativescriptLocalstorage);
+            }
+        } catch(exception2) {
+            console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n"
+                + "Please install nativescript-localstorage package.");
+        }
+
+        // load module base-64
+        try {
+            if (typeof btoa === "undefined") {
+                btoa = require("base-64").encode;
+            }
+        } catch(exception3) {
+            console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
+                + "Please install base-64 package.");
+        }
+    }
+
+    // If environment is NodeJS, load module node-localstorage
+    if (isNodeJS) {
+        var LocalStorage;
+        if (typeof localStorage === "undefined") {
+            try {
+                var module = require("" + pkg_nodeLocalstorage);
+                LocalStorage = module.LocalStorage;
+                localStorage = new LocalStorage('./scratch1');
+            } catch(e) {
+                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
+                    + "Please install node-localstorage package.");
+            }
+        }
+
+        if (typeof sessionStorage === "undefined"
+            && typeof LocalStorage !== "undefined") {
+            sessionStorage = new LocalStorage('./scratch2');
+        }
+
+        // load module base-64
+        try {
+            if (typeof btoa === "undefined") {
+                btoa = require("base-64").encode;
+            }
+        } catch(exception3) {
+            console.error("Error: JSDO library requires btoa() function in Node.js.\n"
+                + "Please install base-64 package.");
+        }
+    }
+}());
+
 (function () {
 
-     /* Define these if not defined yet - they may already be defined if
-      * progress.js was included first */
+    /* Define these if not defined yet - they may already be defined if
+     * progress.js was included first */
     if (typeof progress === "undefined") {
         progress = {};
     }
@@ -37,8 +153,178 @@ limitations under the License.
     var STRING_OBJECT_TYPE = "String",
         DATE_OBJECT_TYPE = "Date",
         CHARACTER_ABL_TYPE = "CHARACTER";
-    
-    
+        
+    /**
+     * Deferred class to provide access to ES6 and JQuery Promises.
+     *
+     * @class
+     */
+    progress.util.Deferred = /** @class */ (function () {
+        function Deferred() {
+            this._deferred = {};
+        }
+
+        /**
+         * Returns a Promise object.
+         */
+        Deferred.prototype.promise = function () {
+            var that = this;
+
+            if (progress.util.Deferred.useJQueryPromises) {
+                if (typeof($) !== 'undefined' && typeof($.Deferred) === 'function') {
+                    this._deferred._jQuerydeferred = $.Deferred();
+                    this._promise = this._deferred._jQuerydeferred.promise();
+                } else {
+                    throw new Error("JQuery Promises not found in environment.");
+                }
+            } else {
+                this._promise = new Promise(function (resolve, reject) {
+                    that._deferred.resolve = resolve;
+                    that._deferred.reject = reject;
+                });
+            }
+
+            if (this._resolveArguments || this._rejectArguments) {
+                setTimeout(function () {
+                    if (that._resolveArguments) {
+                        that.resolve.apply(that, that._resolveArguments);
+                    } else if (that._rejectArguments) {
+                        that.reject.apply(that, that._rejectArguments);
+                    }
+                }, 500);
+            }
+
+            // return null;
+            return this._promise;
+        
+        };
+
+        /**
+         * Calls the underlying resolve() method.
+         */
+        Deferred.prototype.resolve = function (arg1, arg2, arg3) {
+            if (this._promise) {
+                if (this._deferred._jQuerydeferred) {
+                    this._deferred._jQuerydeferred.resolve.apply(this, arguments);
+                } else {
+                    var object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);                    
+                    this._deferred.resolve(object);
+                }
+            } else {
+                this._resolveArguments = arguments;
+            }
+        };
+
+        /**
+         * Calls the underlying reject() method.
+         */
+        Deferred.prototype.reject = function (arg1, arg2, arg3) {
+            if (this._promise) {
+                if (this._deferred._jQuerydeferred) {
+                    this._deferred._jQuerydeferred.reject.apply(this, arguments);
+                } else {
+                    var object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);
+                    this._deferred.reject(object);
+                }
+            } else {
+                this._rejectArguments = arguments;
+            }
+        };
+
+        /**
+         * @property {boolean} useJQueryPromises - Tells the Deferred object to use jQuery Promises.
+         */
+        Deferred.useJQueryPromises = false;
+
+        /**
+         * Returns a deferred object based on a collection.
+         */                
+        Deferred.when = function (deferreds) {
+            if (progress.util.Deferred.useJQueryPromises) {
+                return $.when.apply($, deferreds);
+            } else {
+                return Promise.all(deferreds);
+            }
+        }
+
+        /**
+         * Returns an object with the parameters to resolve()/reject().
+         */        
+        Deferred.getParamObject1 = function (arg1, arg2, arg3) {
+            var object = {},
+                objectName;
+
+            try {
+                if ((typeof(arg1) === "undefined") || (arg1 === null)) {
+                    object.result = arg2;
+                    object.info = arg3;
+                } else {
+                    objectName = arg1.constructor.name.toLowerCase();
+                    if (!objectName) {
+                        objectName = typeof(arg1);
+                    }                    
+
+                    // Map some object name to use a particular property name
+                    switch (objectName) {
+                    case "authenticationprovider":
+                        objectName = "provider"
+                        break;
+                    case "number":
+                        objectName = "result"
+                        break;
+                    default:
+                        break;
+                    }
+                    object[objectName] = arg1;
+                    if (objectName === "jsdo") {
+                        object.success = arg2;
+                        if (arg3 && arg3.xhr) {
+                            object.request = arg3;
+                        } else {
+                            object.info = arg3;
+                        }
+                    } else {
+                        if (objectName === "result") {
+                            object.info = arg2;
+                            if (arg3) {
+                                object.info2 = arg3;
+                            }
+                        } else {
+                            object.result = arg2;
+                            object.info = arg3;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.log("Error: Undetermined argument in getParamObject() call.");
+            }    
+
+            return object;
+        }
+
+        /**
+         * Returns an object with the parameters to resolve()/reject() based on the Promise type.
+         */        
+        Deferred.getParamObject = function (arg1, arg2, arg3) {
+            var object = {};
+
+            if (progress.util.Deferred.useJQueryPromises) {
+                object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);
+            } else {
+                if (typeof(arg1) === "undefined") {
+                    object.result = arg2;
+                    object.info = arg3;
+                    arg1 = object;
+                }
+                return arg1;
+            }
+
+            return object;
+        };
+
+        return Deferred;
+    }());
+
     /**
      * Utility class that allows subscribing and unsubscribing from named events.
      *
@@ -141,7 +427,7 @@ limitations under the License.
                 this.validateSubscribe(arguments, evt, listenerData);
             } catch (e) {
                 throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
-                                            "subscribe", e.message));
+                    "subscribe", e.message));
             }
 
             observers = this._events[evt] || [];
@@ -195,7 +481,7 @@ limitations under the License.
             } catch (e) {
             //  throw new Error("Invalid signature for unsubscribe. " + e.message);
                 throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
-                                        "unsubscribe", e.message));
+                    "unsubscribe", e.message));
             }
 
             observers = this._events[evt] || [];
@@ -451,7 +737,7 @@ limitations under the License.
                     filter = progress.util._format(format, operator, value, field);
                 } else if (operator && value === undefined) {
                     if (filter.operator === "isempty" || filter.operator === "isnotempty") {
-						ablType = tableRef._getABLType(field);
+                        ablType = tableRef._getABLType(field);
                         if (ablType !== CHARACTER_ABL_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a CHARACTER field");
@@ -473,7 +759,7 @@ limitations under the License.
 				
                     // format, operator {0}, value {1}, field {2}
                     filter = progress.util._format(format, operator, value, field);
-				}
+                }
             }
 
             result.push(filter);
@@ -603,7 +889,7 @@ limitations under the License.
                     filterStr = progress.util._format(format, operator, value, field);
                 } else if (operator && value === undefined) {
                     if (filter.operator === "isempty" || filter.operator === "isnotempty") {
-						type = tableRef._fields[field.toLowerCase()].type;
+                        type = tableRef._fields[field.toLowerCase()].type;
                         if (type !== STRING_OBJECT_TYPE.toLowerCase()) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
                                             " requires a string field");

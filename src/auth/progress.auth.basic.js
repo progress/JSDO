@@ -22,7 +22,7 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false, storage, XMLHttpRequest, msg, btoa*/
+    /*global storage, XMLHttpRequest, msg, btoa*/
 
     progress.data.AuthenticationProviderBasic = function (uri) {
         var defaultiOSBasicAuthTimeout, // TO DO: need to implement the use of this
@@ -32,7 +32,11 @@ limitations under the License.
 
         // process constructor arguments, etc.
         this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
-                         {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
+            {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
+
+        // We don't support refresh for BASIC so get rid of anything in sessionStorage
+        // Remember to take this out when we support refresh for BASIC.
+        this._reset(); 
 
         // PRIVATE FUNCTIONS
 
@@ -58,7 +62,7 @@ limitations under the License.
             var auth;
             
             xhr.open("GET", uri, true);  // but see comments below inside the "if userName"
-                                         // may have to go with that approach
+            // may have to go with that approach
             
             if (userName) {
                 
@@ -108,7 +112,7 @@ limitations under the License.
             if (this.hasClientCredentials()) {
 
                 xhr.open(verb, uri, async);  // but see comments below inside the "if userName"
-                                            // may have to go with that approach
+                // may have to go with that approach
 
                 if (userName) {
 
@@ -118,12 +122,12 @@ limitations under the License.
                 }
 
                 progress.data.Session._setNoCacheHeaders(xhr);
+                callback(xhr);
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
+                callback(errorObject);
             }
-
-            callback(errorObject);
         };
     };
 

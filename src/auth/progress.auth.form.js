@@ -1,7 +1,7 @@
 /* 
-progress.auth.form.js    Version: 4.4.0-3
+progress.auth.form.js    Version: 5.0.0
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ limitations under the License.
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
 
     /*global progress : true*/
-    /*global $ : false, XMLHttpRequest*/
+    /*global XMLHttpRequest*/
 
     var fn;
     
@@ -30,9 +30,9 @@ limitations under the License.
         
         // PROCESS CONSTRUCTOR ARGUMENTS, CREATE API PROPERTIES, ETC.
         this._initialize(uri, progress.data.Session.AUTH_TYPE_FORM,
-                         {"_loginURI": progress.data.AuthenticationProvider._springLoginURIBase,
-                          "_logoutURI": progress.data.AuthenticationProvider._springLogoutURIBase
-                         });
+            {"_loginURI": progress.data.AuthenticationProvider._springLoginURIBase,
+                "_logoutURI": progress.data.AuthenticationProvider._springLogoutURIBase
+            });
     };
     
     // Start by giving this constructor the prototype from the "base" AuthenticationProvider
@@ -69,7 +69,7 @@ limitations under the License.
     
     // login API METHOD AND "HELPERS"
     progress.data.AuthenticationProviderForm.prototype.login = function (userNameParam, passwordParam) {
-        var deferred = $.Deferred(),
+        var deferred = new progress.util.Deferred(),
             xhr,
             that = this;
 
@@ -103,33 +103,43 @@ limitations under the License.
     // (But this method does do what the SSO AuthenticationProvider needs, so keep it on
     // the Form prototype if possible)
     progress.data.AuthenticationProviderForm.prototype.logout = function () {
-        var deferred = $.Deferred(),
+        var deferred = new progress.util.Deferred(),
             xhr,
             that = this;
 
-        if (!this._loggedIn) {
-            // logout is regarded as a success if the AuthenticationProvider isn't logged in
-            deferred.resolve(this, progress.data.Session.SUCCESS, {});
-        } else {
-            xhr = new XMLHttpRequest();
-            this._openLogoutRequest(xhr);
+        try {
+            if (!this._loggedIn) {
+                // logout is regarded as a success if the AuthenticationProvider isn't logged in
+                deferred.resolve(this, progress.data.Session.SUCCESS, {});
+            } else {
+                xhr = new XMLHttpRequest();
+                this._openLogoutRequest(xhr);
 
-            xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    // process the response from the Web application
-                    that._processLogoutResult(xhr, deferred);
-                }
-            };
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        // process the response from the Web application
+                        that._processLogoutResult(xhr, deferred);
+                    }
+                };
 
-            xhr.send();
+                xhr.send();
+            }
+            
+            // Unconditionally reset --- even if the actual server request fails, we still want
+            // to reset this AuthenticationProvider so it can try a login if desired.
+            // We also reset even in the case where we're not logged in, just in case.
+            // (In the future we can add a parameter that controls whether the reinit is unconditional,
+            // if the developer wants to log out of the token server session but contnue to use the token)
+            this._reset();
+        } catch (error) {
+            if (progress.util.Deferred.useJQueryPromises) {
+                throw error;
+            } else {
+                deferred.reject(this, progress.data.Session.GENERAL_FAILURE, {
+                    errorObject: error
+                });                
+            }
         }
-        
-        // Unconditionally reset --- even if the actual server request fails, we still want
-        // to reset this AuthenticationProvider so it can try a login if desired.
-        // We also reset even in the case where we're not logged in, just in case.
-        // (In the future we can add a parameter that controls whether the reinit is unconditional,
-        // if the developer wants to log out of the token server session but contnue to use the token)
-        this._reset();
         return deferred.promise();
     };
     
@@ -178,8 +188,12 @@ limitations under the License.
         function (xhr, verb, uri, async, callback) {
 
             function afterSuper(errorObject) {
-                xhr.withCredentials = true;
-                callback(errorObject);
+                if (errorObject instanceof Error) {
+                    callback(errorObject);
+                } else {
+                    xhr.withCredentials = true;
+                    callback(xhr);
+                }
             }
             
             try {
