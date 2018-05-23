@@ -308,7 +308,7 @@ export module progress {
              * @param {object} - New Record Object
              * @returns {object} progress.data.JSRecord class
              */
-            add(object: any): boolean;
+            add(object?: any): JSRecord;
 
             /**
              * Updates JSDO memory with one or more record objects read from an array, single-table, or multi-table resource that are passed in an object parameter, 
@@ -462,7 +462,7 @@ export module progress {
              * @param {object} - New Record Object
              * @returns {object} progress.data.JSRecord class
              */
-            add(object: any): boolean;
+            add(object?: any): JSRecord;
 
             /**
              * Updates JSDO memory with one or more record objects read from an array, single-table, or multi-table resource that are passed in an object parameter, 
@@ -1115,7 +1115,7 @@ export module progress {
         
         interface IJSTableRef {
             acceptChanges(): boolean;
-            add(object: any): boolean;
+            add(object?: any): JSRecord;
             addRecords(mergeObject: any, addMode: number, keyFields?: any): void;
             find(code: Function): JSRecord;
             findById(id: string): JSRecord;
