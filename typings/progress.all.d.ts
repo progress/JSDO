@@ -206,7 +206,7 @@ export module progress {
              * properties in the current JSDO, where name and value define a single property as defined for the setProperty( ) method.
              * @returns {null}
              */
-            setProperties(propsObject): void
+            setProperties(propsObject: any): void
 
             /**
              * Sets the value of the specified JSDO user-defined property.
@@ -225,7 +225,7 @@ export module progress {
              * Returns the value of the specified JSDO user-defined property.
              * @param name - The name of a user-defined property to query from the JSDO.
              */
-            getProperty(name): any
+            getProperty(name: string): any
 
             /**
              * Returns an array of errors from the most recent invocation of Create, Read, Update, Delete, or Submit operations (CRUD or Submit) 
