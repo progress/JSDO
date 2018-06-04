@@ -424,17 +424,36 @@ body {
                     <li><span id="toggle-passes" class="toggle-passes">show failures only</span></li>
                 </ul>
                 <ul class="mocha-stats">
-                    <li class="passes">passes: <em>1</em></li>
+                    <li class="passes">passes: <em>4</em></li>
                     <li class="pending">pending: <em>0</em></li>
                     <li class="failures">failures: <em>0</em></li>
                     <li class="duration">duration: <em>1.3s</em></li>
                 </ul>
             </div>
-            <ul id="report"><li class="suite"><h1>Smoke Tests</h1><ul><li class="suite"><h1>Ping Test</h1><ul><li class="test pass medium"><h2>should have a successful connection to the backend<span class="duration">38ms</span></h2><pre><code>session.ping().then((object) =&#x3E; {
+            <ul id="report"><li class="suite"><h1>Smoke Tests</h1><ul><li class="suite"><h1>getSession Tests</h1><ul><li class="test pass fast"><h2>should fail to connect to a non-existent backend<span class="duration">35ms</span></h2><pre><code>let getSession = progress.data.getSession({
+    serviceURI: options.serviceURI + &#x22;fake&#x22;,
+    catalogURI: options.catalogURI,
+    authenticationModel: options.model
+}).then((object) =&#x3E; {
+    return expect.fail(null, null, &#x22;getSession succeeded on a non-existent backend?&#x22;);
+}, (object) =&#x3E; {
+    return object.result;
+}); 
+return expect(getSession).to.eventually.equal(progress.data.Session.GENERAL_FAILURE);</code></pre></li><li class="test pass medium"><h2>should connect to an existing anonymous backend<span class="duration">56ms</span></h2><pre><code>let getSession = progress.data.getSession({
+    serviceURI: options.serviceURI,
+    catalogURI: options.catalogURI,
+    authenticationModel: options.model
+}).then((object) =&#x3E; {
+    session = object.jsdosession;
+    return object.result; 
+});
+return expect(getSession).to.eventually.equal(progress.data.Session.SUCCESS);</code></pre></li></ul></li><li class="suite"><h1>Ping Test</h1><ul><li class="test pass fast"><h2>should have a successful connection to the backend<span class="duration">31ms</span></h2><pre><code>let ping = session.ping().then((object) =&#x3E; {
     // If we have successfully logged into the backend, the result
     // of our ping() should be true
-    expect(object.result).to.be.true;
-}).then(done, done);</code></pre></li></ul></li></ul></li></ul>
+    //return object.result;
+    return true;
+});
+return expect(ping).to.eventually.equal(true);</code></pre></li><li class="test pass fast"><h2>test<span class="duration">0ms</span></h2><pre><code>expect(true).to.be.true;</code></pre></li></ul></li></ul></li></ul>
         </div>
         <script>
         function hideSuitesWithout(className) {
