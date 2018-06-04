@@ -2,3 +2,6 @@
 .vscode
 tmp
 tslint.json
+node_modules/
+scratch1/
+scratch2/
