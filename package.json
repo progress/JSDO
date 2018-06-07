@@ -11,11 +11,10 @@
     "typings/"
   ],
   "scripts": {
-    "test": "concurrently \"reload -b -s build/index.html\" \"npm run watch:js\"",
-    "build:jsdo": "concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
-    "watch:js": "onchange \"src/**/*\" \"test/**/*\" -i -- npm run test:mocha",
-    "test:mocha": "npm run build:jsdo && mocha --recursive --reporter mocha-simple-html-reporter --reporter-options output=build/index.html",
-    "test:tc": "mocha --recursive --reporter mocha-teamcity-reporter"
+    "test": "npm run build:jsdo && mocha --recursive",
+    "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
+    "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "test:tc": "npm run build:jsdo && mocha --recursive --reporter mocha-teamcity-reporter"
   },
   "repository": {
     "type": "git",
@@ -41,11 +40,8 @@
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "concat": "^1.0.3",
-    "concurrently": "^3.5.1",
+    "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
-    "mocha-simple-html-reporter": "^1.1.0",
-    "mocha-teamcity-reporter": "^2.4.0",
-    "onchange": "^4.0.0",
-    "reload": "^2.2.2"
+    "mocha-teamcity-reporter": "^2.4.0"
   }
 }
