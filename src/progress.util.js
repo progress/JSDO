@@ -280,6 +280,8 @@ limitations under the License.
                         object.success = arg2;
                         if (arg3 && arg3.xhr) {
                             object.request = arg3;
+                        } else if (arg3 && arg3.batch) {
+                            object.request = arg3;
                         } else {
                             object.info = arg3;
                         }

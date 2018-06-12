@@ -255,6 +255,8 @@ if (typeof (kendo) !== "undefined") {
                     elementName,
                     copy;
                 
+                // Remove prods:rowState property from data object
+                delete data["prods:rowState"];
                 if (!transport.useArrays && transport._convertTypes && (transport._convertFields._arrayFields.length > 0)) {
                     copy = {};
                     transport.jsdo._copyRecord(transport.jsdo._buffers[transport.tableRef], data, copy);
@@ -355,6 +357,10 @@ if (typeof (kendo) !== "undefined") {
                             }
                         }
                     }
+                }
+
+                if (transport.jsdo._resource.idProperty) {
+                    fields[transport.jsdo._resource.idProperty].editable = false;
                 }
                 return fields;
             },
@@ -584,20 +590,40 @@ if (typeof (kendo) !== "undefined") {
                 if (options.batch) {
                     array = [];
                     if (options.data.created instanceof Array) {
-                        for (i = 0; i < options.data.created.length; i += 1) {
-                            jsrecord = jsdo[transport.tableRef].findById(
-                                options.data.created[i]._id
-                            );
-                            if (jsrecord) {
-                                record = transport._convertDataTypes(jsrecord.data);
-                                array.push(record);
-                            } else if (jsdo.autoApplyChanges) {
+                        // Process changes for idProperty case
+                        if (jsdo._resource.idProperty) {
+                            if (request.jsrecords) {
+                                for (i = 0; i < request.jsrecords.length; i += 1) {
+                                    if (request.jsrecords[i].data["prods:rowState"] === "created") {
+                                        record = transport._convertDataTypes(request.jsrecords[i].data);
+                                        array.push(record);
+                                    }
+                                }
+                            }
+                            if (options.data.created.length !== array.length) {
                                 options.error(
                                     null,
                                     null,
                                     new Error("Created record was not found in memory.")
                                 );
                                 return;
+                            }
+                        } else {
+                            for (i = 0; i < options.data.created.length; i += 1) {
+                                jsrecord = jsdo[transport.tableRef].findById(
+                                    options.data.created[i]._id
+                                );
+                                if (jsrecord) {
+                                    record = transport._convertDataTypes(jsrecord.data);
+                                    array.push(record);
+                                } else if (jsdo.autoApplyChanges) {
+                                    options.error(
+                                        null,
+                                        null,
+                                        new Error("Created record was not found in memory.")
+                                    );
+                                    return;
+                                }
                             }
                         }
                     }
@@ -648,6 +674,10 @@ if (typeof (kendo) !== "undefined") {
                                 && request.batch.operations instanceof Array
                                 && request.batch.operations.length === 1) {
                             id = request.batch.operations[0].jsrecord.data._id;
+                        } else if (request
+                            && request.jsrecords instanceof Array
+                            && request.jsrecords.length === 1) {
+                            id = request.jsrecords[0].data._id;
                         }
                     } else {
                         id = options.data._id;
@@ -659,6 +689,7 @@ if (typeof (kendo) !== "undefined") {
                     } else {
                         options.success({});
                     }
+
                 }
             },
             _saveChanges: function (options) {
