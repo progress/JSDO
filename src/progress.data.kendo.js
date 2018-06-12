@@ -622,7 +622,7 @@ if (typeof (kendo) !== "undefined") {
                                 }
                             }
                         }
-                    }                    
+                    }
                     options.success(array, "create");
                     
                     array = [];
@@ -673,7 +673,8 @@ if (typeof (kendo) !== "undefined") {
                         } else if (request
                             && request.jsrecords instanceof Array
                             && request.jsrecords.length === 1) {
-                        id = request.jsrecords[0].data._id;
+                            id = request.jsrecords[0].data._id;
+                        }
                     } else {
                         id = options.data._id;
                     }
@@ -684,6 +685,7 @@ if (typeof (kendo) !== "undefined") {
                     } else {
                         options.success({});
                     }
+
                 }
             },
             _saveChanges: function (options) {
