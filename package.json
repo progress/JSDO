@@ -11,9 +11,10 @@
     "typings/"
   ],
   "scripts": {
+    "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
-    "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
     "test:tc": "npm run build:jsdo && mocha --recursive --reporter mocha-teamcity-reporter"
   },
   "repository": {
