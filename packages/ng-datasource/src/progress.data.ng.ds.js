@@ -1,20 +1,28 @@
 "use strict";
 /*
-Progress JSDO DataSource for Angular: 5.0.0
+Progress Progress Data Source for Angular: 5.0.0
+
 Copyright 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
 progress.data.ng.ds.ts    Version: v5.0.0
-Progress DataSource class for NativeScript, Angular. This will provide a seamless integration
+
+Progress Data Source class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.
+
 Author(s): maura, anikumar, egarcia
+
 */
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -38,10 +46,15 @@ exports.DataSourceOptions = DataSourceOptions;
 var DataSource = /** @class */ (function () {
     function DataSource(options) {
         this.jsdo = undefined;
+        // useArray === false means that arrays would be flattened
+        this.useArrays = false;
         this.jsdo = options.jsdo;
+        this._initFromServer = false;
+        this._isLastResultSetEmpty = false;
         this._options = options;
-        // Turning off autoApplyChanges. Want to explicitly call jsdo.acceptChanges() and rejectChanges()
-        this.jsdo.autoApplyChanges = false;
+        this.readLocal = options.readLocal !== undefined ? options.readLocal : false;
+        // Make sure autoApplyChanges = true
+        this.jsdo.autoApplyChanges = true;
         if (!options.jsdo || !(options.jsdo instanceof jsdo_core_1.progress.data.JSDO)) {
             throw new Error("DataSource: jsdo property must be set to a JSDO instance.");
         }
@@ -56,34 +69,246 @@ var DataSource = /** @class */ (function () {
                 + this._options.tableRef + "' is not present in underlying JSDO definition.");
         }
         this._tableRef = this._options.tableRef;
+        // Find out the name of 'Count' function from Catalog if defined as 'Count' operation
+        // instead of an INVOKE
+        if (this._options.countFnName !== undefined) {
+            if (typeof (this.jsdo[this._options.countFnName]) !== "function") {
+                throw new Error("Invoke operation '" +
+                    this._options.countFnName + "' for countFnName is not defined.");
+            }
+        }
+        else if (this.jsdo["_resource"].generic.count !== undefined) {
+            for (var fnName in this.jsdo["_resource"].fn) {
+                if (this.jsdo["_resource"].generic.count === this.jsdo["_resource"].fn[fnName]["function"]) {
+                    this._options.countFnName = fnName;
+                    break;
+                }
+            }
+        }
+        this._initConvertTypes();
     }
+    // _convertStringToDate:
+    DataSource.prototype._convertStringToDate = function (data, fieldName, targetFieldName) {
+        var transport = this;
+        var array, ablType, orig;
+        if (!targetFieldName) {
+            targetFieldName = fieldName;
+        }
+        // Check if string is <year>-<month>-<day>
+        array = transport._convertFields._datePattern.exec(data[targetFieldName]) || [];
+        if (array.length > 0) {
+            data[targetFieldName] = new Date(parseInt(array[1], 10), parseInt(array[2], 10) - 1, parseInt(array[3], 10));
+        }
+        else {
+            ablType = transport.jsdo[transport._tableRef]._fields[fieldName.toLowerCase()].ablType;
+            if (ablType === "DATETIME") {
+                array = transport._convertFields._dateTimePattern.exec(data[targetFieldName]) || [];
+                if (array.length > 0) {
+                    // Convert date to local time zone
+                    data[targetFieldName] = new Date(parseInt(array[1], 10), parseInt(array[2], 10) - 1, parseInt(array[3], 10), parseInt(array[4], 10), parseInt(array[5], 10), parseInt(array[6], 10), parseInt(array[7], 10));
+                }
+            }
+            // Check to see if it was converted
+            if (typeof (data[targetFieldName]) === "string") {
+                orig = data[targetFieldName];
+                try {
+                    data[targetFieldName] = new Date(data[targetFieldName]);
+                }
+                catch (e) {
+                    // Conversion to a date object was not successful
+                    data[targetFieldName] = orig;
+                    console.log("DataSource: Internal Error: _convertStringToDate() could not convert to date object: " + orig);
+                }
+            }
+        }
+    };
+    // _convertDataTypes:
+    // Converts data types in the specified data record.
+    // Data record could come from the JSDO or from the Kendo UI DataSource.
+    // Returns a reference to the record.
+    // Returns a copy when useArrays is undefined or false.
+    DataSource.prototype._convertDataTypes = function (data) {
+        var transport = this;
+        var i, k, fieldName, schemaInfo, prefixElement, elementName, copy;
+        // Use transport_jsdo as any to avoid exposing internal JSDO methods
+        var transport_jsdo = transport.jsdo;
+        if (!transport.useArrays && transport._convertTypes && (transport._convertFields._arrayFields.length > 0)) {
+            copy = {};
+            transport_jsdo._copyRecord(transport_jsdo._buffers[transport._tableRef], data, copy);
+            data = copy;
+        }
+        if (!transport._convertTypes) {
+            return data;
+        }
+        for (k = 0; k < transport._convertFields._arrayFields.length; k += 1) {
+            fieldName = transport._convertFields._arrayFields[k];
+            if (data[fieldName]) {
+                schemaInfo = transport.jsdo[transport._tableRef]._fields[fieldName.toLowerCase()];
+                prefixElement = transport_jsdo._getArrayField(fieldName);
+                for (i = 0; i < schemaInfo.maxItems; i += 1) {
+                    // ABL arrays are 1-based
+                    elementName = prefixElement.name + (i + 1);
+                    if (!transport.jsdo[transport._tableRef]._fields[elementName.toLowerCase()]) {
+                        // Skip element if a field with the same name exists
+                        // Extract value from array field into individual field
+                        // Array is removed later
+                        data[elementName] = data[fieldName][i];
+                        // Convert string DATE fields to JS DATE
+                        if ((schemaInfo.ablType)
+                            && (schemaInfo.ablType.indexOf("DATE") === 0) && (typeof (data[elementName]) === "string")) {
+                            transport._convertStringToDate(data, fieldName, elementName);
+                        }
+                    }
+                }
+                if (!transport.useArrays) {
+                    delete data[fieldName];
+                }
+            }
+        }
+        for (k = 0; k < transport._convertFields._dateFields.length; k += 1) {
+            fieldName = transport._convertFields._dateFields[k];
+            if (typeof (data[fieldName]) === "string") {
+                transport._convertStringToDate(data, fieldName);
+            }
+        }
+        return data;
+    };
+    // _initConvertTypes:
+    // Initializes transport._convertTypes to indicate whether a conversion of the data is needed
+    // when it is passed to Kendo UI.
+    // This operation is currently only needed for date fields that are stored as strings.
+    // Sets array _dateFields to the fields of date fields to convert.
+    DataSource.prototype._initConvertTypes = function () {
+        var transport = this;
+        var i, schema, fieldName, convertDateFields = false;
+        var dateFields = [], arrayFields = [];
+        transport._convertTypes = false;
+        schema = transport.jsdo[transport._tableRef].getSchema();
+        for (i = 0; i < schema.length; i += 1) {
+            fieldName = schema[i].name;
+            if (fieldName.length > 0 && fieldName.charAt(0) !== "_") {
+                if (schema[i].type === "string" &&
+                    schema[i].format &&
+                    (schema[i].format.indexOf("date") !== -1)) {
+                    dateFields.push(fieldName);
+                    if (!convertDateFields) {
+                        convertDateFields = true;
+                    }
+                }
+                else if (!transport.useArrays && schema[i].type === "array") {
+                    arrayFields.push(fieldName);
+                    if (!convertDateFields && schema[i].ablType &&
+                        schema[i].ablType.indexOf("DATE") === 0) {
+                        convertDateFields = true;
+                    }
+                }
+            }
+        }
+        if (dateFields.length > 0 || arrayFields.length > 0) {
+            transport._convertTypes = true;
+            // _convertFields: Object containing arrays for each data type to convert
+            transport._convertFields = {};
+            transport._convertFields._arrayFields = [];
+            transport._convertFields._dateFields = [];
+        }
+        if (dateFields.length > 0) {
+            transport._convertFields._dateFields = dateFields;
+        }
+        if (convertDateFields) {
+            transport._convertFields._datePattern = new RegExp("^([0-9]+)?-([0-9]{2})?-([0-9]{2})?$");
+            transport._convertFields._dateTimePattern = new RegExp("^([0-9]+)?-([0-9]{2})?-([0-9]{2})?" +
+                "T([0-9]{2})?:([0-9]{2})?:([0-9]{2})?.([0-9]{3})?$");
+        }
+        if (arrayFields.length > 0) {
+            transport._convertFields._arrayFields = arrayFields;
+        }
+    };
     /**
      * Calls the jsdo.fill() retrieving data from the backend service
-     * @returns Observable<Array<object>>
+     * @returns An Observable which includes an Array<Object> followed
+     * by an attribute for specifying 'total' records
      */
     DataSource.prototype.read = function (params) {
         var _this = this;
         var wrapperPromise;
         var obs;
         var filter = {};
-        if (params) {
+        var jsdo = this.jsdo;
+        var tableRef = this._tableRef;
+        // If this is a DataSource for a child table, check if read() was performed on parent
+        if (!this._initFromServer) {
+            if (jsdo[tableRef]._parent) {
+                this._initFromServer = (jsdo[jsdo[tableRef]._parent]._data &&
+                    (jsdo[jsdo[tableRef]._parent]._data.length > 0))
+                    || (jsdo[tableRef]._data instanceof Array && (jsdo[tableRef]._data.length > 0));
+            }
+            else {
+                this._initFromServer = (jsdo[tableRef]._data instanceof Array) && (jsdo[tableRef]._data.length > 0);
+            }
+        }
+        if (this.readLocal && this._initFromServer) {
+            return Observable_1.Observable.create(function (observer) {
+                var data = _this.getJsdoData();
+                observer.next({ data: data, total: data.length });
+            });
+        }
+        if (params && Object.keys(params).length > 0) {
             filter = params;
         }
         else {
-            // Initial read() where the params are empty and we are assigning the filter criteria
-            filter.filter = this._options.filter;
-            filter.sort = this._options.sort;
-            filter.top = this._options.top;
-            filter.skip = this._options.skip;
+            // If params has no properties, use default values for filter criteria
+            if (this._options.filter || this._options.sort || this._options.top || this._options.skip) {
+                filter.filter = this._options.filter;
+                filter.sort = this._options.sort;
+                filter.top = this._options.top;
+                filter.skip = this._options.skip;
+            }
+            else {
+                filter = undefined;
+            }
         }
         // tableRef required for multi-table DataSets
-        filter.tableRef = this._tableRef;
+        if (filter) {
+            filter.tableRef = this._tableRef;
+        }
         wrapperPromise = new Promise(function (resolve, reject) {
-            _this.jsdo.fill(filter)
+            jsdo.fill(filter)
                 .then(function (result) {
-                var data = result.jsdo[_this._tableRef].getData();
-                // Make copy of jsdo data for datasource
-                resolve((data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []));
+                // Verifying the latest resultset value and setting _isLastResultSetEmpty flag if empty
+                if (result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef]
+                    && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef].length === 0) {
+                    _this._isLastResultSetEmpty = true;
+                }
+                else if (result.request.response[_this.jsdo["_dataSetName"]]
+                    && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef] === undefined) {
+                    _this._isLastResultSetEmpty = true;
+                }
+                else if (result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef]
+                    && result.request.response[_this.jsdo["_dataSetName"]][_this._tableRef].length !== 0) {
+                    _this._isLastResultSetEmpty = false;
+                }
+                _this._initFromServer = true;
+                var data = _this.getJsdoData();
+                if ((_this._options.countFnName && _this._options.countFnName !== undefined)
+                    && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
+                    _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam ? result.request.objParam.filter : undefined })
+                        .then(function (res) {
+                        if (res === undefined && res == null) {
+                            reject(new Error(_this.normalizeError(res, "Unexpected response from 'Count Function' Operation", "")));
+                        }
+                        else {
+                            resolve({ data: data, total: res });
+                        }
+                    }, function (error) {
+                        reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
+                    }).catch(function (e) {
+                        reject(new Error(_this.normalizeError(e, "Unknown error occurred calling count.", "")));
+                    });
+                }
+                else {
+                    // Client side operations
+                    resolve({ data: data, total: data.length });
+                }
             }).catch(function (result) {
                 reject(new Error(_this.normalizeError(result, "read", "")));
             });
@@ -92,15 +317,14 @@ var DataSource = /** @class */ (function () {
         obs.catch(function (e) {
             return [];
         });
-        // return Observable.fromPromise(wrapperPromise);
         return obs;
     };
     /**
-     * Returns array of record objects from JSDO local memory
-     * @returns {object}
+     * Returns array of record objects from local memory
+     * @returns Array<object>
      */
     DataSource.prototype.getData = function () {
-        return this.jsdo[this._tableRef].getData();
+        return this.getJsdoData();
     };
     /**
      * Calls the jsdo.add() method, creating a new record in JSDO memory
@@ -111,8 +335,21 @@ var DataSource = /** @class */ (function () {
     DataSource.prototype.create = function (data) {
         var jsRecord;
         var newRow = {};
-        jsRecord = this.jsdo[this._tableRef].add(data);
-        this._copyRecord(jsRecord.data, newRow);
+        var saveUseRelationships = this.jsdo.useRelationships;
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].add(data);
+            this._copyRecord(jsRecord.data, newRow);
+        }
+        catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        }
+        finally {
+            this.jsdo.useRelationships = saveUseRelationships;
+        }
         return newRow;
     };
     /**
@@ -141,6 +378,7 @@ var DataSource = /** @class */ (function () {
      * @returns - boolean. True if successful, false if there is any failure
      */
     DataSource.prototype.update = function (data) {
+        var saveUseRelationships = this.jsdo.useRelationships;
         if (!data && (data === undefined || null)) {
             throw new Error("Unexpected signature for update() operation.");
         }
@@ -150,13 +388,26 @@ var DataSource = /** @class */ (function () {
         if (!id) {
             throw new Error("DataSource.update(): data missing _id property");
         }
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets update now
-            retVal = jsRecord.assign(data);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets update now
+                retVal = jsRecord.assign(data);
+                this.jsdo.useRelationships = saveUseRelationships;
+            }
+            else {
+                throw new Error("DataSource.update(): Unable to find record with this id " + id);
+            }
         }
-        else {
-            throw new Error("DataSource.update(): Unable to find record with this id " + id);
+        catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        }
+        finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
         return retVal;
     };
@@ -169,6 +420,7 @@ var DataSource = /** @class */ (function () {
     DataSource.prototype.remove = function (data) {
         var retVal = false;
         var id = (data && data._id) ? data._id : null;
+        var saveUseRelationships = this.jsdo.useRelationships;
         var jsRecord;
         if (!data && (data === undefined || null)) {
             throw new Error("Unexpected signature for remove() operation.");
@@ -176,29 +428,27 @@ var DataSource = /** @class */ (function () {
         if (!id) {
             throw new Error("DataSource.remove(): data missing _id property");
         }
-        jsRecord = this.jsdo[this._tableRef].findById(id);
-        if (jsRecord) {
-            // Found a valid record. Lets delete the record
-            retVal = jsRecord.remove(data);
+        try {
+            this.jsdo.useRelationships = false;
+            jsRecord = this.jsdo[this._tableRef].findById(id);
+            if (jsRecord) {
+                // Found a valid record. Lets delete the record
+                retVal = jsRecord.remove(data);
+            }
+            else {
+                throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+            }
         }
-        else {
-            throw new Error("DataSource.remove(): Unable to find record with this id " + id);
+        catch (error) {
+            if (this.jsdo.autoApplyChanges) {
+                this.jsdo[this._tableRef].rejectChanges();
+            }
+            throw error;
+        }
+        finally {
+            this.jsdo.useRelationships = saveUseRelationships;
         }
         return retVal;
-    };
-    /**
-     * Accepts any pending changes in the data source. This results in the removal of the
-     * before-image data. It also clears out any error messages.
-     */
-    DataSource.prototype.acceptChanges = function () {
-        this.jsdo[this._tableRef].acceptChanges();
-    };
-    /**
-     * Cancels any pending changes in the data source. Deleted rows are restored,
-     * new rows are removed and updated rows are restored to their initial state.
-     */
-    DataSource.prototype.cancelChanges = function () {
-        this.jsdo[this._tableRef].rejectChanges();
     };
     /**
      * Returns true if the underlying jsdo has CUD support (create, update, delete operations).
@@ -234,7 +484,7 @@ var DataSource = /** @class */ (function () {
                 tableRefVal = _this._tableRef;
                 if (_this.jsdo.hasSubmitOperation) {
                     // Submit case
-                    _this._copyRecord(result.request.xhr.response, responseData);
+                    _this._copyRecord(result.request.response, responseData);
                     resolve(responseData);
                 }
                 else {
@@ -254,12 +504,17 @@ var DataSource = /** @class */ (function () {
                     else if (result.info.batch.operations.length === 0) {
                         resolve({});
                     }
-                    else {
-                        reject(new Error(_this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                    else { // Reject promise if either of above cases are met
+                        reject(new Error(_this
+                            .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                     }
                 }
             }).catch(function (result) {
-                reject(new Error(_this.normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                if (_this.jsdo.autoApplyChanges) {
+                    _this.jsdo[_this._tableRef].rejectChanges();
+                }
+                reject(new Error(_this
+                    .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
             });
         });
         obs = Observable_1.Observable.fromPromise(promise);
@@ -267,6 +522,76 @@ var DataSource = /** @class */ (function () {
             return [];
         });
         return obs;
+    };
+    /**
+     * First, retrieves data from JSDO local memory
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
+     * Returns array of record objects
+     * @returns Array<object>
+     */
+    DataSource.prototype.getJsdoData = function () {
+        var _this = this;
+        var jsdo = this.jsdo;
+        var saveUseRelationships = jsdo.useRelationships;
+        var data;
+        var copy;
+        var array;
+        jsdo.useRelationships = false;
+        data = jsdo[this._tableRef].getData();
+        jsdo.useRelationships = saveUseRelationships;
+        // Make copy of jsdo data for datasource
+        if (this._convertTypes) {
+            array = [];
+            data.forEach(function (item) {
+                if (!_this.useArrays && _this._convertFields._arrayFields.length > 0) {
+                    // Use a reference
+                    // _convertDataTypes() will create the copy for this case
+                    copy = item;
+                }
+                else {
+                    copy = Object.assign({}, item);
+                }
+                copy = _this._convertDataTypes(copy);
+                array.push(copy);
+            });
+            data = array;
+        }
+        else {
+            data = (data.length > 0 ? data.map(function (item) { return Object.assign({}, item); }) : []);
+        }
+        return data;
+    };
+    /**
+     * This method is used for fetching the 'count' of records from backend
+     * This method is used as part of read() operation when serverOperations is set by client
+     * @param {string} name Name of the method pertaining to 'Count' functionality
+     * @param {any} object Filter object
+     */
+    DataSource.prototype.getRecCount = function (name, object) {
+        var _this = this;
+        var countVal;
+        var getRecCountPromise;
+        getRecCountPromise = new Promise(function (resolve, reject) {
+            _this.jsdo.invoke(name, object)
+                .then(function (result) {
+                try {
+                    if (typeof (result.request.response) === "object"
+                        && Object.keys(result.request.response).length === 1) {
+                        countVal = Object.values(result.request.response)[0];
+                        if (typeof (countVal) !== "number") {
+                            countVal = undefined;
+                        }
+                    }
+                    resolve(countVal);
+                }
+                catch (e) {
+                    reject(new Error(_this.normalizeError(e, "getRecCount", "")));
+                }
+            }).catch(function (result) {
+                reject(new Error(_this.normalizeError(result, "Error invoking the 'Count' operation", "")));
+            });
+        });
+        return getRecCountPromise;
     };
     /**
      * This method is called after an error has occurred on a jsdo operation, and is
@@ -343,10 +668,10 @@ var DataSource = /** @class */ (function () {
      * @param source  Actual dataset/record to be merged
      * @param target  Resultant dataset with all records information
      */
-    
     DataSource.prototype._buildResponse = function (source, target) {
         var newEntry = source;
-        var firstKey = Object.keys(source)[0], secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
+        var firstKey = Object.keys(source)[0];
+        var secondKey = (firstKey) ? Object.keys(source[firstKey])[0] : undefined;
         // Delete's on no submit services return empty datasets so
         // don't add anything.
         if (typeof source[firstKey] !== "undefined"

@@ -1,6 +1,6 @@
 {
   "name": "@progress/jsdo",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
   "main": "lib/progress.all.min.js",
   "files": [
@@ -11,7 +11,11 @@
     "typings/"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "test": "npm run build:jsdo && mocha --recursive",
+    "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
+    "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
+    "test:tc": "npm run build:jsdo && mocha --recursive --reporter mocha-teamcity-reporter"
   },
   "repository": {
     "type": "git",
@@ -32,5 +36,13 @@
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {},
   "peerDependencies": {},
-  "optionalDependencies": {}
+  "optionalDependencies": {},
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "concat": "^1.0.3",
+    "mkdirp": "^0.5.1",
+    "mocha": "^5.2.0",
+    "mocha-teamcity-reporter": "^2.4.0"
+  }
 }

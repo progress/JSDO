@@ -1449,28 +1449,34 @@ limitations under the License.
             var urlPlusCCID,
                 that = this;
 
-            function afterOpenAndAuthorize(xhr) {
-                // add CCID header
-                if (that.clientContextId && (that.clientContextId !== "0")) {
-                    xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", that.clientContextId);
-                }
-                // set X-CLIENT-PROPS header
-                setRequestHeaderFromContextProps(that, xhr);
-
-                if (typeof that.onOpenRequest === 'function') {
-                    var params = {
-                        "xhr": xhr,
-                        "verb": verb,
-                        "uri": urlPlusCCID,
-                        "async": async,
-                        "formPreTest": false,
-                        "session": that
-                    };
-                    that.onOpenRequest(params);
-                    // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
-                }
-                if (callback) {
-                    callback();
+            function afterOpenAndAuthorize(arg) {
+                // _openRequestAndAuthorize can return either an Error or an xhr
+                // TODO: we might need to fix this 
+                if (arg instanceof Error) {
+                    throw arg;
+                } else {
+                    // add CCID header
+                    if (that.clientContextId && (that.clientContextId !== "0")) {
+                        xhr.setRequestHeader("X-CLIENT-CONTEXT-ID", that.clientContextId);
+                    }
+                    // set X-CLIENT-PROPS header
+                    setRequestHeaderFromContextProps(that, xhr);
+    
+                    if (typeof that.onOpenRequest === 'function') {
+                        var params = {
+                            "xhr": xhr,
+                            "verb": verb,
+                            "uri": urlPlusCCID,
+                            "async": async,
+                            "formPreTest": false,
+                            "session": that
+                        };
+                        that.onOpenRequest(params);
+                        // xhr = params.xhr; //Note that, currently, this would have no effect in the caller.
+                    }
+                    if (callback) {
+                        callback();
+                    }
                 }
             }
 
@@ -3926,7 +3932,8 @@ limitations under the License.
         function onAfterAddCatalog(pdsession, result, errorObject, xhr) {
             var deferred,
                 fulfill = false,
-                settleResult;
+                settleResult,
+                info;
 
             if (result === progress.data.Session.EXPIRED_TOKEN) {
                 settleResult = progress.data.Session.EXPIRED_TOKEN;
@@ -3972,11 +3979,33 @@ limitations under the License.
                         fulfill = true;
                         settleResult = progress.data.Session.SUCCESS;
                     }
+                    if (settleResult === progress.data.Session.SUCCESS) {
+                        if (xhr._deferred._results.length === 1) {
+                            info = xhr._deferred._results[0];
+                        } else {
+                            info = {
+                                xhr: xhr,
+                                result: settleResult,
+                                details: xhr._deferred._results
+                            };
+                        }
+                    } else {
+                        if (xhr._deferred._results.length === 1) {
+                            info = xhr._deferred._results[0];
+                        } else {
+                            info = {
+                                xhr: xhr,
+                                result: settleResult,
+                                errorObject: new Error(progress.data._getMsgText("jsdoMSG512")),
+                                details: xhr._deferred._results
+                            };
+                        }
+                    }
                     settlePromise(
                         xhr._deferred,
                         fulfill,
                         settleResult,
-                        xhr._deferred._results
+                        info
                     );
                 }
             }

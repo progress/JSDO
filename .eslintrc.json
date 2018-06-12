@@ -7,8 +7,9 @@
     "env": {
         "browser": true,
         "es6": true,
-        "node": true
-    },    
+        "node": true,
+        "mocha": true
+    },
     "rules": {
         "indent": 1,
         "no-console": 0,
