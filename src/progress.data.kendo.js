@@ -358,6 +358,10 @@ if (typeof (kendo) !== "undefined") {
                         }
                     }
                 }
+
+                if (transport.jsdo._resource.idProperty) {
+                    fields[transport.jsdo._resource.idProperty].editable = false;
+                }
                 return fields;
             },
             _getInitialValues: function () {
