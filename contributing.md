@@ -32,6 +32,8 @@ If you want to implement a new feature yourself, consider submitting it to the <
 
 Contribute to the Code Base
 ===
+This project only accepts contributions via Pull Requests and only the project moderators  can check in to the main repository branch.
+
 Before you submit a Pull Request, consider the following guidelines:
 * By submitting a pull request, you represent that you have the right to license your contribution to Progress and the community, and agree by submitting the patch that your contributions are licensed under the <a href="https://github.com/progress/JSDO/blob/master/LICENSE">progress/JSDO license</a>.
 Notwithstanding the above, we reserve the right to ask you to sign a <a href="https://www.progress.com/jsdo/cla ">Contributor License Agreement (CLA)</a> for larger changes.
