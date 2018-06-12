@@ -38,7 +38,7 @@ Notwithstanding the above, we reserve the right to ask you to sign a <a href="ht
 * Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
 * Clone the repository.
 ```bash
-    git clone git@github.com:CloudDataObject/JSDO.git
+    git clone git@github.com:CloudDataObject/JSDO.gitjkkl
 ```
 * Initialize the submodule.
 ```bash
