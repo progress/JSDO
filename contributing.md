@@ -15,7 +15,7 @@ If your issue appears to be a bug, and hasn't been reported, open a new issue. T
 
 * **Overview of the issue:** Provide a short description of the visible symptoms. If applicable, include error messages, screen shots, and stack traces.
 * **Motivation for or use case:** Let us know how this particular issue affects your work.
-* **JSDO version:** List the current version of the JSDO. You can find it by opening any of the src or lib files.
+* **JSDO version:** List the current version of the JSDO. Ydfsdfsou can find it by opening any of the src or lib files.
 * **System configuration:** Provide us with relevant system configuration information such as operating system, network connection, proxy usage, etc. Let us know if you have been able to reproduce the issue on multiple setups.
 * **Steps to reproduce:** If applicable, submit a step-by-step walkthrough of how to reproduce the issue.
 * **Related issues:** If you discover a similar issue in our archive, give us a heads up - it might help us identify the culprit.
@@ -38,7 +38,7 @@ Notwithstanding the above, we reserve the right to ask you to sign a <a href="ht
 * Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
 * Clone the repository.
 ```bash
-    git clone git@github.com:CloudDataObject/JSDO.git
+    git clone git@github.com:CloudDataObject/JSDO.gitjkkl
 ```
 * Initialize the submodule.
 ```bash
