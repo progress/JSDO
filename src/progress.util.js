@@ -259,7 +259,12 @@ limitations under the License.
                     object.result = arg2;
                     object.info = arg3;
                 } else {
-                    objectName = arg1.constructor.name.toLowerCase();
+                    if (arg1 instanceof progress.data.JSDOSession) {
+                        objectName = "jsdosession";
+                    } else if (arg1 instanceof progress.data.AuthenticationProvider) {
+                        objectName = "authenticationprovider";
+                    }
+
                     if (!objectName) {
                         objectName = typeof(arg1);
                     }                    
