@@ -32,10 +32,11 @@ If you want to implement a new feature yourself, consider submitting it to the <
 
 Contribute to the Code Base
 ===
+This project only accepts contributions via Pull Requests and only the project moderators can check in to the main repository branch.
+
 Before you submit a Pull Request, consider the following guidelines.
 * Read and sign the <a href="https://www.progress.com/jsdo/cla ">JSDO Contributor License Agreement</a>.
 * Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
-* This project only accepts contributions via Pull Requests and only the project moderators can check in to the main repository branch.
 * Clone the repository.
 ```bash
     git clone git@github.com:CloudDataObject/JSDO.git -b develop
@@ -55,7 +56,8 @@ Before you submit a Pull Request, consider the following guidelines.
     git commit -a
 ```
 * Ensure your changes pass the Mocha tests for the JSDO.
-```npm install
+```bash
+    npm install
     npm test
 ```
 * Push your branch to GitHub.
