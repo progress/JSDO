@@ -35,9 +35,10 @@ Contribute to the Code Base
 Before you submit a Pull Request, consider the following guidelines.
 * Read and sign the <a href="https://www.progress.com/jsdo/cla ">JSDO Contributor License Agreement</a>.
 * Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
+* This project only accepts contributions via Pull Requests and only the project moderators can check in to the main repository branch.
 * Clone the repository.
 ```bash
-    git clone git@github.com:CloudDataObject/JSDO.git
+    git clone git@github.com:CloudDataObject/JSDO.git -b develop
 ```
 * Initialize the submodule.
 ```bash
@@ -47,20 +48,24 @@ Before you submit a Pull Request, consider the following guidelines.
 ```bash
     git submodule update
 ```
-* Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a> so you will have to branch from our develop branch.
+* Make your changes in a new `git` branch. We use the <a href="http://nvie.com/posts/a-successful-git-branching-model/">Gitflow branching model</a>.
 
 * Commit your changes and create a descriptive commit message (the commit message is used to generate release notes).
 ```bash
     git commit -a
 ```
+* Ensure your changes pass the Mocha tests for the JSDO.
+```npm install
+    npm test
+```
 * Push your branch to GitHub.
 ```bash
     git push origin my-fix-branch
 ```
-* In GitHub, send a Pull Request to JSDO:master.
+* In GitHub, send a Pull Request to JSDO:develop.
 * If we suggest changes, you can modify your branch, rebase, and force a new push to your GitHub repository to update the Pull Request.
 ```bash
-    git rebase master -i
+    git rebase develop -i
     git push -f
 ```
 
@@ -74,7 +79,7 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```
 * Check out the develop branch.
 ```bash
-    git checkout master -f
+    git checkout develop -f
 ```
 * Delete the local branch.
 ```bash
@@ -82,7 +87,7 @@ When the patch is reviewed and merged, you can safely delete your branch and pul
 ```
 * Update your develop branch with the latest upstream version.
 ```
-    git pull --ff upstream master
+    git pull --ff upstream develop
 ```
 
 [Back to Top][1]
