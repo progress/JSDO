@@ -12,10 +12,12 @@
   ],
   "scripts": {
     "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "build:jsdo-t": "npm run build:jsdo && nodetouch test/smoke.jsdo.js",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
     "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
-    "test:tc": "npm run build:jsdo && mocha --recursive --reporter mocha-teamcity-reporter"
+    "test:tc": "npm run build:jsdo && mocha --recursive --reporter mocha-teamcity-reporter",
+    "watch:js": "concurrently \"mocha -w --recursive\" \"onchange 'src/**/*.js' -- npm run build:jsdo-t\" "
   },
   "repository": {
     "type": "git",
@@ -34,15 +36,22 @@
     "url": "https://github.com/progress/JSDO/issues"
   },
   "homepage": "https://github.com/progress/JSDO#readme",
-  "dependencies": {},
+  "dependencies": {
+    "base-64": "^0.1.0",
+    "node-localstorage": "^1.3.1",
+    "xmlhttprequest": "^1.8.0"
+  },
   "peerDependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "concat": "^1.0.3",
+    "concurrently": "^3.5.1",
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
-    "mocha-teamcity-reporter": "^2.4.0"
+    "mocha-teamcity-reporter": "^2.4.0",
+    "onchange": "^4.0.0",
+    "touch": "^3.1.0"
   }
 }
