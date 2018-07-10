@@ -39,7 +39,7 @@ Before you submit a Pull Request, consider the following guidelines.
 * Search <a href="https://github.com/progress/JSDO/pulls">GitHub</a> for an open or closed Pull Request that relates to your submission.
 * Clone the repository.
 ```bash
-    git clone git@github.com:CloudDataObject/JSDO.git -b develop
+    git clone git@github.com:progress/JSDO.git -b develop
 ```
 * Initialize the submodule.
 ```bash
