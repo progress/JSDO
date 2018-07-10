@@ -354,7 +354,10 @@ export class DataSource {
 
                         const data = this.getJsdoData();
 
-                        if ((this._options.countFnName && this._options.countFnName !== undefined)
+                        // Only call count() function if paging is being used
+                        // Paging is only used if the skip and top is being used during the fill.
+                        if (typeof params !== "undefined" && 
+                            (typeof this._options.countFnName !== "undefined" && typeof params.skip !== "undefined" && typeof params.top !== "undefined")
                             && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                             this.getRecCount(
                                     this._options.countFnName, 
