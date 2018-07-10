@@ -259,27 +259,21 @@ limitations under the License.
                     object.result = arg2;
                     object.info = arg3;
                 } else {
+                    // Map some object name to use a particular property name
+                    // We should probably spend some time down the line to truly use
+                    // ES6 promises.
                     if (arg1 instanceof progress.data.JSDOSession) {
                         objectName = "jsdosession";
                     } else if (arg1 instanceof progress.data.AuthenticationProvider) {
-                        objectName = "authenticationprovider";
-                    }
-
-                    if (!objectName) {
+                        objectName = "provider";
+                    } else if (arg1 instanceof progress.data.JSDO) {
+                        objectName = "jsdo";
+                    } else if (typeof(arg1) === "number") {
+                        objectName = "result";
+                    } else {
                         objectName = typeof(arg1);
                     }                    
 
-                    // Map some object name to use a particular property name
-                    switch (objectName) {
-                    case "authenticationprovider":
-                        objectName = "provider"
-                        break;
-                    case "number":
-                        objectName = "result"
-                        break;
-                    default:
-                        break;
-                    }
                     object[objectName] = arg1;
                     if (objectName === "jsdo") {
                         object.success = arg2;
