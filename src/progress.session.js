@@ -2914,38 +2914,42 @@ limitations under the License.
         this._onReadyStateChangePing = function () {
             var xhr = this;
             var args;
-
-            if (xhr.readyState === 4) {
-                args = {
-                    xhr: xhr,
-                    fireEventIfOfflineChange: true,
-                    offlineReason: null
-                };
-                that._processPingResult(args);
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(that._autoping, _pingInterval);
+            try {
+                if (xhr.readyState === 4) {
+                    args = {
+                        xhr: xhr,
+                        fireEventIfOfflineChange: true,
+                        offlineReason: null
+                    };
+                    that._processPingResult(args);
+                    if (_pingInterval > 0) {
+                        _timeoutID = setTimeout(that._autoping, _pingInterval);
+                    }
                 }
+            } catch(e) {
             }
         };
 
         this._pingtestOnReadyStateChange = function () {
             var xhr = this;
+            try {
+                if (xhr.readyState === 4) {
+                    var foundOeping = false;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        foundOeping = true;
+                    } else {
+                        setPartialPingURI(that.loginTarget);
+                        console.warn("Default ping target not available, will use loginTarget instead.");
+                    }
+                    setOepingAvailable(foundOeping);
 
-            if (xhr.readyState === 4) {
-                var foundOeping = false;
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    foundOeping = true;
-                } else {
-                    setPartialPingURI(that.loginTarget);
-                    console.warn("Default ping target not available, will use loginTarget instead.");
+                    // If we're here, we've just logged in. If pingInterval has been set, we need
+                    // to start autopinging
+                    if (_pingInterval > 0) {
+                        _timeoutID = setTimeout(that._autoping, _pingInterval);
+                    }
                 }
-                setOepingAvailable(foundOeping);
-
-                // If we're here, we've just logged in. If pingInterval has been set, we need
-                // to start autopinging
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(that._autoping, _pingInterval);
-                }
+            } catch(e) {
             }
         };
 
@@ -4447,34 +4451,36 @@ limitations under the License.
                                 var xhr = this,
                                     cbresult,
                                     info;
+                                try {
+                                    if (xhr.readyState === 4) {
+                                        info = {
+                                            xhr: xhr,
+                                            offlineReason: undefined,
+                                            fireEventIfOfflineChange: true,
+                                            usingOepingFormat: false
+                                        };
 
-                                if (xhr.readyState === 4) {
-                                    info = {
-                                        xhr: xhr,
-                                        offlineReason: undefined,
-                                        fireEventIfOfflineChange: true,
-                                        usingOepingFormat: false
-                                    };
+                                        // call _processPingResult because it has logic for
+                                        // detecting change in online/offline state
+                                        _pdsession._processPingResult(info);
 
-                                    // call _processPingResult because it has logic for
-                                    // detecting change in online/offline state
-                                    _pdsession._processPingResult(info);
-
-                                    if (xhr.status >= 200 && xhr.status < 300) {
-                                        deferred.resolve(
-                                            that,
-                                            progress.data.Session.SUCCESS,
-                                            info
-                                        );
-                                    } else {
-                                        if (xhr.status === 401) {
-                                            cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                        if (xhr.status >= 200 && xhr.status < 300) {
+                                            deferred.resolve(
+                                                that,
+                                                progress.data.Session.SUCCESS,
+                                                info
+                                            );
                                         } else {
-                                            cbresult = progress.data.Session.GENERAL_FAILURE;
+                                            if (xhr.status === 401) {
+                                                cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                            } else {
+                                                cbresult = progress.data.Session.GENERAL_FAILURE;
+                                            }
+                                            deferred.reject(that, cbresult, info);
                                         }
-                                        deferred.reject(that, cbresult, info);
                                     }
-                                }
+                                    } catch (e) {
+                                    }
                             };
 
                             try {

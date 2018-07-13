@@ -132,7 +132,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        that._processLoginResult(xhr, deferred);
+                        try {
+                            that._processLoginResult(xhr, deferred);
+                        } catch (e) {
+                        }
                     }
                 };
 

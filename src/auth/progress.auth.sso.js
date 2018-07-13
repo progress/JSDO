@@ -356,7 +356,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        processRefreshResult(xhr, deferred);
+                        try {
+                            processRefreshResult(xhr, deferred);
+                        } catch (e){
+                        }
                     }
                 };
 
