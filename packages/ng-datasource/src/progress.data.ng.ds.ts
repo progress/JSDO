@@ -354,7 +354,10 @@ export class DataSource {
 
                         const data = this.getJsdoData();
 
-                        if ((this._options.countFnName && this._options.countFnName !== undefined)
+                        // Only call count() function if paging is being used
+                        // Paging is only used if the skip and top is being used during the fill.
+                        if (typeof params !== "undefined" && 
+                            (typeof this._options.countFnName !== "undefined" && typeof params.skip !== "undefined" && typeof params.top !== "undefined")
                             && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                             this.getRecCount(
                                     this._options.countFnName, 
@@ -575,8 +578,8 @@ export class DataSource {
                             resolve(responseData);
                         } else {
                             // Non-Submit case
-                            if (result.info.batch.operations && result.info.batch.operations.length > 0) {
-                                result.info.batch.operations.forEach((operation) => {
+                            if (result.request && result.request.batch.operations && result.request.batch.operations.length > 0) {
+                                result.request.batch.operations.forEach((operation) => {
                                     this._copyRecord(operation.response, responseData);
                                     // In case of multiple operations we want to merge those records pertaining
                                     // to different operations in a single dataset and is sent as part of the
@@ -586,9 +589,9 @@ export class DataSource {
                                 resolve(promResponse);
                                 // Scenario where the saveChanges is invoked directly without any Submit/Non-Submit
                                 // service as the serviceURI. We will resolve with an empty object
-                            } else if (result.info.batch.operations.length === 0) {
+                            } else if (result.request && result.request.batch.operations.length === 0) {
                                 resolve({});
-                            } else { // Reject promise if either of above cases are met
+                            } else { // Reject promise if either of above cases are not met
                                 reject(new Error(this
                                     .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
                             }
