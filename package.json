@@ -35,7 +35,6 @@
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {
     "@angular/core": "^6.1.1",
-    "gulp-typescript": "^5.0.0-alpha.3",
     "rxjs": "^6.2.2",
     "rxjs-compat": "^6.2.2"
   },
@@ -51,6 +50,7 @@
     "gulp-minify": "*",
     "gulp-rename": "*",
     "gulp-sequence": "*",
+    "gulp-typescript": "^5.0.0-alpha.3",
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
     "mocha-teamcity-reporter": "^2.4.0",

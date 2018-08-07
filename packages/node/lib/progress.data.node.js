@@ -25,13 +25,18 @@
         console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
         + "Please install xmlhttprequest package.");
     }
+	//In memory localStorage emulation used for node 
+	function LocalStorageEmulation() {
+		this._data = {};
+	};
+
 	LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
 	LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
 	LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
 	LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
 	
     // If environment is NodeJS, load module node-localstorage
-    var LocalStorage;
+    var localStorage;
     if (typeof localStorage === "undefined") {
         try {
             localStorage = new LocalStorageEmulation();
@@ -42,7 +47,7 @@
     }
 
     if (typeof sessionStorage === "undefined"
-        && typeof LocalStorage !== "undefined") {
+        && typeof localStorage !== "undefined") {
 		sessionStorage = new LocalStorageEmulation();
     }
 
