@@ -25,14 +25,16 @@
         console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
         + "Please install xmlhttprequest package.");
     }
-
+	LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
+	LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
+	LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
+	LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
+	
     // If environment is NodeJS, load module node-localstorage
     var LocalStorage;
     if (typeof localStorage === "undefined") {
         try {
-            var module = require('node-localstorage');
-            LocalStorage = module.LocalStorage;
-            localStorage = new LocalStorage('./scratch1');
+            localStorage = new LocalStorageEmulation();
         } catch(e) {
             console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
                 + "Please install node-localstorage package.");
@@ -41,7 +43,7 @@
 
     if (typeof sessionStorage === "undefined"
         && typeof LocalStorage !== "undefined") {
-        sessionStorage = new LocalStorage('./scratch2');
+		sessionStorage = new LocalStorageEmulation();
     }
 
     // load module base-64

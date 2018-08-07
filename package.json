@@ -33,15 +33,27 @@
     "url": "https://github.com/progress/JSDO/issues"
   },
   "homepage": "https://github.com/progress/JSDO#readme",
-  "dependencies": {},
+  "dependencies": {
+    "@angular/core": "^6.1.1",
+    "gulp-typescript": "^5.0.0-alpha.3",
+    "rxjs": "^6.2.2",
+    "rxjs-compat": "^6.2.2"
+  },
   "peerDependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "concat": "^1.0.3",
+    "del": "*",
+    "gulp": "*",
+    "gulp-concat": "*",
+    "gulp-minify": "*",
+    "gulp-rename": "*",
+    "gulp-sequence": "*",
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
-    "mocha-teamcity-reporter": "^2.4.0"
+    "mocha-teamcity-reporter": "^2.4.0",
+    "typescript": "^3.0.1"
   }
 }
