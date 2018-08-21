@@ -2,7 +2,7 @@ const chai = require('chai');
 const expect = chai.expect;
 const chaiAsPromised = require("chai-as-promised");
 const progress = require("@progress/jsdo-core").progress;
-const DataSource = require("@progress/jsdo-node").DataSource;
+const DataSource = require("../../build/progress.data.node").DataSource;
 
 chai.use(chaiAsPromised);
 
