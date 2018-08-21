@@ -943,11 +943,26 @@ export module progress {
         }
 
         interface FilterOptions {
-            filter?: any;
-            id?: any;
-            skip?: any;
-            sort?: any;
-            top?: any;
+            filter?: string | FilterOption | FilterOption[];
+            id?: string;
+            skip?: number;
+            sort?: SortOption | SortOption[];
+            top?: number;
+            tableRef?: string;
+        }
+
+        interface FilterOption {
+            field: string;
+            logic?: string;
+            operator: string;
+            value?: any;
+            filters?: FilterOption[];
+        }
+
+        interface SortOption {
+            field: string;
+            dir: string;
+            compare?: (arg1: any, arg2: any) => any;
         }
 
         interface JSDORequest {
