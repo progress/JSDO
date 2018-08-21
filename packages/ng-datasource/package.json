@@ -12,7 +12,10 @@
   ],
   "scripts": {
     "build:ds": "mkdirp build && concat -o build/progress.data.node.js src/progress.data.ng.ds.js",
-    "test": "npm run build:ds && mocha --recursive"
+    "test": "npm run build:ds && mocha --recursive",
+    "test:smokes": "npm run build:ds && mocha test/smoke*.js",
+    "test:tc": "npm run build:ds && mocha --recursive --reporter mocha-teamcity-reporter",
+    "test:tc-smokes": "npm run build:ds && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter"
   },
   "repository": {
     "type": "git",
