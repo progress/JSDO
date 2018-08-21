@@ -703,7 +703,7 @@ limitations under the License.
                         format = "'{1}'";
                         value = value.replace(/'/g, "~'");
                     } else if (type === DATE_OBJECT_TYPE) {
-                        ablType = tableRef._getABLType(field);
+                        ablType = tableRef._getABLType(filter.field);
                         if (ablType === "DATE") {
                             format = "DATE({1:MM, dd, yyyy})";
                         } else if (ablType === "DATETIME-TZ") {
