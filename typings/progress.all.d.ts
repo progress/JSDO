@@ -962,7 +962,6 @@ export module progress {
         interface SortOption {
             field: string;
             dir: string;
-            compare?: (arg1: any, arg2: any) => any;
         }
 
         interface JSDORequest {
