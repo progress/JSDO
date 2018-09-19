@@ -30,6 +30,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+
 Object.defineProperty(exports, "__esModule", { value: true });
 var core_1 = require("@angular/core");
 var jsdo_core_1 = require("@progress/jsdo-core");
@@ -291,21 +292,21 @@ var DataSource = /** @class */ (function () {
                 var data = _this.getJsdoData();
                 // Only call count() function if paging is being used
                 // Paging is only used if the skip and top is being used during the fill.
-                if (typeof params !== "undefined" && 
+                if (typeof params !== "undefined" &&
                     (typeof _this._options.countFnName !== "undefined" && typeof params.skip !== "undefined" && typeof params.top !== "undefined")
-                    && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
+                    && !(params.skip === 0 && params.top > data.length)) {
                     _this.getRecCount(_this._options.countFnName, { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                         .then(function (res) {
                         if (res === undefined && res == null) {
-                            reject(new Error(_this.normalizeError(res, "Unexpected response from 'Count Function' Operation", "")));
+                            reject(_this.normalizedErrorObj(res, "Unexpected response from 'Count Function' Operation", ""));
                         }
                         else {
                             resolve({ data: data, total: res });
                         }
                     }, function (error) {
-                        reject(new Error(_this.normalizeError(error, "Problems invoking getRecCount function", "")));
+                        reject(_this.normalizedErrorObj(error, "Problems invoking getRecCount function", ""));
                     }).catch(function (e) {
-                        reject(new Error(_this.normalizeError(e, "Unknown error occurred calling count.", "")));
+                        reject(_this.normalizedErrorObj(e, "Unknown error occurred calling count.", ""));
                     });
                 }
                 else {
@@ -313,7 +314,7 @@ var DataSource = /** @class */ (function () {
                     resolve({ data: data, total: data.length });
                 }
             }).catch(function (result) {
-                reject(new Error(_this.normalizeError(result, "read", "")));
+                reject(_this.normalizedErrorObj(result, "read", ""));
             });
         });
         obs = Observable_1.Observable.fromPromise(wrapperPromise);
@@ -507,17 +508,17 @@ var DataSource = /** @class */ (function () {
                     else if (result.request && result.request.batch.operations.length === 0) {
                         resolve({});
                     }
-                    else { // Reject promise if either of above cases are not met
-                        reject(new Error(_this
-                            .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                    else {
+                        reject(_this
+                            .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
                     }
                 }
             }).catch(function (result) {
                 if (_this.jsdo.autoApplyChanges) {
                     _this.jsdo[_this._tableRef].rejectChanges();
                 }
-                reject(new Error(_this
-                    .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                reject(_this
+                    .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
             });
         });
         obs = Observable_1.Observable.fromPromise(promise);
@@ -588,10 +589,10 @@ var DataSource = /** @class */ (function () {
                     resolve(countVal);
                 }
                 catch (e) {
-                    reject(new Error(_this.normalizeError(e, "getRecCount", "")));
+                    reject(_this.normalizedErrorObj(e, "getRecCount", ""));
                 }
             }).catch(function (result) {
-                reject(new Error(_this.normalizeError(result, "Error invoking the 'Count' operation", "")));
+                reject(_this.normalizedErrorObj(result, "Error invoking the 'Count' operation", ""));
             });
         });
         return getRecCountPromise;
@@ -635,6 +636,28 @@ var DataSource = /** @class */ (function () {
             errorMsg = error.message;
         }
         return errorMsg;
+    };
+    /**
+     * This method is called after an error has occurred on a jsdo operation, and is
+     * used to get an error object.
+     * @param {any} result Object containing error info returned after execution of jsdo operation
+     * @param {string} operation String containing operation performed when error occurred
+     * @param {string} genericMsg If multiple errors are found in result object, if specified,
+     * this string will be returned as part of the new error object. If not specified, first error
+     * string will be returned.
+     * @returns A single error object with all information
+     */
+    DataSource.prototype.normalizedErrorObj = function (result, operation, genericMsg) {
+        var errorObj = {};
+        var eMsg = "";
+        var object = {};
+        if (result && result.jsdo && result.success == false) {
+            object = result.request;
+        }
+        eMsg = this.normalizeError(result, operation, genericMsg);
+        errorObj = new Error(eMsg);
+        errorObj.info = object;
+        return errorObj;
     };
     DataSource.prototype._copyRecord = function (source, target) {
         var field;
@@ -691,7 +714,7 @@ var DataSource = /** @class */ (function () {
                     if (firstKey !== this._tableRef) {
                         target[firstKey][this._tableRef].push(newEntry[firstKey][this._tableRef][0]);
                     }
-                    else { // Temp-table usecase
+                    else {
                         target[this._tableRef].push(newEntry[this._tableRef][0]);
                     }
                     return target;
@@ -700,7 +723,8 @@ var DataSource = /** @class */ (function () {
         }
     };
     DataSource = __decorate([
-        core_1.Injectable()
+        core_1.Injectable(),
+        __metadata("design:paramtypes", [DataSourceOptions])
     ], DataSource);
     return DataSource;
 }());

@@ -25,7 +25,13 @@ export declare class DataSource {
     private _options;
     private _tableRef;
     private _initFromServer;
+    private _convertFields;
+    private _convertTypes;
+    private useArrays;
     constructor(options: DataSourceOptions);
+    _convertStringToDate(data: any, fieldName: any, targetFieldName?: any): void;
+    _convertDataTypes(data: any): any;
+    _initConvertTypes(): void;
     /**
      * Calls the jsdo.fill() retrieving data from the backend service
      * @returns An Observable which includes an Array<Object> followed
@@ -85,7 +91,7 @@ export declare class DataSource {
     saveChanges(): Observable<Array<object>>;
     /**
      * First, retrieves data from JSDO local memory
-     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru Data Source API
+     * Then makes a copy of it, to ensure jsdo memory is only manipulated thru DataSource API
      * Returns array of record objects
      * @returns Array<object>
      */
@@ -107,6 +113,17 @@ export declare class DataSource {
      * @returns A single error message
      */
     private normalizeError(result, operation, genericMsg);
+    /**
+     * This method is called after an error has occurred on a jsdo operation, and is
+     * used to get an error object.
+     * @param {any} result Object containing error info returned after execution of jsdo operation
+     * @param {string} operation String containing operation performed when error occurred
+     * @param {string} genericMsg If multiple errors are found in result object, if specified,
+     * this string will be returned as part of the new error object. If not specified, first error
+     * string will be returned.
+     * @returns A single error object with all information
+     */
+    private normalizedErrorObj(result, operation, genericMsg);
     private _copyRecord(source, target);
     /**
      * This method is responsible for building a valid responseObject when multiple records
