@@ -75,7 +75,7 @@ describe('Datasource Smoke Tests', function () {
                     // console.log(found);
                 });
             });
-        }).setTimeout(5000);
+        });
 
         describe('DataSource Read tests', function () {
             it('should have an Observable returned by read', function () {
@@ -237,7 +237,7 @@ describe('Datasource Smoke Tests', function () {
             //         done();
             //     }
             // }
-
+            this.timeout(5000);
             jsdo.ttCustomer.foreach((customer) => {
                 if (customer.data.Name === options.recName) {
                     customer.remove();
@@ -259,7 +259,7 @@ describe('Datasource Smoke Tests', function () {
 
             setTimeout(() => {
                 session.invalidate().then(() => done());
-            }, 5000);
-        }).setTimeout(5000);
+            }, 1500);
+        });
     });
 });
