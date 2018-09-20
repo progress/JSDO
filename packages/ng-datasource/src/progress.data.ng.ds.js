@@ -723,8 +723,7 @@ var DataSource = /** @class */ (function () {
         }
     };
     DataSource = __decorate([
-        core_1.Injectable(),
-        __metadata("design:paramtypes", [DataSourceOptions])
+        core_1.Injectable()
     ], DataSource);
     return DataSource;
 }());
