@@ -34,11 +34,6 @@ describe('Datasource Smoke Tests', function () {
         }).then(() => done(), () => done());
     });
 
-    //after: Logout of the session after we are done
-    after((done) => {
-        done();
-    });
-
     describe('DataSource Instantiation Tests', function () {
         it('should successfully create a DataSource', function () {
             dataSource = new DataSource({
@@ -54,28 +49,6 @@ describe('Datasource Smoke Tests', function () {
     describe('DataSource CRUD tests', function () {
         let data,
             rec;
-
-        before(function () {
-            jsdo.ttCustomer.foreach((customer) => {
-                if (customer.data.Name === options.recName) {
-                    customer.remove();
-                    // console.log(customer);
-                }
-
-                jsdo.saveChanges().then((object) => {
-                    return jsdo.fill();
-                }).then((object) => {
-                    console.log(object);
-                    let found = 0;
-                    jsdo.ttCustomer.foreach((customer) => {
-                        if (customer.data.Name === options.recName) {
-                            found += 1;
-                        }
-                    });
-                    // console.log(found);
-                });
-            });
-        });
 
         describe('DataSource Read tests', function () {
             it('should have an Observable returned by read', function () {
@@ -185,11 +158,17 @@ describe('Datasource Smoke Tests', function () {
 
         describe('DataSource Remove tests', function () {
             it('should successfully call Remove()', function () {
+                let count = 0;
 
-                console.log(dataSource.remove(rec));
+                dataSource.getData().forEach(element => {
+                    if (element.Name === options.recName) {
+                        if (dataSource.remove(element)) {
+                            count += 1;
+                        }
+                    }
+                });
 
-                // expect(dataSource.update(rec).Country).to.deep.equal(rec.Country);
-                expect(1).to.equal(1);
+                expect(count).to.equal(1);
             });
 
             it('should successfully call saveChanges()', function () {
@@ -215,28 +194,6 @@ describe('Datasource Smoke Tests', function () {
         });   
 
         after(function (done) {
-            // let foundTestRec;
-            // if (dataSource) {
-            //     console.log("deleting");
-            //     dataSource.read().toPromise().then((mydata) => {
-            //         mydata.data.forEach(element => {
-            //             if (element.Name === options.recName) {
-            //                 foundTestRec = element;
-            //                 dataSource.remove(foundTestRec);
-            //             }
-            //         });
-            //     });
-
-            //     if (foundTestRec) {
-            //         dataSource.saveChanges().toPromise().then((d) => {
-            //             console.log(d);
-            //         }, (e) => {
-            //             console.log(e);
-            //         }).then(() => done(), () => done());
-            //     } else {
-            //         done();
-            //     }
-            // }
             this.timeout(5000);
             jsdo.ttCustomer.foreach((customer) => {
                 if (customer.data.Name === options.recName) {
