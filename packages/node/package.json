@@ -37,7 +37,6 @@
   },
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {
-    "@angular/core": "^6.1.0",
     "@progress/jsdo-core": "^5.0.0",
     "base-64": "^0.1.0",
     "node-localstorage": "^1.3.1",
