@@ -11,6 +11,7 @@
     "typings/"
   ],
   "scripts": {
+    "build": "tsc",
     "build:ds": "mkdirp build && concat -o build/progress.data.node.js src/progress.data.ng.ds.js",
     "test": "npm run build:ds && mocha --recursive",
     "test:smokes": "npm run build:ds && mocha test/smoke*.js",
