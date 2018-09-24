@@ -1,7 +1,6 @@
 import { progress } from "@progress/jsdo-core";
-import "rxjs/add/observable/fromPromise";
-import "rxjs/add/operator/catch";
-import { Observable } from "rxjs/Observable";
+import { Observable, from } from "rxjs";
+import { catchError } from "rxjs/operators";
 export declare class DataSourceOptions {
     jsdo: progress.data.JSDO;
     tableRef?: string;

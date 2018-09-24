@@ -26,9 +26,8 @@ Author(s): maura, anikumar, egarcia
 
 import { Injectable } from "@angular/core";
 import { progress } from "@progress/jsdo-core";
-import "rxjs/add/observable/fromPromise";
-import "rxjs/add/operator/catch";
-import { Observable } from "rxjs/Observable";
+import { Observable, from } from "rxjs";
+import { catchError } from "rxjs/operators";
 
 export class DataSourceOptions {
     jsdo: progress.data.JSDO;
@@ -387,10 +386,10 @@ export class DataSource {
             }
         );
 
-        obs = Observable.fromPromise(wrapperPromise);
-        obs.catch((e) => {
+        obs = from(wrapperPromise);
+        obs.pipe(catchError((e) => {
             return [];
-        });
+        }));
 
         return obs;
     }
@@ -606,10 +605,10 @@ export class DataSource {
             }
         );
 
-        obs = Observable.fromPromise(promise);
-        obs.catch((e) => {
+        obs = from(promise);
+        obs.pipe(catchError((e) => {
             return [];
-        });
+        }));
 
         return obs;
     }
