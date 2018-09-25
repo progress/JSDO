@@ -946,8 +946,7 @@ export module progress {
             filter?: string | FilterOptions | FilterOption | FilterOption[];
             id?: string;
             skip?: number;
-            // sort?: SortOption | SortOption[];
-            sort?: any;
+            sort?: SortOption | SortOption[];
             top?: number;
             tableRef?: string;
             logic?: string;
