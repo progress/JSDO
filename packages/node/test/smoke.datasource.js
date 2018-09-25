@@ -13,7 +13,7 @@ describe('Datasource Smoke Tests', function () {
     //options all the info required for creating a jsdo session
     const options = {
         serviceURI: "https://oemobiledemo.progress.com/OEMobileDemoServices",
-        catalogURI: "https://oemobiledemo.progress.com/OEMobileDemoServices/static/CustomerService.json",
+        catalogURI: "https://oemobiledemo.progress.com/OEMobileDemoServices/static/SportsService3.json",
         resourceName: "Customer",
         authenticationModel: "anonymous",
         tableRef: "ttCustomer",
@@ -83,7 +83,7 @@ describe('Datasource Smoke Tests', function () {
                 //     _id: '1537314778768-1' }
 
                 let testRec = {
-                    CustNum: '',
+                    CustNum: 100000,
                     Name: options.recName,
                     State: 'MA',
                     Balance: 0
@@ -211,7 +211,7 @@ describe('Datasource Smoke Tests', function () {
                         }
                     });
                     console.log(found);
-                });
+                }, () => console.log("jsdo remove"));
             });
 
             setTimeout(() => {

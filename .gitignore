@@ -8,3 +8,5 @@ scratch1/
 scratch2/
 build/
 packages/ng-datasource/package-lock.json
+
+**/tsFiles
