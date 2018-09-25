@@ -1,5 +1,5 @@
 /**
- * Type definitions for progress.js 5.0 library. This is part of progress.all.js
+ * Type definitions for progress.js 6.0 library. This is part of progress.all.js
  * Project: Progress JSDO
  * Definitions by: egarcia, Traveleye, anikumar
  */
@@ -943,12 +943,13 @@ export module progress {
         }
 
         interface FilterOptions {
-            filter?: string | FilterOption | FilterOption[];
+            filter?: string | FilterOptions | FilterOption | FilterOption[];
             id?: string;
             skip?: number;
             sort?: SortOption | SortOption[];
             top?: number;
             tableRef?: string;
+            logic?: string;
         }
 
         interface FilterOption {
@@ -961,7 +962,7 @@ export module progress {
 
         interface SortOption {
             field: string;
-            dir: string;
+            dir?: string;
         }
 
         interface JSDORequest {
