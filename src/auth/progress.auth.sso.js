@@ -1,5 +1,5 @@
 /* 
-progress.auth.sso.js    Version: 4.4.0-3
+progress.auth.sso.js    Version: 6.0.0
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  

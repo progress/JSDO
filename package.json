@@ -1,6 +1,6 @@
 {
   "name": "@progress/jsdo",
-  "version": "5.0.1",
+  "version": "6.0.0",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
   "main": "lib/progress.all.min.js",
   "files": [
