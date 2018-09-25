@@ -943,10 +943,12 @@ export module progress {
         }
 
         interface FilterOptions {
-            filter?: string | FilterOption | FilterOption[];
+            // filter?: string | FilterOption | FilterOption[];
+            filter?: any;
             id?: string;
             skip?: number;
-            sort?: SortOption | SortOption[];
+            // sort?: SortOption | SortOption[];
+            sort?: any;
             top?: number;
             tableRef?: string;
         }
