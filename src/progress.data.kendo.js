@@ -1,6 +1,6 @@
 
 /* 
-progress.data.kendo.js    Version: 5.0.0
+progress.data.kendo.js    Version: 6.0.0
 
 Copyright (c) 2015-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
