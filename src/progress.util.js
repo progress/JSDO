@@ -46,7 +46,7 @@ limitations under the License.
     var pkg_xmlhttprequest              = "xmlhttprequest",
         pkg_nodeLocalstorage            = "node-localstorage",
         pkg_nativescriptLocalstorage    = "nativescript-localstorage",
-        pkg_fileSystemAccess            = "file-system/file-system-access"
+        pkg_fileSystemAccess            = "file-system/file-system-access",
         pkg_base64                      = "base-64"
         ;
 
