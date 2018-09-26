@@ -33,8 +33,7 @@
   },
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {
-    "@progress/jsdo-core": "^6.0.0",
-    "base-64": "^0.1.0"
+    "@progress/jsdo-core": "^6.0.0"
   },
   "peerDependencies": {
     "@angular/core": "^6.1.0",
