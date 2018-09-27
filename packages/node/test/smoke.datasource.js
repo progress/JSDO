@@ -200,27 +200,7 @@ describe('Datasource Smoke Tests', function () {
 
         after(function (done) {
             this.timeout(5000);
-            // jsdo.ttCustomer.foreach((customer) => {
-            //     if (customer.data.Name === options.recName) {
-            //         customer.remove();
-            //     }
-
-            //     jsdo.saveChanges().then((object) => {
-            //         return jsdo.fill();
-            //     }).then((object) => {
-            //         console.log(object);
-            //         let found = 0;
-            //         jsdo.ttCustomer.foreach((customer) => {
-            //             if (customer.data.Name === options.recName) {
-            //                 found += 1;
-            //             }
-            //         });
-            //         console.log(found);
-            //     }, () => console.log("jsdo remove"));
-            // });
-
-            // session.invalidate();
-
+            
             setTimeout(() => {
                 session.invalidate().then(() => done());
             }, 1500);
