@@ -12,8 +12,9 @@ chai.use(chaiAsPromised);
 describe('Datasource Smoke Tests', function () {
     //options all the info required for creating a jsdo session
     const options = {
-        serviceURI: "https://oemobiledemo.progress.com/OEMobileDemoServices",
-        catalogURI: "https://oemobiledemo.progress.com/OEMobileDemoServices/static/SportsService3.json",
+        // These services are running in Docker
+        serviceURI: "https://172.29.18.125:8894/OEMobileDemoServices",
+        catalogURI: "https://172.29.18.125:8894/OEMobileDemoServices/static/CustomerService.json",
         resourceName: "Customer",
         authenticationModel: "anonymous",
         tableRef: "ttCustomer",
