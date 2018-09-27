@@ -13,12 +13,12 @@ describe('Datasource Smoke Tests', function () {
     //options all the info required for creating a jsdo session
     const options = {
         // These services are running in Docker
-        serviceURI: "https://172.29.18.125:8894/OEMobileDemoServices",
-        catalogURI: "https://172.29.18.125:8894/OEMobileDemoServices/static/CustomerService.json",
+        serviceURI: "http://172.29.18.125:8894/OEMobileDemoServices",
+        catalogURI: "http://172.29.18.125:8894/OEMobileDemoServices/static/CustomerService.json",
         resourceName: "Customer",
         authenticationModel: "anonymous",
         tableRef: "ttCustomer",
-        recName: "test9001" //+ (Math.random() * 100)
+        recName: "test9011" //+ (Math.random() * 100)
     };
 
     //define your variables required for the tests below
@@ -31,7 +31,9 @@ describe('Datasource Smoke Tests', function () {
         progress.data.getSession(options).then((object) => {
             session = object.jsdosession;
         }).then(() => {
-            jsdo = new progress.data.JSDO({ name: options.resourceName });
+            jsdo = new progress.data.JSDO({
+                name: options.resourceName
+            });
         }).then(() => done(), () => done());
     });
 
@@ -76,12 +78,6 @@ describe('Datasource Smoke Tests', function () {
 
         describe('DataSource Create tests', function () {
             it('should successfully call create()', function () {
-                // { CustNum: 1,
-                //     Country: 'Mexico',
-                //     Name: 'NewItem',
-                //     ...
-                //     id: '0x0000000000000062',
-                //     _id: '1537314778768-1' }
 
                 let testRec = {
                     CustNum: 100000,
@@ -113,7 +109,7 @@ describe('Datasource Smoke Tests', function () {
 
                     if (count === 1) {
                         // Save the element for the update test later
-                        rec = element; 
+                        rec = element;
                     }
                 });
 
@@ -123,9 +119,13 @@ describe('Datasource Smoke Tests', function () {
 
         describe('DataSource Update tests', function () {
             it('should successfully call update()', function () {
+                // console.log("Before addition", rec);
                 rec.Country = "TestCountry";
 
-                expect(dataSource.update(rec).Country).to.deep.equal(rec.Country);
+                // console.log("After addition", rec);
+
+                // expect(dataSource.update(rec).Country).to.deep.equal(rec.Country);
+                expect(dataSource.update(rec)).to.deep.equal(true);
             });
 
             it('should successfully call saveChanges()', function () {
@@ -142,8 +142,8 @@ describe('Datasource Smoke Tests', function () {
             it('should successfully update a single record in the backend', function () {
                 let count = 0;
                 dataSource.getData().forEach(element => {
-                    if (element.Name === options.recName
-                        && element.Country === "TestCountry") {
+                    if (element.Name === options.recName &&
+                        element.Country === "TestCountry") {
                         count += 1;
                     }
 
@@ -182,38 +182,44 @@ describe('Datasource Smoke Tests', function () {
                 return expect(remove).to.eventually.be.true;
             });
 
-            it('should successfully update a single record in the backend', function () {
-                let count = 0;
-                dataSource.getData().forEach(element => {
-                    if (element.Name === options.recName) {
-                        count += 1;
-                    }
-                });
+            setTimeout(() => {
+                it('should successfully remove record in the backend', function () {
+                    let count = 0;
+                    dataSource.getData().forEach(element => {
+                        if (element.Name === options.recName) {
+                            count += 1;
+                            console.log("Count val: ", count);
+                            console.log("elementName", element.Name);
+                        }
+                    });
 
-                return expect(count).to.equal(0);
-            });
-        });   
+                    return expect(count).to.equal(0);
+                });
+            }, 3000);
+        });
 
         after(function (done) {
             this.timeout(5000);
-            jsdo.ttCustomer.foreach((customer) => {
-                if (customer.data.Name === options.recName) {
-                    customer.remove();
-                }
+            // jsdo.ttCustomer.foreach((customer) => {
+            //     if (customer.data.Name === options.recName) {
+            //         customer.remove();
+            //     }
 
-                jsdo.saveChanges().then((object) => {
-                    return jsdo.fill();
-                }).then((object) => {
-                    console.log(object);
-                    let found = 0;
-                    jsdo.ttCustomer.foreach((customer) => {
-                        if (customer.data.Name === options.recName) {
-                            found += 1;
-                        }
-                    });
-                    console.log(found);
-                }, () => console.log("jsdo remove"));
-            });
+            //     jsdo.saveChanges().then((object) => {
+            //         return jsdo.fill();
+            //     }).then((object) => {
+            //         console.log(object);
+            //         let found = 0;
+            //         jsdo.ttCustomer.foreach((customer) => {
+            //             if (customer.data.Name === options.recName) {
+            //                 found += 1;
+            //             }
+            //         });
+            //         console.log(found);
+            //     }, () => console.log("jsdo remove"));
+            // });
+
+            // session.invalidate();
 
             setTimeout(() => {
                 session.invalidate().then(() => done());
