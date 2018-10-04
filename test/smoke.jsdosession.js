@@ -9,8 +9,8 @@ chai.use(chaiAsPromised);
 describe('JSDOSession Smoke Tests', () => {
     // INFORMATION YEAH
     const options = {    
-        catalogURI: 'https://oemobiledemo.progress.com/OEMobileDemoServices/static/CustomerService.json',
-        serviceURI: 'https://oemobiledemo.progress.com/OEMobileDemoServices',
+        catalogURI: 'http://172.29.18.125:8894/OEMobileDemoServices/static/CustomerService.json',
+        serviceURI: 'http://172.29.18.125:8894/OEMobileDemoServices/',
         authenticationModel: 'anonymous'
     };
 
