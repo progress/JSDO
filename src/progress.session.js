@@ -4763,15 +4763,22 @@ limitations under the License.
 
             try {
                 jsdosession = new progress.data.JSDOSession(options);
-                jsdosession.isAuthorized()
-                    .then(function() {
-                        return jsdosession.addCatalog(options.catalogURI);
-                    }, sessionRejectHandler)
-                    .then(function (object, result, info) {
-                        object = progress.util.Deferred.getParamObject(object, result, info);
-                        deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
-                    }, sessionRejectHandler);
-
+                try {
+                    jsdosession.isAuthorized()
+                        .then(function() {
+                            return jsdosession.addCatalog(options.catalogURI);
+                        }, sessionRejectHandler)
+                        .then(function (object, result, info) {
+                            object = progress.util.Deferred.getParamObject(object, result, info);
+                            deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
+                        }, sessionRejectHandler);
+                } catch (e) {
+                    sessionRejectHandler(
+                        jsdosession,
+                        progress.data.Session.GENERAL_FAILURE,
+                        {errorObject: e}
+                    );
+                }
             } catch (ex) {
                 sessionRejectHandler(
                     jsdosession,
@@ -4897,28 +4904,7 @@ limitations under the License.
             options.authProvider = authProvider;
 
             if (authProvider.hasClientCredentials()) {
-                 // FAKE SESSION
-                 let jsdosession = new progress.data.JSDOSession(options);
-
-                 // This is a band-aid. We need to refactor and re-modularize
-                 // getSession() now that the team has a better understanding 
-                 // of async operations --aestrada aka yoloswaggins
-                 jsdosession.isAuthorized().then(() => {
-                         jsdosession.invalidate();
-                         loginHandler(authProvider);
-                     },
-                     () => {
-                         return Promise.all([
-                             jsdosession.invalidate(),
-                             options.authProvider.logout()
-                         ]);
-                     }).then((values) => {
-                         if (values) {
-                             authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
-                             options.authProvider = authProvider;
-                             callLogin(authProvider);
-                         }
-                     })
+                loginHandler(authProvider);
             } else {
                 // If model is anon, just log in.
                 if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
