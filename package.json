@@ -15,7 +15,7 @@
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
     "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
-    "test:tc": "npm run build:jsdo && mocha --recursive --reporter mocha-teamcity-reporter"
+    "test:tc": "npm run build:jsdo && mocha --timeout 15000 --recursive --reporter mocha-teamcity-reporter"
   },
   "repository": {
     "type": "git",
