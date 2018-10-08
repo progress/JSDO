@@ -1,7 +1,7 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
 /*
-progress.util.js    Version: 6.1.0
+progress.util.js    Version: 6.0.1
 
 Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
