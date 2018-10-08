@@ -1,6 +1,6 @@
 {
   "name": "@progress/jsdo-nsds",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript",
   "main": "lib/progress.data.ng.ds.js",
   "files": [
@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/progress/JSDO#readme",
   "dependencies": {
-    "@progress/jsdo-core": "^6.0.0",
+    "@progress/jsdo-core": "^6.0.1",
     "base-64": "^0.1.0",
     "node-localstorage": "^1.3.1",
     "xmlhttprequest": "^1.8.0"
