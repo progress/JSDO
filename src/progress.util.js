@@ -1,7 +1,7 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
 /*
-progress.util.js    Version: 5.0.0
+progress.util.js    Version: 6.0.0
 
 Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -46,7 +46,8 @@ limitations under the License.
     var pkg_xmlhttprequest              = "xmlhttprequest",
         pkg_nodeLocalstorage            = "node-localstorage",
         pkg_nativescriptLocalstorage    = "nativescript-localstorage",
-        pkg_fileSystemAccess            = "file-system/file-system-access"
+        pkg_fileSystemAccess            = "file-system/file-system-access",
+        pkg_base64                      = "base-64"
         ;
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
@@ -97,7 +98,7 @@ limitations under the License.
         // load module base-64
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("base-64").encode;
+                btoa = require("" + pkg_base64).encode;
             }
         } catch(exception3) {
             console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
@@ -127,7 +128,7 @@ limitations under the License.
         // load module base-64
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("base-64").encode;
+                btoa = require("" + pkg_base64).encode;
             }
         } catch(exception3) {
             console.error("Error: JSDO library requires btoa() function in Node.js.\n"
@@ -259,26 +260,27 @@ limitations under the License.
                     object.result = arg2;
                     object.info = arg3;
                 } else {
-                    objectName = arg1.constructor.name.toLowerCase();
-                    if (!objectName) {
+                    // Map some object name to use a particular property name
+                    // We should probably spend some time down the line to truly use
+                    // ES6 promises.
+                    if (arg1 instanceof progress.data.JSDOSession) {
+                        objectName = "jsdosession";
+                    } else if (arg1 instanceof progress.data.AuthenticationProvider) {
+                        objectName = "provider";
+                    } else if (arg1 instanceof progress.data.JSDO) {
+                        objectName = "jsdo";
+                    } else if (typeof(arg1) === "number") {
+                        objectName = "result";
+                    } else {
                         objectName = typeof(arg1);
                     }                    
 
-                    // Map some object name to use a particular property name
-                    switch (objectName) {
-                    case "authenticationprovider":
-                        objectName = "provider"
-                        break;
-                    case "number":
-                        objectName = "result"
-                        break;
-                    default:
-                        break;
-                    }
                     object[objectName] = arg1;
                     if (objectName === "jsdo") {
                         object.success = arg2;
                         if (arg3 && arg3.xhr) {
+                            object.request = arg3;
+                        } else if (arg3 && arg3.batch) {
                             object.request = arg3;
                         } else {
                             object.info = arg3;
@@ -702,7 +704,7 @@ limitations under the License.
                         format = "'{1}'";
                         value = value.replace(/'/g, "~'");
                     } else if (type === DATE_OBJECT_TYPE) {
-                        ablType = tableRef._getABLType(field);
+                        ablType = tableRef._getABLType(filter.field);
                         if (ablType === "DATE") {
                             format = "DATE({1:MM, dd, yyyy})";
                         } else if (ablType === "DATETIME-TZ") {

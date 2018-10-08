@@ -1,5 +1,5 @@
 /*
-Progress Progress Data Source for Angular: 5.0.0
+Progress Progress Data Source for Angular: 6.0.0
 
 Copyright 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
 
@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-progress.data.ng.ds.ts    Version: v5.0.0
+progress.data.ng.ds.ts    Version: v6.0.0
 
 Progress Data Source class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.
@@ -26,9 +26,8 @@ Author(s): maura, anikumar, egarcia
 
 import { Injectable } from "@angular/core";
 import { progress } from "@progress/jsdo-core";
-import "rxjs/add/observable/fromPromise";
-import "rxjs/add/operator/catch";
-import { Observable } from "rxjs/Observable";
+import { Observable, from } from "rxjs";
+import { catchError } from "rxjs/operators";
 
 export class DataSourceOptions {
     jsdo: progress.data.JSDO;
@@ -354,40 +353,43 @@ export class DataSource {
 
                         const data = this.getJsdoData();
 
-                        if ((this._options.countFnName && this._options.countFnName !== undefined)
+                        // Only call count() function if paging is being used
+                        // Paging is only used if the skip and top is being used during the fill.
+                        if (typeof params !== "undefined" && 
+                            (typeof this._options.countFnName !== "undefined" && typeof params.skip !== "undefined" && typeof params.top !== "undefined")
                             && !(params.skip === 0 && params.top > data.length)) { // Server-side operations
                             this.getRecCount(
                                     this._options.countFnName, 
                                     { filter: result.request.objParam ? result.request.objParam.filter : undefined })
                                 .then((res) => {
-                                    if (res === undefined && res == null) {
-                                        reject(new Error(this.normalizeError(res,
-                                            "Unexpected response from 'Count Function' Operation", "")));
+                                    if (res === undefined && res == null) {                                        
+                                        reject(this.normalizedErrorObj(res,
+                                            "Unexpected response from 'Count Function' Operation", ""));
                                     } else {
                                         resolve({ data, total: res });
                                     }
-                                }, (error) => {
-                                    reject(new Error(this.normalizeError(error,
-                                        "Problems invoking getRecCount function", "")));
-                                }).catch((e) => {
-                                    reject(new Error(this.normalizeError(e,
-                                        "Unknown error occurred calling count.", "")));
+                                }, (error) => {                                    
+                                    reject(this.normalizedErrorObj(error,
+                                        "Problems invoking getRecCount function", ""));
+                                }).catch((e) => {                                    
+                                    reject(this.normalizedErrorObj(e,
+                                        "Unknown error occurred calling count.", ""));
                                 });
                         } else {
                             // Client side operations
                             resolve({ data, total: data.length });
                         }
 
-                    }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, "read", "")));
+                    }).catch((result) => {                        
+                        reject(this.normalizedErrorObj(result, "read", ""));
                     });
             }
         );
 
-        obs = Observable.fromPromise(wrapperPromise);
-        obs.catch((e) => {
+        obs = from(wrapperPromise);
+        obs.pipe(catchError((e) => {
             return [];
-        });
+        }));
 
         return obs;
     }
@@ -575,8 +577,8 @@ export class DataSource {
                             resolve(responseData);
                         } else {
                             // Non-Submit case
-                            if (result.info.batch.operations && result.info.batch.operations.length > 0) {
-                                result.info.batch.operations.forEach((operation) => {
+                            if (result.request && result.request.batch.operations && result.request.batch.operations.length > 0) {
+                                result.request.batch.operations.forEach((operation) => {
                                     this._copyRecord(operation.response, responseData);
                                     // In case of multiple operations we want to merge those records pertaining
                                     // to different operations in a single dataset and is sent as part of the
@@ -586,27 +588,27 @@ export class DataSource {
                                 resolve(promResponse);
                                 // Scenario where the saveChanges is invoked directly without any Submit/Non-Submit
                                 // service as the serviceURI. We will resolve with an empty object
-                            } else if (result.info.batch.operations.length === 0) {
+                            } else if (result.request && result.request.batch.operations.length === 0) {
                                 resolve({});
-                            } else { // Reject promise if either of above cases are met
-                                reject(new Error(this
-                                    .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                            } else { // Reject promise if either of above cases are not met
+                                reject(this                                    
+                                    .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
                             }
                         }
                     }).catch((result) => {
                         if (this.jsdo.autoApplyChanges) {
                             this.jsdo[this._tableRef].rejectChanges();
-                        }
-                        reject(new Error(this
-                            .normalizeError(result, "saveChanges", "Errors occurred while saving Changes.")));
+                        }                        
+                        reject(this                            
+                            .normalizedErrorObj(result, "saveChanges", "Errors occurred while saving Changes."));
                     });
             }
         );
 
-        obs = Observable.fromPromise(promise);
-        obs.catch((e) => {
+        obs = from(promise);
+        obs.pipe(catchError((e) => {
             return [];
-        });
+        }));
 
         return obs;
     }
@@ -675,11 +677,11 @@ export class DataSource {
                                 }
                             }
                             resolve(countVal);
-                        } catch (e) {
-                            reject(new Error(this.normalizeError(e, "getRecCount", "")));
+                        } catch (e) {                                                       
+                            reject(this.normalizedErrorObj(e, "getRecCount", ""));
                         }
-                    }).catch((result) => {
-                        reject(new Error(this.normalizeError(result, "Error invoking the 'Count' operation", "")));
+                    }).catch((result) => {                        
+                        reject(this.normalizedErrorObj(result, "Error invoking the 'Count' operation", ""));
                     });
             });
 
@@ -724,6 +726,33 @@ export class DataSource {
         }
 
         return errorMsg;
+    }
+
+    /**
+     * This method is called after an error has occurred on a jsdo operation, and is
+     * used to get an error object.
+     * @param {any} result Object containing error info returned after execution of jsdo operation
+     * @param {string} operation String containing operation performed when error occurred 
+     * @param {string} genericMsg If multiple errors are found in result object, if specified,
+     * this string will be returned as part of the new error object. If not specified, first error 
+     * string will be returned.    
+     * @returns A single error object with all information
+     */
+    private normalizedErrorObj(result: any, operation: string, genericMsg: string) {        
+        let errorObj: {[key: string]: any} = {};
+        let eMsg = "";
+        let object: {[key: string]: any} = {};       
+        
+        if (result && result.jsdo && result.success == false) {
+            object = result.request;
+        } 
+        
+        eMsg = this.normalizeError(result, operation, genericMsg);
+
+        errorObj = new Error(eMsg);
+        errorObj.info = object;
+
+        return errorObj;
     }
 
     private _copyRecord(source, target) {

@@ -1,4 +1,12 @@
 .DS_Store
 .vscode
+package-lock.json
 tmp
 tslint.json
+node_modules/
+scratch1/
+scratch2/
+build/
+packages/ng-datasource/package-lock.json
+
+**/tsFiles

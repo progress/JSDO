@@ -1,5 +1,5 @@
 /**
- * Type definitions for progress.js 5.0 library. This is part of progress.all.js
+ * Type definitions for progress.js 6.0 library. This is part of progress.all.js
  * Project: Progress JSDO
  * Definitions by: egarcia, Traveleye, anikumar
  */
@@ -206,7 +206,7 @@ export module progress {
              * properties in the current JSDO, where name and value define a single property as defined for the setProperty( ) method.
              * @returns {null}
              */
-            setProperties(propsObject): void
+            setProperties(propsObject: any): void
 
             /**
              * Sets the value of the specified JSDO user-defined property.
@@ -225,7 +225,7 @@ export module progress {
              * Returns the value of the specified JSDO user-defined property.
              * @param name - The name of a user-defined property to query from the JSDO.
              */
-            getProperty(name): any
+            getProperty(name: string): any
 
             /**
              * Returns an array of errors from the most recent invocation of Create, Read, Update, Delete, or Submit operations (CRUD or Submit) 
@@ -308,7 +308,7 @@ export module progress {
              * @param {object} - New Record Object
              * @returns {object} progress.data.JSRecord class
              */
-            add(object: any): boolean;
+            add(object?: any): JSRecord;
 
             /**
              * Updates JSDO memory with one or more record objects read from an array, single-table, or multi-table resource that are passed in an object parameter, 
@@ -462,7 +462,7 @@ export module progress {
              * @param {object} - New Record Object
              * @returns {object} progress.data.JSRecord class
              */
-            add(object: any): boolean;
+            add(object?: any): JSRecord;
 
             /**
              * Updates JSDO memory with one or more record objects read from an array, single-table, or multi-table resource that are passed in an object parameter, 
@@ -943,11 +943,26 @@ export module progress {
         }
 
         interface FilterOptions {
-            filter?: any;
-            id?: any;
-            skip?: any;
-            sort?: any;
-            top?: any;
+            filter?: string | FilterOptions | FilterOption | FilterOption[];
+            id?: string;
+            skip?: number;
+            sort?: SortOption | SortOption[];
+            top?: number;
+            tableRef?: string;
+            logic?: string;
+        }
+
+        interface FilterOption {
+            field: string;
+            logic?: string;
+            operator: string;
+            value?: any;
+            filters?: FilterOption[];
+        }
+
+        interface SortOption {
+            field: string;
+            dir?: string;
         }
 
         interface JSDORequest {
@@ -1115,7 +1130,7 @@ export module progress {
         
         interface IJSTableRef {
             acceptChanges(): boolean;
-            add(object: any): boolean;
+            add(object?: any): JSRecord;
             addRecords(mergeObject: any, addMode: number, keyFields?: any): void;
             find(code: Function): JSRecord;
             findById(id: string): JSRecord;

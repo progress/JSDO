@@ -1,5 +1,5 @@
 /* 
-progress.js    Version: 5.0.0
+progress.js    Version: 6.0.0
 
 Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -2225,6 +2225,11 @@ limitations under the License.
                             this._resource.idProperty = properties[tableName].idProperty;
                         }
                     }
+                } else if (this._resource.schema
+                    && this._resource.schema.properties
+                    && this._resource.schema.properties[tableName]
+                    && this._resource.schema.properties[tableName].idProperty) {
+                    this._resource.idProperty = this._resource.schema.properties[tableName].idProperty;
                 }
 
                 // Add functions for operations to JSDO object
