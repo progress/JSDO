@@ -1,5 +1,5 @@
 /* 
-progress.auth.js    Version: 6.0.0
+progress.auth.js    Version: 6.1.0
 
 Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
  
