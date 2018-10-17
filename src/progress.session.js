@@ -4897,28 +4897,32 @@ limitations under the License.
             options.authProvider = authProvider;
 
             if (authProvider.hasClientCredentials()) {
-                 // FAKE SESSION
-                 let jsdosession = new progress.data.JSDOSession(options);
+                // FAKE SESSION
+                let jsdosession = new progress.data.JSDOSession(options),
+                    statusCode = true; 
 
                  // This is a band-aid. We need to refactor and re-modularize
                  // getSession() now that the team has a better understanding 
-                 // of async operations --aestrada aka yoloswaggins
-                 jsdosession.isAuthorized().then(() => {
-                         jsdosession.invalidate();
-                         loginHandler(authProvider);
-                     },
-                     () => {
-                         return Promise.all([
-                             jsdosession.invalidate(),
-                             options.authProvider.logout()
-                         ]);
-                     }).then((values) => {
-                         if (values) {
-                             authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
-                             options.authProvider = authProvider;
-                             callLogin(authProvider);
-                         }
-                     })
+                 // of async operations --aestrada
+                jsdosession.isAuthorized().then(() => {
+                    return jsdosession.invalidate();
+                }, (obj) => {
+                    statusCode = obj && obj.info && obj.info.xhr && obj.info.xhr.status;
+                    return Promise.all([
+                        jsdosession.invalidate(),
+                        options.authProvider.logout()
+                    ]);
+                }).then(() => {
+                    // If we have a 401, then we need to get rid of our old authProvider and try a fresh start
+                    // Otherwise, we still good.
+                    if (statusCode === 401) {
+                        authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
+                        options.authProvider = authProvider;
+                        callLogin(authProvider);
+                    } else {
+                        loginHandler(authProvider);
+                    }
+                });
             } else {
                 // If model is anon, just log in.
                 if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
