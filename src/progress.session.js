@@ -4899,7 +4899,7 @@ limitations under the License.
             if (authProvider.hasClientCredentials()) {
                 // FAKE SESSION
                 let jsdosession = new progress.data.JSDOSession(options),
-                    statusCode = true; 
+                    statusCode; 
 
                  // This is a band-aid. We need to refactor and re-modularize
                  // getSession() now that the team has a better understanding 
@@ -4989,4 +4989,3 @@ limitations under the License.
 if (typeof exports !== "undefined") {
     exports.progress = progress;
 }
-

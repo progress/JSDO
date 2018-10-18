@@ -28,7 +28,7 @@ describe('ADAS-9501 - Refresh After Timeout Bjorks The Session', function () {
 
         it('should timeout after 3 minutes', function () {
             // Disables timeout
-            this.timeout(200000);
+            this.timeout(0);
             
             // Resolve a promise after 3 minutes
             let timeout = new Promise((resolve, reject) => {
