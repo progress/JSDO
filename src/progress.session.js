@@ -4908,7 +4908,7 @@ limitations under the License.
                     return jsdosession.invalidate();
                 }, (obj) => {
                     statusCode = obj && obj.info && obj.info.xhr && obj.info.xhr.status;
-                    return Promise.all([
+                    return progress.util.Deferred.when([
                         jsdosession.invalidate(),
                         options.authProvider.logout()
                     ]);
