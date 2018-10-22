@@ -8,7 +8,7 @@ const progress = require("../build/progress.jsdo").progress;
 
 chai.use(chaiAsPromised);
 
-describe('JSDO Smoke Tests', () => {
+describe('Invoke Smoke Tests', () => {
     // INFORMATION YEAH
     const options = {    
         catalogURI: "https://10.128.57.41:65500/Sports/static/SportsService.json",
@@ -36,7 +36,7 @@ describe('JSDO Smoke Tests', () => {
         session.invalidate().then(() => done());
     });
 
-    describe('JSDO Instantiation Tests', function() {
+    describe('Invoke READ Tests', function() {
         it('should successfully create a JSDO', function() {
             jsdo = new progress.data.JSDO({name: options.resourceName});
             expect(jsdo).to.be.an.instanceof(progress.data.JSDO);
@@ -73,7 +73,7 @@ describe('JSDO Smoke Tests', () => {
         });
     });
 
-    describe('JSDO CUD Tests', function () {
+    describe('Invoke CUD Tests', function () {
         // Clean up the backend to make sure that there isn't an customer record with a CustNum of 3000
         // already in store
         function clean(callback) {
