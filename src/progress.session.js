@@ -4748,8 +4748,8 @@ limitations under the License.
     progress.data.getSession = function (options) {
         var deferred = new progress.util.Deferred(),
             authProvider,
-            promise,
-            authProviderInitObject = {};
+            authProviderInitObject = {},
+            session;
 
         // This is the reject handler for session-related operations
         // login, addCatalog, and logout
@@ -4777,26 +4777,23 @@ limitations under the License.
         }
 
         function loginHandler(object) {
-            var jsdosession;
+            let jsdosession;
 
             try {
-                jsdosession = new progress.data.JSDOSession(options);
-                try {
-                    jsdosession.isAuthorized()
-                        .then(function() {
-                            return jsdosession.addCatalog(options.catalogURI);
-                        }, sessionRejectHandler)
-                        .then(function (object, result, info) {
-                            object = progress.util.Deferred.getParamObject(object, result, info);
-                            deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
-                        }, sessionRejectHandler);
-                } catch (e) {
-                    sessionRejectHandler(
-                        jsdosession,
-                        progress.data.Session.GENERAL_FAILURE,
-                        {errorObject: e}
-                    );
+                if (typeof session === "undefined") {
+                    jsdosession = new progress.data.JSDOSession(options);
+                } else {
+                    jsdosession = session;
                 }
+
+                jsdosession.isAuthorized()
+                    .then(function() {
+                        return jsdosession.addCatalog(options.catalogURI);
+                    }, sessionRejectHandler)
+                    .then(function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);
+                        deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
+                    }, sessionRejectHandler);
             } catch (ex) {
                 sessionRejectHandler(
                     jsdosession,
@@ -4924,13 +4921,14 @@ limitations under the License.
             if (authProvider.hasClientCredentials()) {
                 // FAKE SESSION
                 let jsdosession = new progress.data.JSDOSession(options),
-                    statusCode; 
+                    statusCode = 0; 
 
                  // This is a band-aid. We need to refactor and re-modularize
                  // getSession() now that the team has a better understanding 
                  // of async operations --aestrada
                 jsdosession.isAuthorized().then(() => {
-                    return jsdosession.invalidate();
+                    session = jsdosession;
+                    return; 
                 }, (obj) => {
                     statusCode = obj && obj.info && obj.info.xhr && obj.info.xhr.status;
                     return progress.util.Deferred.when([
