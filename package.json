@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "lint": "eslint --quiet src/*",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
     "test:tc-smokes": "npm run build:jsdo && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
@@ -42,6 +43,7 @@
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "concat": "^1.0.3",
+    "eslint": "^5.7.0",
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
     "mocha-teamcity-reporter": "^2.4.0",

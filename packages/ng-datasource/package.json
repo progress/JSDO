@@ -16,7 +16,8 @@
     "test": "npm run build:ds && mocha --recursive",
     "test:smokes": "npm run build:ds && mocha test/smoke*.js",
     "test:tc": "npm run build:ds && mocha --recursive --reporter mocha-teamcity-reporter",
-    "test:tc-smokes": "npm run build:ds && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter"
+    "test:tc-smokes": "npm run build:ds && mocha test/smoke*.js --recursive --reporter mocha-teamcity-reporter",
+    "lint": "eslint src/*"
   },
   "repository": {
     "type": "git",
