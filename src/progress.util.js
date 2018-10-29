@@ -35,7 +35,6 @@ limitations under the License.
     // Required packages should be installed before loading progress-jsdo.
     // Node.js:
     // - xmlhttprequest
-    // - node-localstorage
     // NativeScript:
     // - nativescript-localstorage
     // - base-64
@@ -44,11 +43,19 @@ limitations under the License.
         isNodeJS = false;
 
     var pkg_xmlhttprequest              = "xmlhttprequest",
-        pkg_nodeLocalstorage            = "node-localstorage",
         pkg_nativescriptLocalstorage    = "nativescript-localstorage",
         pkg_fileSystemAccess            = "file-system/file-system-access",
         pkg_base64                      = "base-64"
         ;
+
+    //In memory localStorage emulation used for node 
+    function LocalStorageEmulation() {
+        this._data = {};
+    };
+    LocalStorageEmulation.prototype.setItem = function(id, val) { return this._data[id] = String(val); },
+    LocalStorageEmulation.prototype.getItem = function(id) { return this._data.hasOwnProperty(id) ? this._data[id] : undefined; },
+    LocalStorageEmulation.prototype.removeItem = function(id) { return delete this._data[id]; },
+    LocalStorageEmulation.prototype.clear = function() { return this._data = {}; }
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
     // load xmlhttprequest module
@@ -106,23 +113,13 @@ limitations under the License.
         }
     }
 
-    // If environment is NodeJS, load module node-localstorage
     if (isNodeJS) {
-        var LocalStorage;
         if (typeof localStorage === "undefined") {
-            try {
-                var module = require("" + pkg_nodeLocalstorage);
-                LocalStorage = module.LocalStorage;
-                localStorage = new LocalStorage('./scratch1');
-            } catch(e) {
-                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
-                    + "Please install node-localstorage package.");
-            }
+			localStorage = new LocalStorageEmulation();
         }
 
-        if (typeof sessionStorage === "undefined"
-            && typeof LocalStorage !== "undefined") {
-            sessionStorage = new LocalStorage('./scratch2');
+        if (typeof sessionStorage === "undefined") {
+            sessionStorage = new LocalStorageEmulation();
         }
 
         // load module base-64
