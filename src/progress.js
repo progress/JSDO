@@ -7175,8 +7175,17 @@ limitations under the License.
                     }
                 }
                 
+				// Christian Bryan - 10.02.2019 Add this back in
+                // Mike Fechner, Consultingwerk Ltd. 16.03.2016                
+                // Adding the tableRef property of the JSDO Parameters to
+                // the Filter Parameter so that the backend can use this
+                // information to actually know which Business Entity Table
+                // the query filter string is intended for ...
+
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
+					tableRef: params.tableRef, 
+					viewTables: jsdo.viewTables, 
                     sqlQuery: sqlQuery,
                     orderBy: sortFields,
                     skip: params.skip,
