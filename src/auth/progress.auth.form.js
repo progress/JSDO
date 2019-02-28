@@ -1,5 +1,5 @@
 /* 
-progress.auth.form.js    Version: 6.0.0
+progress.auth.form.js    Version: 6.0.1
 
 Copyright (c) 2016-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
@@ -118,7 +118,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        that._processLogoutResult(xhr, deferred);
+                        try {
+                            that._processLogoutResult(xhr, deferred);
+                        } catch (e) {
+                        }
                     }
                 };
 

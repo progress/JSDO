@@ -1,7 +1,7 @@
 /* 
-progress.auth.basic.js    Version: 6.0.1
+progress.auth.Bearer.js    Version: 4.4.0-3
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2017-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,36 +24,26 @@ limitations under the License.
     /*global progress : true*/
     /*global storage, XMLHttpRequest, msg, btoa*/
 
-    progress.data.AuthenticationProviderBasic = function (uri) {
-        var defaultiOSBasicAuthTimeout, // TO DO: need to implement the use of this
-            userName = null,
-            password = null,
+    progress.data.AuthenticationProviderBearer = function (uri) {
+        var bearerToken = null,
             fn;
 
         // process constructor arguments, etc.
-        this._initialize(uri, progress.data.Session.AUTH_TYPE_BASIC,
+        this._initialize(uri, progress.data.Session.AUTH_TYPE_BEARER,
             {"_loginURI": progress.data.AuthenticationProvider._homeLoginURIBase});
-
-        // We don't support refresh for BASIC so get rid of anything in sessionStorage
-        // Remember to take this out when we support refresh for BASIC.
-        this._reset(); 
 
         // PRIVATE FUNCTIONS
 
-        // from http://coderseye.com/2007/how-to-do-http-basic-auth-in-ajax.html
-        function make_basic_auth_header(user, pw) {
-            var tok = user + ':' + pw,
-                hash = btoa(tok);
-            return "Basic " + hash;
+        function make_Bearer_auth_header(token) {
+            return "Bearer " + token;
         }
 
         // "INTERNAL" METHODS
         // Override the protoype's method but call it from within the override
         // (Define the override here in the constructor so it has access to instance variables)
         this._reset = function () {
-            userName = null;
-            password = null;
-            progress.data.AuthenticationProviderBasic.prototype._reset.apply(this);
+            bearerToken = null;
+            progress.data.AuthenticationProviderBearer.prototype._reset.apply(this);
         };
 
         // Override the protoype's method (this method does not invoke the prototype's copy)
@@ -61,13 +51,13 @@ limitations under the License.
         this._openLoginRequest = function (xhr, uri) {
             var auth;
             
-            xhr.open("GET", uri, true);  // but see comments below inside the "if userName"
+            xhr.open("GET", uri, true);  // but see comments below inside the "if bearerToken"
             // may have to go with that approach
             
-            if (userName) {
+            if (bearerToken) {
                 
                 // set Authorization header
-                auth = make_basic_auth_header(userName, password);
+                auth = make_Bearer_auth_header(bearerToken);
                 xhr.setRequestHeader('Authorization', auth);
             }
 
@@ -76,28 +66,25 @@ limitations under the License.
 
         // Override the protoype's method but call it from within the override
         // (Define the override here in the constructor so it has access to instance variables)
-        this._processLoginResult = function _basic_processLoginResult(xhr, deferred) {
-            progress.data.AuthenticationProviderBasic.prototype._processLoginResult.apply(
+        this._processLoginResult = function _Bearer_processLoginResult(xhr, deferred) {
+            progress.data.AuthenticationProviderBearer.prototype._processLoginResult.apply(
                 this,
                 [xhr, deferred]
             );
             if (!this._loggedIn) {
                 // login failed, clear the credentials
-                userName = null;
-                password = null;
+                bearerToken = null;
             }
         };
         
         // Override the protoype's method (this method does not invoke the prototype's copy, but
         // calls a prototype general-purpose login method)
         // (Define the override here in the constructor so it has access to instance variables)
-        this.login = function (userNameParam, passwordParam) {
+        this.login = function (token) {
             // these throw if the check fails (may want to do something more elegant)
-            this._checkStringArg("login", userNameParam, 1, "userName");
-            this._checkStringArg("login", passwordParam, 2, "password");
+            this._checkStringArg("login", token, 1, "token");
 
-            userName = userNameParam;
-            password = passwordParam;
+            bearerToken = token;
             return this._loginProto();
         };
         
@@ -111,23 +98,23 @@ limitations under the License.
 
             if (this.hasClientCredentials()) {
 
-                xhr.open(verb, uri, async);  // but see comments below inside the "if userName"
+                xhr.open(verb, uri, async);  // but see comments below inside the "if bearerToken"
                 // may have to go with that approach
 
-                if (userName) {
+                if (bearerToken) {
 
                     // set Authorization header
-                    auth = make_basic_auth_header(userName, password);
+                    auth = make_Bearer_auth_header(bearerToken);
                     xhr.setRequestHeader('Authorization', auth);
                 }
 
                 progress.data.Session._setNoCacheHeaders(xhr);
-                callback(xhr);
             } else {
                 // AuthenticationProvider: The AuthenticationProvider is not managing valid credentials.
                 errorObject = new Error(progress.data._getMsgText("jsdoMSG125", "AuthenticationProvider"));
-                callback(errorObject);
             }
+
+            callback(errorObject);
         };
     };
 
@@ -135,15 +122,15 @@ limitations under the License.
     // Give this constructor the prototype from the "base" AuthenticationProvider
     // Do this indirectly by way of an intermediate object so changes to the prototype ("method overrides")
     // don't affect other types of AuthenticationProviders that use the prototype)
-    function BasicProxy() {}
-    BasicProxy.prototype = progress.data.AuthenticationProvider.prototype;
-    progress.data.AuthenticationProviderBasic.prototype = new BasicProxy();
+    function BearerProxy() {}
+    BearerProxy.prototype = progress.data.AuthenticationProvider.prototype;
+    progress.data.AuthenticationProviderBearer.prototype = new BearerProxy();
         
     // Reset the prototype's constructor property so it points to AuthenticationProviderForm rather than
     // the one that it just inherited (this is pretty much irrelevant though - the correct constructor
     // will get called regardless)
-    progress.data.AuthenticationProviderBasic.prototype.constructor =
-        progress.data.AuthenticationProviderBasic;
+    progress.data.AuthenticationProviderBearer.prototype.constructor =
+        progress.data.AuthenticationProviderBearer;
 
         
     // OVERRIDE METHODS ON PROTOTYPE IF NECESSARY AND POSSIBLE
