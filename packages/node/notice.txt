@@ -4,9 +4,9 @@
 ==  in this case for Progress Data Source for Node.js v6.0		  ==
 =========================================================================
 
-Progress Data Source for Node.js v6.0 (the �Product�)
+Progress Data Source for Node.js v6.0.0 (the �Product�)
 
-Copyright � 2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
 For license information see the LICENSE.md file which accompanies this NOTICE.txt file.
 

@@ -8,7 +8,7 @@ progress.data.kendo.js......................Version: 6.0.0
 progress.session.js.........................Version: 6.0.0
 progress.util.js............................Version: 6.0.0
 Progress Progress Data Source for Angular:..Version: 6.0.0
-Progress Data Source for NativeScript.......Version: 6.0 (the �Product�)
+Progress Data Source for NativeScript.......Version: 6.0.0 (the �Product�)
 progress.data.ng.ds.ts......................Version: 6.0.0
 
 ### JSDO and OpenEdge compatibility
@@ -39,7 +39,7 @@ limitations under the License.
 =========================================================================
 Progress Data Source for Angular v6.0
 
-Copyright � 2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
 For license information see the LICENSE file which accompanies this NOTICE.txt file.
 
@@ -53,7 +53,7 @@ Any open source software that may be delivered by Progress Software Corporation 
 
 Progress Data Source for NativeScript v6.0 (the �Product�)
 
-Copyright � 2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
 For license information see the LICENSE.md file which accompanies this NOTICE.txt file.
 
