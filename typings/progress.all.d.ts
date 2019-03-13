@@ -1,3 +1,5 @@
+// progress.all.d.ts
+
 /**
  * Type definitions for progress.js library. This is part of progress.all.js
  * Project: Progress JSDO

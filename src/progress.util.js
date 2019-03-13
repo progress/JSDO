@@ -1,118 +1,121 @@
-/*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
-/*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
-/*global progress:true, btoa:true*/
+/*global XMLHttpRequest:true, localStorage: true, sessionStorage: true, btoa:true*/
 /*jslint nomen: true*/
+
 (function() {
-    // Pre-release code to detect enviroment and load required modules for Node.js and NativeScript
+    // Pre-release code to detect enviroment and load required modules for Node.js
     // Requirements:
     // - XMLHttpRequest
     // - localStorage
     // - sessionStorage
-    // - Promise object (Promises with the same interface as jQuery Promises)
+    // - btoa
 
     // Notes:
-    // Required packages should be installed before loading progress-jsdo.
+    // Required packages should be installed before loading jsdo-node.
+    // These packages are specified via package.json    
     // Node.js:
     // - xmlhttprequest
     // - node-localstorage
-    // NativeScript:
-    // - nativescript-localstorage
     // - base-64
 
-    var isNativeScript = false,
-        isNodeJS = false;
-
-    var pkg_xmlhttprequest = "xmlhttprequest",
-        pkg_nodeLocalstorage = "node-localstorage",
-        pkg_nativescriptLocalstorage = "nativescript-localstorage",
-        pkg_fileSystemAccess = "file-system/file-system-access",
-        pkg_base64 = "base-64";
-
-    // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
-    // load xmlhttprequest module
-    // Web browser and NativeScript clients have a built-in XMLHttpRequest object
-    if (typeof XMLHttpRequest === "undefined") {
-        isNodeJS = true;
-        try {
-            XMLHttpRequest = require("" + pkg_xmlhttprequest).XMLHttpRequest;
-            // xhrc = require("xmlhttprequest-cookie");
-            // XMLHttpRequest = xhrc.XMLHttpRequest;
-        } catch (e) {
-            console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n" +
-                "Please install xmlhttprequest package.");
-        }
-    }
-
-    // Detect if the environment is NativeScript
-    if (!isNodeJS &&
-        (typeof localStorage === "undefined" ||
-            typeof sessionStorage === "undefined")) {
-        try {
-            require("" + pkg_fileSystemAccess);
-            isNativeScript = true;
-        } catch (exception1) {
-            isNativeScript = false;
-        }
-    }
-
-    // If localStorage or sessionStorage is not defined,
-    // we need to load the corresponding support module
-
-    // If environment is NativeScript, load required modules
-    if (isNativeScript) {
-        try {
-            // load module nativescript-localstorage
-            if (typeof sessionStorage === "undefined") {
-                sessionStorage = require("" + pkg_nativescriptLocalstorage);
-            }
-            if (typeof localStorage === "undefined") {
-                localStorage = require("" + pkg_nativescriptLocalstorage);
-            }
-        } catch (exception2) {
-            console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n" +
-                "Please install nativescript-localstorage package.");
-        }
-
-        // load module base-64
-        try {
-            if (typeof btoa === "undefined") {
-                btoa = require("" + pkg_base64).encode;
-            }
-        } catch (exception3) {
-            console.error("Error: JSDO library requires btoa() function in NativeScript.\n" +
-                "Please install base-64 package.");
-        }
+    try {
+        XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+        // xhrc = require("xmlhttprequest-cookie");
+        // XMLHttpRequest = xhrc.XMLHttpRequest;
+    } catch (e) {
+        console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n" +
+            "Please install xmlhttprequest package.");
     }
 
     // If environment is NodeJS, load module node-localstorage
-    if (isNodeJS) {
-        var LocalStorage;
-        if (typeof localStorage === "undefined") {
-            try {
-                var module = require("" + pkg_nodeLocalstorage);
-                LocalStorage = module.LocalStorage;
-                localStorage = new LocalStorage('./scratch1');
-            } catch (e) {
-                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n" +
-                    "Please install node-localstorage package.");
-            }
-        }
-
-        if (typeof sessionStorage === "undefined" &&
-            typeof LocalStorage !== "undefined") {
-            sessionStorage = new LocalStorage('./scratch2');
-        }
-
-        // load module base-64
+    var LocalStorage;
+    if (typeof localStorage === "undefined") {
         try {
-            if (typeof btoa === "undefined") {
-                btoa = require("" + pkg_base64).encode;
-            }
-        } catch (exception3) {
-            console.error("Error: JSDO library requires btoa() function in Node.js.\n" +
-                "Please install base-64 package.");
+            var module = require('node-localstorage');
+            LocalStorage = module.LocalStorage;
+            localStorage = new LocalStorage('./scratch1');
+        } catch (e) {
+            console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n" +
+                "Please install node-localstorage package.");
         }
     }
+
+    if (typeof sessionStorage === "undefined" &&
+        typeof LocalStorage !== "undefined") {
+        sessionStorage = new LocalStorage('./scratch2');
+    }
+
+    // load module base-64
+    try {
+        if (typeof btoa === "undefined") {
+            btoa = require("base-64").encode;
+        }
+    } catch (exception3) {
+        console.error("Error: JSDO library requires btoa() function in Node.js.\n" +
+            "Please install base-64 package.");
+    }
+}());
+isNativeScript = false;
+}
+}
+
+// If localStorage or sessionStorage is not defined,
+// we need to load the corresponding support module
+
+// If environment is NativeScript, load required modules
+if (isNativeScript) {
+    try {
+        // load module nativescript-localstorage
+        if (typeof sessionStorage === "undefined") {
+            sessionStorage = require("" + pkg_nativescriptLocalstorage);
+        }
+        if (typeof localStorage === "undefined") {
+            localStorage = require("" + pkg_nativescriptLocalstorage);
+        }
+    } catch (exception2) {
+        console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n" +
+            "Please install nativescript-localstorage package.");
+    }
+
+    // load module base-64
+    try {
+        if (typeof btoa === "undefined") {
+            btoa = require("" + pkg_base64).encode;
+        }
+    } catch (exception3) {
+        console.error("Error: JSDO library requires btoa() function in NativeScript.\n" +
+            "Please install base-64 package.");
+    }
+}
+
+// If environment is NodeJS, load module node-localstorage
+if (isNodeJS) {
+    var LocalStorage;
+    if (typeof localStorage === "undefined") {
+        try {
+            var module = require("" + pkg_nodeLocalstorage);
+            LocalStorage = module.LocalStorage;
+            localStorage = new LocalStorage('./scratch1');
+        } catch (e) {
+            console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n" +
+                "Please install node-localstorage package.");
+        }
+    }
+
+    if (typeof sessionStorage === "undefined" &&
+        typeof LocalStorage !== "undefined") {
+        sessionStorage = new LocalStorage('./scratch2');
+    }
+
+    // load module base-64
+    try {
+        if (typeof btoa === "undefined") {
+            btoa = require("" + pkg_base64).encode;
+        }
+    } catch (exception3) {
+        console.error("Error: JSDO library requires btoa() function in Node.js.\n" +
+            "Please install base-64 package.");
+    }
+}
 }());
 
 (function() {

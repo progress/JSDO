@@ -1,3 +1,5 @@
+// progress.auth.basic.js
+
 (function () {
 
     "use strict";  // note that this makes JSLint complain if you use arguments[x]
