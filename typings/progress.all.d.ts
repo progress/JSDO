@@ -1,5 +1,5 @@
 /**
- * Type definitions for progress.js 6.0 library. This is part of progress.all.js
+ * Type definitions for progress.js library. This is part of progress.all.js
  * Project: Progress JSDO
  * Definitions by: egarcia, Traveleye, anikumar
  */

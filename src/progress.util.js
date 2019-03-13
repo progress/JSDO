@@ -1,29 +1,8 @@
 /*eslint no-global-assign: ["error", {"exceptions": ["localStorage"]}]*/
 /*global XMLHttpRequest:true, require, console, localStorage:true, sessionStorage:true, $:true, Promise, setTimeout */
-/*
-progress.util.js    Version: 6.0.0
-
-Copyright (c) 2014-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
-
-Contains support objects used by the jsdo and/or session object
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
- */
 /*global progress:true, btoa:true*/
 /*jslint nomen: true*/
-
-(function () {
+(function() {
     // Pre-release code to detect enviroment and load required modules for Node.js and NativeScript
     // Requirements:
     // - XMLHttpRequest
@@ -43,12 +22,11 @@ limitations under the License.
     var isNativeScript = false,
         isNodeJS = false;
 
-    var pkg_xmlhttprequest              = "xmlhttprequest",
-        pkg_nodeLocalstorage            = "node-localstorage",
-        pkg_nativescriptLocalstorage    = "nativescript-localstorage",
-        pkg_fileSystemAccess            = "file-system/file-system-access",
-        pkg_base64                      = "base-64"
-        ;
+    var pkg_xmlhttprequest = "xmlhttprequest",
+        pkg_nodeLocalstorage = "node-localstorage",
+        pkg_nativescriptLocalstorage = "nativescript-localstorage",
+        pkg_fileSystemAccess = "file-system/file-system-access",
+        pkg_base64 = "base-64";
 
     // If XMLHttpRequest is undefined, enviroment would appear to be Node.js
     // load xmlhttprequest module
@@ -59,20 +37,20 @@ limitations under the License.
             XMLHttpRequest = require("" + pkg_xmlhttprequest).XMLHttpRequest;
             // xhrc = require("xmlhttprequest-cookie");
             // XMLHttpRequest = xhrc.XMLHttpRequest;
-        } catch(e) {
-            console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n"
-            + "Please install xmlhttprequest package.");
+        } catch (e) {
+            console.error("Error: JSDO library requires XMLHttpRequest object in Node.js.\n" +
+                "Please install xmlhttprequest package.");
         }
     }
 
     // Detect if the environment is NativeScript
-    if (!isNodeJS
-        && (typeof localStorage === "undefined"
-            || typeof sessionStorage === "undefined")) {
+    if (!isNodeJS &&
+        (typeof localStorage === "undefined" ||
+            typeof sessionStorage === "undefined")) {
         try {
             require("" + pkg_fileSystemAccess);
             isNativeScript = true;
-        } catch(exception1) {
+        } catch (exception1) {
             isNativeScript = false;
         }
     }
@@ -90,9 +68,9 @@ limitations under the License.
             if (typeof localStorage === "undefined") {
                 localStorage = require("" + pkg_nativescriptLocalstorage);
             }
-        } catch(exception2) {
-            console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n"
-                + "Please install nativescript-localstorage package.");
+        } catch (exception2) {
+            console.error("Error: JSDO library requires localStorage and sessionStorage objects in NativeScript.\n" +
+                "Please install nativescript-localstorage package.");
         }
 
         // load module base-64
@@ -100,9 +78,9 @@ limitations under the License.
             if (typeof btoa === "undefined") {
                 btoa = require("" + pkg_base64).encode;
             }
-        } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
-                + "Please install base-64 package.");
+        } catch (exception3) {
+            console.error("Error: JSDO library requires btoa() function in NativeScript.\n" +
+                "Please install base-64 package.");
         }
     }
 
@@ -114,14 +92,14 @@ limitations under the License.
                 var module = require("" + pkg_nodeLocalstorage);
                 LocalStorage = module.LocalStorage;
                 localStorage = new LocalStorage('./scratch1');
-            } catch(e) {
-                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n"
-                    + "Please install node-localstorage package.");
+            } catch (e) {
+                console.error("Error: JSDO library requires localStorage and sessionStorage objects in Node.js.\n" +
+                    "Please install node-localstorage package.");
             }
         }
 
-        if (typeof sessionStorage === "undefined"
-            && typeof LocalStorage !== "undefined") {
+        if (typeof sessionStorage === "undefined" &&
+            typeof LocalStorage !== "undefined") {
             sessionStorage = new LocalStorage('./scratch2');
         }
 
@@ -130,37 +108,37 @@ limitations under the License.
             if (typeof btoa === "undefined") {
                 btoa = require("" + pkg_base64).encode;
             }
-        } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in Node.js.\n"
-                + "Please install base-64 package.");
+        } catch (exception3) {
+            console.error("Error: JSDO library requires btoa() function in Node.js.\n" +
+                "Please install base-64 package.");
         }
     }
 }());
 
-(function () {
+(function() {
 
     /* Define these if not defined yet - they may already be defined if
      * progress.js was included first */
     if (typeof progress === "undefined") {
         progress = {};
     }
-    
+
     if (typeof progress.data === "undefined") {
         progress.data = {};
     }
 
     progress.util = {};
-    
+
     var STRING_OBJECT_TYPE = "String",
         DATE_OBJECT_TYPE = "Date",
         CHARACTER_ABL_TYPE = "CHARACTER";
-        
+
     /**
      * Deferred class to provide access to ES6 and JQuery Promises.
      *
      * @class
      */
-    progress.util.Deferred = /** @class */ (function () {
+    progress.util.Deferred = /** @class */ (function() {
         function Deferred() {
             this._deferred = {};
         }
@@ -168,7 +146,7 @@ limitations under the License.
         /**
          * Returns a Promise object.
          */
-        Deferred.prototype.promise = function () {
+        Deferred.prototype.promise = function() {
             var that = this;
 
             if (progress.util.Deferred.useJQueryPromises) {
@@ -179,14 +157,14 @@ limitations under the License.
                     throw new Error("JQuery Promises not found in environment.");
                 }
             } else {
-                this._promise = new Promise(function (resolve, reject) {
+                this._promise = new Promise(function(resolve, reject) {
                     that._deferred.resolve = resolve;
                     that._deferred.reject = reject;
                 });
             }
 
             if (this._resolveArguments || this._rejectArguments) {
-                setTimeout(function () {
+                setTimeout(function() {
                     if (that._resolveArguments) {
                         that.resolve.apply(that, that._resolveArguments);
                     } else if (that._rejectArguments) {
@@ -197,18 +175,18 @@ limitations under the License.
 
             // return null;
             return this._promise;
-        
+
         };
 
         /**
          * Calls the underlying resolve() method.
          */
-        Deferred.prototype.resolve = function (arg1, arg2, arg3) {
+        Deferred.prototype.resolve = function(arg1, arg2, arg3) {
             if (this._promise) {
                 if (this._deferred._jQuerydeferred) {
                     this._deferred._jQuerydeferred.resolve.apply(this, arguments);
                 } else {
-                    var object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);                    
+                    var object = progress.util.Deferred.getParamObject1(arg1, arg2, arg3);
                     this._deferred.resolve(object);
                 }
             } else {
@@ -219,7 +197,7 @@ limitations under the License.
         /**
          * Calls the underlying reject() method.
          */
-        Deferred.prototype.reject = function (arg1, arg2, arg3) {
+        Deferred.prototype.reject = function(arg1, arg2, arg3) {
             if (this._promise) {
                 if (this._deferred._jQuerydeferred) {
                     this._deferred._jQuerydeferred.reject.apply(this, arguments);
@@ -239,8 +217,8 @@ limitations under the License.
 
         /**
          * Returns a deferred object based on a collection.
-         */                
-        Deferred.when = function (deferreds) {
+         */
+        Deferred.when = function(deferreds) {
             if (progress.util.Deferred.useJQueryPromises) {
                 return $.when.apply($, deferreds);
             } else {
@@ -250,8 +228,8 @@ limitations under the License.
 
         /**
          * Returns an object with the parameters to resolve()/reject().
-         */        
-        Deferred.getParamObject1 = function (arg1, arg2, arg3) {
+         */
+        Deferred.getParamObject1 = function(arg1, arg2, arg3) {
             var object = {},
                 objectName;
 
@@ -273,7 +251,7 @@ limitations under the License.
                         objectName = "result";
                     } else {
                         objectName = typeof(arg1);
-                    }                    
+                    }
 
                     object[objectName] = arg1;
                     if (objectName === "jsdo") {
@@ -297,17 +275,17 @@ limitations under the License.
                         }
                     }
                 }
-            } catch(e) {
+            } catch (e) {
                 console.log("Error: Undetermined argument in getParamObject() call.");
-            }    
+            }
 
             return object;
         }
 
         /**
          * Returns an object with the parameters to resolve()/reject() based on the Promise type.
-         */        
-        Deferred.getParamObject = function (arg1, arg2, arg3) {
+         */
+        Deferred.getParamObject = function(arg1, arg2, arg3) {
             var object = {};
 
             if (progress.util.Deferred.useJQueryPromises) {
@@ -332,7 +310,7 @@ limitations under the License.
      *
      * @returns {progress.util.Observable}
      */
-    progress.util.Observable = function () {
+    progress.util.Observable = function() {
         /*
          * Example format of the events object.  Some event delegates may only
          * have a function setup, others may optionally have scope, and possibly an operation filter
@@ -354,7 +332,7 @@ limitations under the License.
          * remove the given function from the array of observers
          */
         function _filterObservers(observers, fn, scope, operation) {
-            return observers.filter(function (el) {
+            return observers.filter(function(el) {
                 if (el.fn !== fn || el.scope !== scope || el.operation !== operation) {
                     return el;
                 }
@@ -364,7 +342,7 @@ limitations under the License.
         /*
          * validate the arguments passed to the subscribe function
          */
-        this.validateSubscribe = function (args, evt, listenerData) {
+        this.validateSubscribe = function(args, evt, listenerData) {
 
             if (args.length >= 2 && (typeof args[0] === 'string') && (typeof args[1] === 'string')) {
                 listenerData.operation = args[1];
@@ -408,10 +386,10 @@ limitations under the License.
          * @param scope      The scope the function is to be run in. Object. Optional.
 
          */
-        this.subscribe = function (evt, operation, fn, scope) {
+        this.subscribe = function(evt, operation, fn, scope) {
             var listenerData,
                 observers;
-                
+
             if (!evt) {
                 throw new Error(progress.data._getMsgText("jsdoMSG037", this.toString(), "subscribe"));
             }
@@ -423,7 +401,7 @@ limitations under the License.
 
             this._events = this._events || {};
             evt = evt.toLowerCase();
-            listenerData = {fn: undefined, scope: undefined, operation: undefined};
+            listenerData = { fn: undefined, scope: undefined, operation: undefined };
 
             try {
                 this.validateSubscribe(arguments, evt, listenerData);
@@ -462,7 +440,7 @@ limitations under the License.
          * @param scope     Optional. The function scope in which to remove the listener. Object.
          *
          */
-        this.unsubscribe = function (evt, operation, fn, scope) {
+        this.unsubscribe = function(evt, operation, fn, scope) {
             var listenerData,
                 observers;
 
@@ -477,11 +455,11 @@ limitations under the License.
 
             this._events = this._events || {};
             evt = evt.toLowerCase();
-            listenerData = {fn: undefined, scope: undefined, operation: undefined};
+            listenerData = { fn: undefined, scope: undefined, operation: undefined };
             try {
                 this.validateSubscribe(arguments, evt, listenerData);
             } catch (e) {
-            //  throw new Error("Invalid signature for unsubscribe. " + e.message);
+                //  throw new Error("Invalid signature for unsubscribe. " + e.message);
                 throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(),
                     "unsubscribe", e.message));
             }
@@ -510,10 +488,10 @@ limitations under the License.
          * @param evt  The name of the event to fire. String.  Not case sensitive
          * @param args Optional.  A variable number of arguments to pass to the event handlers.
          */
-        this.trigger = function (evt, operation, args) {
+        this.trigger = function(evt, operation, args) {
             var observers,
                 op;
-            
+
             if (!evt) {
                 throw new Error(progress.data._getMsgText("jsdoMSG037", this.toString(), "trigger"));
             }
@@ -524,9 +502,9 @@ limitations under the License.
             if (observers.length > 0) {
                 args = Array.prototype.slice.call(arguments);
 
-                if ((arguments.length >= 2)
-                        && (typeof evt === 'string')
-                        && (typeof operation === 'string')) {
+                if ((arguments.length >= 2) &&
+                    (typeof evt === 'string') &&
+                    (typeof operation === 'string')) {
                     // in alt format the second argument is the event name, 
                     // and the first is the operation name
                     op = operation;
@@ -538,7 +516,7 @@ limitations under the License.
                     throw new Error(progress.data._getMsgText("jsdoMSG033", this.toString(), "trigger"));
                 }
 
-                observers.forEach(function (el) {
+                observers.forEach(function(el) {
                     if (el.operation === op) {
                         el.fn.apply(el.scope, args);
                     }
@@ -553,16 +531,16 @@ limitations under the License.
         // evt is undefined, then all listeners for all events are unbound
         // evnt name is not case sensitive
         // @param evt  Optional. The name of the event to unbind.  If not passed, then all events are unbound
-        this.unsubscribeAll = function (evt, operation) {
+        this.unsubscribeAll = function(evt, operation) {
             var observers;
-            
+
             if (evt) {
                 this._events = this._events || {};
                 if (typeof evt === 'string') {
                     evt = evt.toLowerCase();
                     observers = this._events[evt] || [];
 
-                    observers.forEach(function (el) {
+                    observers.forEach(function(el) {
                         if (el.operation) {
                             this.unsubscribe(evt, el.operation, el.fn, el.scope);
                         } else {
@@ -595,15 +573,15 @@ limitations under the License.
 
         // "Methods"
 
-        this.saveToLocalStorage = function (name, dataObj) {
+        this.saveToLocalStorage = function(name, dataObj) {
             localStorage.setItem(name, JSON.stringify(dataObj));
         };
 
-        this.readFromLocalStorage = function (name) {
+        this.readFromLocalStorage = function(name) {
 
             var jsonStr = localStorage.getItem(name),
                 dataObj = null;
-                
+
             if (jsonStr !== null) {
                 try {
                     dataObj = JSON.parse(jsonStr);
@@ -614,16 +592,16 @@ limitations under the License.
             return dataObj;
         };
 
-        this.clearLocalStorage = function (name) {
+        this.clearLocalStorage = function(name) {
             localStorage.removeItem(name);
         };
 
     }; // End of LocalStorage
 
-    
+
     /////////////////////////////////////////////////////////////////////////////////////////
     //        Utility Functions
-    
+
     /*
      * Converts the specified filter object to an OpenEdge ABL Where String.
      *
@@ -632,7 +610,7 @@ limitations under the License.
      *
      * @returns - translated OE where string.
      */
-    progress.util._convertToABLWhereString = function (tableRef, filter) {
+    progress.util._convertToABLWhereString = function(tableRef, filter) {
         var result = [],
             logic = filter.logic || "and",
             idx,
@@ -646,7 +624,7 @@ limitations under the License.
             ablType,
             //filters = (filter.filters) ? filter.filters : [filter],
             filters = filter.filters || [filter],
-			
+
             whereOperators = {
                 eq: "=",
                 neq: "<>",
@@ -654,7 +632,7 @@ limitations under the License.
                 gte: ">=",
                 lt: "<",
                 lte: "<=",
-                contains : "INDEX",
+                contains: "INDEX",
                 doesnotcontain: "INDEX",
                 endswith: "R-INDEX",
                 startswith: "BEGINS",
@@ -663,7 +641,7 @@ limitations under the License.
                 isempty: "ISEMPTY",
                 isnotempty: "ISNOTEMPTY"
             };
-        
+
         for (idx = 0, length = filters.length; idx < length; idx += 1) {
             filter = filters[idx];
             field = filter.field;
@@ -681,23 +659,23 @@ limitations under the License.
                 }
 
                 operator = whereOperators[filter.operator];
-                
+
                 if (operator === undefined) {
                     throw new Error("The operator " + filter.operator + " is not valid.");
                 }
 
                 switch (filter.operator) {
-                case "isnull":
-                case "isnotnull":
-                case "isempty":
-                case "isnotempty":
-                    value = undefined;
-                    break;
+                    case "isnull":
+                    case "isnotnull":
+                    case "isempty":
+                    case "isnotempty":
+                        value = undefined;
+                        break;
                 }
-                
+
                 if (operator && value !== undefined) {
                     type = progress.util._getObjectType(value);
-  
+
                     // We need to build a template format string for the where string. 
                     // We'll first add positional info for the value
                     if (type === STRING_OBJECT_TYPE) {
@@ -716,14 +694,14 @@ limitations under the License.
                     } else {
                         format = "{1}";
                     }
-                    
+
                     // Most where strings are in the format: field operator value. Ex. custnum < 100
                     // An exception to this is INDEX() and R-INDEX() which have format: operator field value
                     // Ex. R-INDEX(name, "LTD")
                     if (operator === "INDEX" || operator === "R-INDEX") {
                         if (type !== STRING_OBJECT_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
-                                            " requires a string value");
+                                " requires a string value");
                         }
                         if (filter.operator === "doesnotcontain") {
                             format = "{0}(" + "{2}, " + format + ") = 0";
@@ -742,7 +720,7 @@ limitations under the License.
                         ablType = tableRef._getABLType(field);
                         if (ablType !== CHARACTER_ABL_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
-                                            " requires a CHARACTER field");
+                                " requires a CHARACTER field");
                         }
                         if (filter.operator === "isempty") {
                             format = "{2} = ''";
@@ -758,7 +736,7 @@ limitations under the License.
                             format = "{2} {0} ?";
                         }
                     }
-				
+
                     // format, operator {0}, value {1}, field {2}
                     filter = progress.util._format(format, operator, value, field);
                 }
@@ -776,7 +754,7 @@ limitations under the License.
         return filter;
     };
 
-    
+
     /*
      * Converts the specified filter object to an SQL Query String.
      *
@@ -785,7 +763,7 @@ limitations under the License.
      *
      * @returns - translated SQL where clause.
      */
-    progress.util._convertToSQLQueryString = function (tableRef, filter, addSelect) {
+    progress.util._convertToSQLQueryString = function(tableRef, filter, addSelect) {
         var result = [],
             logic = filter.logic || "and",
             idx,
@@ -799,7 +777,7 @@ limitations under the License.
             filters = filter.filters || [filter],
             filterStr,
             usingLike = true,
-			
+
             whereOperators = {
                 eq: "=",
                 neq: "!=",
@@ -807,7 +785,7 @@ limitations under the License.
                 gte: ">=",
                 lt: "<",
                 lte: "<=",
-                contains : "LIKE",
+                contains: "LIKE",
                 doesnotcontain: "NOT LIKE",
                 endswith: "LIKE",
                 startswith: "LIKE",
@@ -816,7 +794,7 @@ limitations under the License.
                 isempty: "ISEMPTY",
                 isnotempty: "ISNOTEMPTY"
             };
-        
+
         if (typeof addSelect === "undefined") {
             addSelect = false;
         }
@@ -830,30 +808,30 @@ limitations under the License.
                 filterStr = progress.util._convertToSQLQueryString(tableRef, filter, false);
             } else {
                 operator = whereOperators[filter.operator];
-                
+
                 if (operator === undefined) {
                     throw new Error("The operator " + filter.operator + " is not valid.");
                 }
-                
+
                 switch (filter.operator) {
-                case "isnull":
-                case "isnotnull":
-                case "isempty":
-                case "isnotempty":
-                    value = undefined;
-                    break;
+                    case "isnull":
+                    case "isnotnull":
+                    case "isempty":
+                    case "isnotempty":
+                        value = undefined;
+                        break;
                 }
 
                 if (operator && value !== undefined) {
                     type = progress.util._getObjectType(value);
-                    
+
                     if (operator === "LIKE" || operator === "NOT LIKE") {
                         if (type !== STRING_OBJECT_TYPE) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
-                                            " requires a string value");
+                                " requires a string value");
                         }
                     }
-                    
+
                     if (type === STRING_OBJECT_TYPE) {
                         format = "'{1}'";
                         value = value.replace(/'/g, "''");
@@ -869,7 +847,7 @@ limitations under the License.
                     } else {
                         format = "{1}";
                     }
-                    
+
                     // We need to build a template format string for the where string. 
                     // We'll first add positional info for the value, which is represented by {1}
                     if (filter.operator === "startswith") {
@@ -881,12 +859,12 @@ limitations under the License.
                     } else {
                         usingLike = false;
                     }
-                    
+
                     if (usingLike) {
                         value = value.replace(/%/g, '\\%');
                         value = value.replace(/_/g, '\\_');
                     }
-                   
+
                     format = "{2} {0} " + format;
                     filterStr = progress.util._format(format, operator, value, field);
                 } else if (operator && value === undefined) {
@@ -894,7 +872,7 @@ limitations under the License.
                         type = tableRef._fields[field.toLowerCase()].type;
                         if (type !== STRING_OBJECT_TYPE.toLowerCase()) {
                             throw new Error("Error parsing filter object. The operator " + filter.operator +
-                                            " requires a string field");
+                                " requires a string field");
                         }
                         if (filter.operator === "isempty") {
                             format = "{2} = ''";
@@ -910,7 +888,7 @@ limitations under the License.
                             format = "{2} {0} NULL";
                         }
                     }
-				
+
                     // format, operator {0}, value {1}, field {2}					
                     filterStr = progress.util._format(format, operator, value, field);
                 }
@@ -924,27 +902,27 @@ limitations under the License.
         if (result.length > 1) {
             filterStr = "(" + filterStr + ")";
         }
-        
+
         if (addSelect === true) {
             filterStr = "SELECT * FROM " + tableRef._name + " WHERE " + filterStr;
         }
 
         return filterStr;
     };
-    
-    
+
+
     /*
      * Returns the object type; Example "String", "Date"
      * Constants for object type values are defined above.
      *
      * @param value - the object whose type is returned
      */
-    progress.util._getObjectType = function (value) {
+    progress.util._getObjectType = function(value) {
         // Returns [object xxx]. Removing [object ]
         return Object.prototype.toString.call(value).slice(8, -1);
     };
-    
-    
+
+
     /*
      * Substitutes in a variable number of arguments into specified format string (with place-holders)
      *
@@ -952,20 +930,20 @@ limitations under the License.
      *
      * @returns - formatted string.
      */
-    progress.util._format = function (fmt) {
+    progress.util._format = function(fmt) {
         /*jslint regexp: true*/
         var values = arguments,
             formatRegExp = /\{(\d+)(:[^\}]+)?\}/g;
         /*jslint regexp: false*/
 
-        return fmt.replace(formatRegExp, function (match, index, placeholderFormat) {
+        return fmt.replace(formatRegExp, function(match, index, placeholderFormat) {
             var value = values[parseInt(index, 10) + 1];
 
             return progress.util._toString(value, placeholderFormat ? placeholderFormat.substring(1) : "");
         });
-         
+
     };
-    
+
     /*
      * Converts the specified value param to a string.
      *
@@ -974,9 +952,9 @@ limitations under the License.
      *
      * @returns - converted string.
      */
-    progress.util._toString = function (value, fmt) {
+    progress.util._toString = function(value, fmt) {
         var str;
-                    
+
         if (fmt) {
             if (progress.util._getObjectType(value) === "Date") {
                 return progress.util._formatDate(value, fmt);
@@ -984,14 +962,14 @@ limitations under the License.
         }
 
         if (typeof value === "number") {
-            str =  value.toString();
+            str = value.toString();
         } else {
             str = (value !== undefined ? value : "");
         }
-            
+
         return str;
     };
-    
+
     /*
      * Accepts string representing number and optionally pads it with "0"'s to conform to 
      * specified number of digits.
@@ -1001,10 +979,10 @@ limitations under the License.
      *
      * @returns - padded string representing number.
      */
-    progress.util._pad = function (number, digits) {
+    progress.util._pad = function(number, digits) {
         var zeros = ["", "0", "00", "000", "0000"],
             end;
-        
+
         number = String(number);
         digits = digits || 2;
         end = digits - number.length;
@@ -1014,7 +992,7 @@ limitations under the License.
         }
         return number;
     };
-    
+
     /*
      * Converts the specified date param to a string.
      *
@@ -1023,13 +1001,13 @@ limitations under the License.
      *
      * @returns - converted string.
      */
-    progress.util._formatDate = function (date, format) {
+    progress.util._formatDate = function(date, format) {
         /*jslint regexp: true*/
         var dateFormatRegExp =
             /dd|MM|yyyy|hh|mm|fff|FFF|ss|zzz|iso|"[^"]*"|'[^']*'/g;
         /*jslint regexp: false*/
-       
-        return format.replace(dateFormatRegExp, function (match) {
+
+        return format.replace(dateFormatRegExp, function(match) {
             var minutes,
                 result,
                 sign;
@@ -1069,7 +1047,7 @@ limitations under the License.
      */
     progress.util.jsdoSettingsProcessor = function jsdoSettingsProcessor(jsdoSettings) {
         if (typeof jsdoSettings === 'object') {
-            if (jsdoSettings.authenticationModel  === undefined || jsdoSettings.authenticationModel  === "") {
+            if (jsdoSettings.authenticationModel === undefined || jsdoSettings.authenticationModel === "") {
                 jsdoSettings.authenticationModel = "ANONYMOUS";
             }
         }
