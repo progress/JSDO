@@ -1,0 +1,120 @@
+### JSDO FILE VERSIONS
+progress.js.................................Version: 6.0.0
+progress.auth.js............................Version: 6.0.0
+progress.auth.basic.js......................Version: 6.0.0
+progress.auth.form.js.......................Version: 6.0.0
+progress.auth.sso.js........................Version: 6.0.0
+progress.data.kendo.js......................Version: 6.0.0
+progress.session.js.........................Version: 6.0.0
+progress.util.js............................Version: 6.0.0
+Progress Data Source for Angular:...........Version: 6.0.0
+Progress Data Source for NativeScript.......Version: 6.0.0 (the �Product�)
+progress.data.ng.ds.ts......................Version: 6.0.0
+Progress JSDO Core Module...................Version: 6.0.0
+
+### JSDO and OpenEdge compatibility
+|-----------------------------------------|
+| JSDO version   | OpenEdge version       |
+|----------------|------------------------|
+| 6.0.0, 5.0.0   | 11.6.4, 11.7.x, 12.0.x |
+|-----------------------------------------|
+
+Copyright (c) 2012-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+    http://www.apache.org/licenses/LICENSE-2.0
+  
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+=========================================================================
+== NOTICE file corresponding to section 4 d of 			  	  ==
+== the Apache License, Version 2.0, 						  ==
+== in this case for the Progress Data Source for Angular v6.0		  ==
+=========================================================================
+Progress Data Source for Angular v6.0
+
+Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+
+For license information see the LICENSE file which accompanies this NOTICE.txt file.
+
+Any open source software that may be delivered by Progress Software Corporation embedded in or in association with Progress Data Source for Angular v6.0 is provided pursuant to the open source license applicable to the software and subject to the disclaimers and limitations on liability set forth in such license. 
+
+=========================================================================
+==  NOTICE file corresponding to section 4 d of            	 	  ==
+==  the Apache License, Version 2.0,                                   ==
+==  in this case for Progress Data Source for NativeScript v6.0	  ==
+=========================================================================
+
+Progress Data Source for NativeScript v6.0 (the �Product�)
+
+Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+
+For license information see the LICENSE.md file which accompanies this NOTICE.txt file.
+
+Portions of the Product include certain non-proprietary open source and commercial third-party components listed below (�Third-Party Components�). The authors of the Third-Party Components require Progress Software Corporation (�Progress�) to include the following notices and additional licensing terms as a condition of Progress�s use of such Third-Party Components.  You acknowledge that the authors of the Third-Party Components have no obligation to provide support to you for the Third-Party Components or the Product.  You hereby undertake to comply with all licenses related to the applicable Third-Party Components.
+
+1.	Special Notices Regarding Open Source Third-Party Components incorporated in the Product:  
+
+(1) MIT-Style License:
+ 
+(a) Progress Data Source for NativeScript v6.0 incorporates zone.js v0.8.26.  Such technology is subject to the following terms and conditions:
+The MIT License
+Copyright (c) 2016-2018 Google, Inc.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+(b) Progress Data Source for NativeScript v6.0 incorporates base-64 v0.1.0.  Such technology is subject to the following terms and conditions:
+Copyright Mathias Bynens <http://mathiasbynens.be/>
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+(c) Progress Data Source for NativeScript v6.0 incorporates nativescript-localstorage v2.0.0.  Such technology is subject to the following terms and conditions:
+The MIT License (MIT)
+localstorage
+Copyright (c) 2016, Nathanael Anderson
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+2.	Special Notices Regarding Commercially Licensed Third-Party Components incorporated in the Product:  None
+  
+
+NOTICE FROM PROGRESS SOFTWARE CORPORATION: Additional notices may be included in the release notes or other documentation that accompanies updates received in connection with support of the Product.
+
+=========================================================================
+== NOTICE file corresponding to section 4 d of 			  	  ==
+== the Apache License, Version 2.0, 						  ==
+== in this case for the Progress JSDO Core Module v6.0		        ==
+=========================================================================
+
+
+Copyright © 2012-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+
+For license information see the LICENSE file which accompanies this NOTICE.txt file.
+
+Any open source software that may be delivered by Progress Software Corporation embedded in or in association with Progress Data Source Core v6.0 is provided pursuant to the open source license applicable to the software and subject to the disclaimers and limitations on liability set forth in such license. 
+
+
+ 
