@@ -797,7 +797,9 @@ limitations under the License.
             // connects to online the last time it was checked?
             // (value is always false if session is not logged in)
             oepingAvailable = false,
+            hasResolvedPingURI = false,
             defaultPartialPingURI = "/rest/_oepingService/_oeping",
+            classicPartialPingURI = "/rest/_oeping",
             partialPingURI = defaultPartialPingURI,
             _storageKey,
             _authProvider = null,
@@ -2959,6 +2961,46 @@ limitations under the License.
             }
         };
 
+        var resolvePingURI = () => {
+            var xhr = new XMLHttpRequest(),
+                deferred = new progress.util.Deferred();
+
+            // if we've resolved the pingURI OR we haven't logged in, then we don't have to do anything 
+            if (hasResolvedPingURI || (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this.authProvider)) {
+                deferred.resolve(true);
+            } else {
+                this._openRequest(
+                    xhr,
+                    "GET",
+                    partialPingURI,
+                    true,
+                    () => {
+                        xhr.onreadystatechange = () => {
+                            var cbresult, info;
+                            if (xhr.readyState === 4) {
+                                // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
+                                if (xhr.responseText.indexOf("No service was found.") !== -1) {
+                                    setPartialPingURI(classicPartialPingURI);
+                                    deferred.reject(false);
+                                } else {
+                                    deferred.resolve(true);
+                                }
+                                hasResolvedPingURI = true;
+                            }
+                        };
+
+                        try {
+                            xhr.send();
+                        } catch (e) {
+                            throw new Error("Ping encountered a really bad error: " + e.message);
+                        }
+                    }
+                );
+            }
+
+            return deferred.promise();
+        }
+
         /*
          * args: pingURI
          *       async
@@ -2970,49 +3012,56 @@ limitations under the License.
             var xhr = new XMLHttpRequest(),
                 that = this;
 
-            function sendPingAfterOpen() {
-                if (args.async) {
-                    xhr.onreadystatechange = args.onReadyStateFn;
-                    xhr.onCompleteFn = args.onCompleteFn;
-                    xhr._jsdosession = jsdosession; // in case the Session is part of a JSDOSession
-                    xhr._deferred = args.deferred;  // in case the Session is part of a JSDOSession
-                }
-                progress.data.Session._setNoCacheHeaders(xhr);
-                // set X-CLIENT-PROPS header
-                setRequestHeaderFromContextProps(that, xhr);
-                if (that.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                    _addWithCredentialsAndAccept(
-                        xhr,
-                        "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-                    );
-                }
-                xhr.send(null);
-            }
-
-            try {
-                if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(
-                        xhr,
-                        'GET',
-                        args.pingURI,
-                        args.async,
-                        sendPingAfterOpen
-                    );
-                } else {
-                    // get rid of this if we do away with synchronous support (i.e., customer use of
-                    // old Session API)
-                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
-
-                    // Sending the XHR request after opening the channel
-                    if (xhr.readyState === 1) {
-                        sendPingAfterOpen();
+            resolvePingURI().then(() => {
+                // do nothing on success because the new oePingService was found
+            }, () => {
+                // re-create the pingURI since we changed to the old classic AppServer ping URI
+                args.pingURI = this._makePingURI(); 
+            }).then(() => {
+                function sendPingAfterOpen() {
+                    if (args.async) {
+                        xhr.onreadystatechange = args.onReadyStateFn;
+                        xhr.onCompleteFn = args.onCompleteFn;
+                        xhr._jsdosession = jsdosession; // in case the Session is part of a JSDOSession
+                        xhr._deferred = args.deferred;  // in case the Session is part of a JSDOSession
                     }
+                    progress.data.Session._setNoCacheHeaders(xhr);
+                    // set X-CLIENT-PROPS header
+                    setRequestHeaderFromContextProps(that, xhr);
+                    if (that.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
+                        _addWithCredentialsAndAccept(
+                            xhr,
+                            "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                        );
+                    }
+                    xhr.send(null);
                 }
-            } catch (e) {
-                args.error = e;
-            }
-
-            args.xhr = xhr;
+    
+                try {
+                    if (this._authProvider) {
+                        this._authProvider._openRequestAndAuthorize(
+                            xhr,
+                            'GET',
+                            args.pingURI,
+                            args.async,
+                            sendPingAfterOpen
+                        );
+                    } else {
+                        // get rid of this if we do away with synchronous support (i.e., customer use of
+                        // old Session API)
+                        this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+    
+                        // Sending the XHR request after opening the channel
+                        if (xhr.readyState === 1) {
+                            sendPingAfterOpen();
+                        }
+                    }
+                } catch (e) {
+                    args.error = e;
+                }
+    
+                args.xhr = xhr;
+            })
         };
 
         this._makePingURI = function () {
