@@ -2965,37 +2965,24 @@ limitations under the License.
             var xhr = new XMLHttpRequest(),
                 deferred = new progress.util.Deferred();
 
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
+                    if (xhr.status === 404) {
+                        setPartialPingURI(classicPartialPingURI);
+                        deferred.reject(false);
+                    } else {
+                        deferred.resolve(true);
+                    }
+                    hasResolvedPingURI = true;
+                }
+            };
+
             // if we've resolved the pingURI OR we haven't logged in, then we don't have to do anything 
             if (hasResolvedPingURI || (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this.authProvider)) {
                 deferred.resolve(true);
             } else {
-                this._openRequest(
-                    xhr,
-                    "GET",
-                    partialPingURI,
-                    true,
-                    () => {
-                        xhr.onreadystatechange = () => {
-                            var cbresult, info;
-                            if (xhr.readyState === 4) {
-                                // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
-                                if (xhr.responseText.indexOf("No service was found.") !== -1) {
-                                    setPartialPingURI(classicPartialPingURI);
-                                    deferred.reject(false);
-                                } else {
-                                    deferred.resolve(true);
-                                }
-                                hasResolvedPingURI = true;
-                            }
-                        };
-
-                        try {
-                            xhr.send();
-                        } catch (e) {
-                            throw new Error("Ping encountered a really bad error: " + e.message);
-                        }
-                    }
-                );
+                this._openRequest(xhr, "GET", partialPingURI, true, () => xhr.send());
             }
 
             return deferred.promise();
@@ -3012,31 +2999,33 @@ limitations under the License.
             var xhr = new XMLHttpRequest(),
                 that = this;
 
+            args.xhr = xhr;
+
+            function sendPingAfterOpen() {
+                if (args.async) {
+                    xhr.onreadystatechange = args.onReadyStateFn;
+                    xhr.onCompleteFn = args.onCompleteFn;
+                    xhr._jsdosession = jsdosession; // in case the Session is part of a JSDOSession
+                    xhr._deferred = args.deferred;  // in case the Session is part of a JSDOSession
+                }
+                progress.data.Session._setNoCacheHeaders(xhr);
+                // set X-CLIENT-PROPS header
+                setRequestHeaderFromContextProps(that, xhr);
+                if (that.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
+                    _addWithCredentialsAndAccept(
+                        xhr,
+                        "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                    );
+                }
+                xhr.send(null);
+            }
+
             resolvePingURI().then(() => {
                 // do nothing on success because the new oePingService was found
             }, () => {
                 // re-create the pingURI since we changed to the old classic AppServer ping URI
                 args.pingURI = this._makePingURI(); 
             }).then(() => {
-                function sendPingAfterOpen() {
-                    if (args.async) {
-                        xhr.onreadystatechange = args.onReadyStateFn;
-                        xhr.onCompleteFn = args.onCompleteFn;
-                        xhr._jsdosession = jsdosession; // in case the Session is part of a JSDOSession
-                        xhr._deferred = args.deferred;  // in case the Session is part of a JSDOSession
-                    }
-                    progress.data.Session._setNoCacheHeaders(xhr);
-                    // set X-CLIENT-PROPS header
-                    setRequestHeaderFromContextProps(that, xhr);
-                    if (that.authenticationModel === progress.data.Session.AUTH_TYPE_FORM) {
-                        _addWithCredentialsAndAccept(
-                            xhr,
-                            "application/json,text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-                        );
-                    }
-                    xhr.send(null);
-                }
-    
                 try {
                     if (this._authProvider) {
                         this._authProvider._openRequestAndAuthorize(
@@ -3059,8 +3048,6 @@ limitations under the License.
                 } catch (e) {
                     args.error = e;
                 }
-    
-                args.xhr = xhr;
             })
         };
 
