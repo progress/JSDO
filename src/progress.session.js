@@ -797,7 +797,9 @@ limitations under the License.
             // connects to online the last time it was checked?
             // (value is always false if session is not logged in)
             oepingAvailable = false,
-            defaultPartialPingURI = "/rest/_oeping",
+            hasResolvedPingURI = false,
+            defaultPartialPingURI = "/rest/_oepingService/_oeping",
+            classicPartialPingURI = "/rest/_oeping",
             partialPingURI = defaultPartialPingURI,
             _storageKey,
             _authProvider = null,
@@ -2959,6 +2961,33 @@ limitations under the License.
             }
         };
 
+        var resolvePingURI = () => {
+            var xhr = new XMLHttpRequest(),
+                deferred = new progress.util.Deferred();
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
+                    if (xhr.status === 404) {
+                        setPartialPingURI(classicPartialPingURI);
+                        deferred.reject(false);
+                    } else {
+                        deferred.resolve(true);
+                    }
+                    hasResolvedPingURI = true;
+                }
+            };
+
+            // if we've resolved the pingURI OR we haven't logged in, then we don't have to do anything 
+            if (hasResolvedPingURI || (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this.authProvider)) {
+                deferred.resolve(true);
+            } else {
+                this._openRequest(xhr, "GET", partialPingURI, true, () => xhr.send());
+            }
+
+            return deferred.promise();
+        }
+
         /*
          * args: pingURI
          *       async
@@ -2969,6 +2998,8 @@ limitations under the License.
         this._sendPing = function (args) {
             var xhr = new XMLHttpRequest(),
                 that = this;
+
+            args.xhr = xhr;
 
             function sendPingAfterOpen() {
                 if (args.async) {
@@ -2989,30 +3020,35 @@ limitations under the License.
                 xhr.send(null);
             }
 
-            try {
-                if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(
-                        xhr,
-                        'GET',
-                        args.pingURI,
-                        args.async,
-                        sendPingAfterOpen
-                    );
-                } else {
-                    // get rid of this if we do away with synchronous support (i.e., customer use of
-                    // old Session API)
-                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
-
-                    // Sending the XHR request after opening the channel
-                    if (xhr.readyState === 1) {
-                        sendPingAfterOpen();
+            resolvePingURI().then(() => {
+                // do nothing on success because the new oePingService was found
+            }, () => {
+                // re-create the pingURI since we changed to the old classic AppServer ping URI
+                args.pingURI = this._makePingURI(); 
+            }).then(() => {
+                try {
+                    if (this._authProvider) {
+                        this._authProvider._openRequestAndAuthorize(
+                            xhr,
+                            'GET',
+                            args.pingURI,
+                            args.async,
+                            sendPingAfterOpen
+                        );
+                    } else {
+                        // get rid of this if we do away with synchronous support (i.e., customer use of
+                        // old Session API)
+                        this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+    
+                        // Sending the XHR request after opening the channel
+                        if (xhr.readyState === 1) {
+                            sendPingAfterOpen();
+                        }
                     }
+                } catch (e) {
+                    args.error = e;
                 }
-            } catch (e) {
-                args.error = e;
-            }
-
-            args.xhr = xhr;
+            })
         };
 
         this._makePingURI = function () {
