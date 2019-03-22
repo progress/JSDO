@@ -1,6 +1,6 @@
 {
   "name": "@progress/jsdo-core",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "JSDO Core Module",
   "main": "lib/progress.core.js",
   "files": [
