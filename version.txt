@@ -1,22 +1,22 @@
 ### JSDO FILE VERSIONS
-progress.js.................................Version: 6.0.0
-progress.auth.js............................Version: 6.0.0
-progress.auth.basic.js......................Version: 6.0.0
-progress.auth.form.js.......................Version: 6.0.0
-progress.auth.sso.js........................Version: 6.0.0
-progress.data.kendo.js......................Version: 6.0.0
-progress.session.js.........................Version: 6.0.0
-progress.util.js............................Version: 6.0.0
-Progress Data Source for Angular:...........Version: 6.0.0
-Progress Data Source for NativeScript.......Version: 6.0.0 (the �Product�)
-progress.data.ng.ds.ts......................Version: 6.0.0
-Progress JSDO Core Module...................Version: 6.0.0 
+progress.js.................................Version: 6.0.1
+progress.auth.js............................Version: 6.0.1
+progress.auth.basic.js......................Version: 6.0.1
+progress.auth.form.js.......................Version: 6.0.1
+progress.auth.sso.js........................Version: 6.0.1
+progress.data.kendo.js......................Version: 6.0.1
+progress.session.js.........................Version: 6.0.1
+progress.util.js............................Version: 6.0.1
+Progress Data Source for Angular:...........Version: 6.0.1
+Progress Data Source for NativeScript.......Version: 6.0.1 (the �Product�)
+progress.data.ng.ds.ts......................Version: 6.0.1
+Progress JSDO Core Module...................Version: 6.0.1 
 
 ### JSDO and OpenEdge compatibility
 |-----------------------------------------|
 | JSDO version   | OpenEdge version       |
 |----------------|------------------------|
-| 6.0.0, 5.0.0   | 11.6.4, 11.7.x, 12.0.x |
+| 6.0.1, 5.0.0   | 11.6.4, 11.7.x, 12.0.x |
 |-----------------------------------------|
 
 Copyright (c) 2012-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
@@ -38,7 +38,7 @@ limitations under the License.
 == the Apache License, Version 2.0, 						  ==
 == in this case for the Progress Data Source for Angular v6.0		  ==
 =========================================================================
-Progress Data Source for Angular v6.0
+Progress Data Source for Angular v6.0.1
 
 Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
@@ -52,7 +52,7 @@ Any open source software that may be delivered by Progress Software Corporation 
 ==  in this case for Progress Data Source for NativeScript v6.0	  ==
 =========================================================================
 
-Progress Data Source for NativeScript v6.0 (the �Product�)
+Progress Data Source for NativeScript v6.0.1 (the �Product�)
 
 Copyright � 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
@@ -90,7 +90,7 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-(c) Progress Data Source for NativeScript v6.0 incorporates nativescript-localstorage v2.0.0.  Such technology is subject to the following terms and conditions:
+(c) Progress Data Source for NativeScript v6.0.1 incorporates nativescript-localstorage v2.0.0.  Such technology is subject to the following terms and conditions:
 The MIT License (MIT)
 localstorage
 Copyright (c) 2016, Nathanael Anderson
