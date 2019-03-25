@@ -1,48 +1,48 @@
 {
-  "name": "@progress/jsdo-nativescript",
-  "version": "6.0.0",
-  "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript",
-  "main": "lib/progress.data.ns.js",
-  "files": [
-    "LICENSE",
-    "notice.txt",
-    "readme.md",
-    "lib/",
-    "typings/"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/progress/JSDO.git"
-  },
-  "keywords": [
-    "JSDO",
-    "Progress",
-    "node",
-    "NativeScript",
-    "DataSource",
-    "Data Source",
-    "Data Source for NativeScript",
-    "Data Source for Angular"
-  ],
-  "author": "Progress Software",
-  "typings": "typings/progress.data.ns.d.ts",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/progress/JSDO/issues"
-  },
-  "homepage": "https://github.com/progress/JSDO#readme",
-  "dependencies": {
-    "@progress/jsdo-core": "^6.0.0",
-    "base-64": "^0.1.0",
-    "nativescript-localstorage": "^1.1.5",
-    "zone.js": "^0.8.18"
-  },
-  "peerDependencies": {
-    "@angular/core": "^6.1.0",
-    "rxjs": "^6.0.0"
-  },
-  "optionalDependencies": {}
+    "name": "@progress/jsdo-nativescript",
+    "version": "6.0.1",
+    "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript",
+    "main": "lib/progress.data.ns.js",
+    "files": [
+        "LICENSE",
+        "notice.txt",
+        "readme.md",
+        "lib/",
+        "typings/"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/progress/JSDO.git"
+    },
+    "keywords": [
+        "JSDO",
+        "Progress",
+        "node",
+        "NativeScript",
+        "DataSource",
+        "Data Source",
+        "Data Source for NativeScript",
+        "Data Source for Angular"
+    ],
+    "author": "Progress Software",
+    "typings": "typings/progress.data.ns.d.ts",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/progress/JSDO/issues"
+    },
+    "homepage": "https://github.com/progress/JSDO#readme",
+    "dependencies": {
+        "@progress/jsdo-core": "^6.0.0",
+        "base-64": "^0.1.0",
+        "nativescript-localstorage": "^1.1.5",
+        "zone.js": "^0.8.18"
+    },
+    "peerDependencies": {
+        "@angular/core": "^6.1.0",
+        "rxjs": "^6.0.1"
+    },
+    "optionalDependencies": {}
 }

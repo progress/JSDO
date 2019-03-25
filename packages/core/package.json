@@ -1,36 +1,36 @@
 {
-  "name": "@progress/jsdo-core",
-  "version": "6.0.0",
-  "description": "JSDO Core Module",
-  "main": "lib/progress.core.js",
-  "files": [
-    "LICENSE",
-    "notice.txt",
-    "readme.md",
-    "lib/",
-    "typings/"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/progress/JSDO.git"
-  },
-  "keywords": [
-    "JSDO",
-    "Progress",
-    "NativeScript",
-    "node"
-  ],
-  "author": "Progress Software",
-  "typings": "typings/progress.core.d.ts",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/progress/JSDO/issues"
-  },
-  "homepage": "https://github.com/progress/JSDO#readme",
-  "dependencies": {},
-  "peerDependencies": {},
-  "optionalDependencies": {}
+    "name": "@progress/jsdo-core",
+    "version": "6.0.1",
+    "description": "JSDO Core Module",
+    "main": "lib/progress.core.js",
+    "files": [
+        "LICENSE",
+        "notice.txt",
+        "readme.md",
+        "lib/",
+        "typings/"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/progress/JSDO.git"
+    },
+    "keywords": [
+        "JSDO",
+        "Progress",
+        "NativeScript",
+        "node"
+    ],
+    "author": "Progress Software",
+    "typings": "typings/progress.core.d.ts",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/progress/JSDO/issues"
+    },
+    "homepage": "https://github.com/progress/JSDO#readme",
+    "dependencies": {},
+    "peerDependencies": {},
+    "optionalDependencies": {}
 }

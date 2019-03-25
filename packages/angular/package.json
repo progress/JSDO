@@ -1,43 +1,43 @@
 {
-  "name": "@progress/jsdo-angular",
-  "version": "6.0.0",
-  "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with Angular.",
-  "main": "lib/progress.data.angular.js",
-  "files": [
-    "LICENSE",
-    "notice.txt",
-    "readme.md",
-    "lib/",
-    "typings/"
-  ],
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/progress/JSDO.git"
-  },
-  "keywords": [
-    "JSDO",
-    "Progress",
-    "angular",
-    "DataSource",
-    "Data Source",
-    "Data Source for Angular"
-  ],
-  "author": "Progress Software",
-  "typings": "typings/progress.data.angular.d.ts",
-  "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/progress/JSDO/issues"
-  },
-  "homepage": "https://github.com/progress/JSDO#readme",
-  "dependencies": {
-    "@progress/jsdo-core": "^6.0.0"
-  },
-  "peerDependencies": {
-    "@angular/core": "^6.1.0",
-    "rxjs": "^6.0.0"
-  },
-  "optionalDependencies": {}
+    "name": "@progress/jsdo-angular",
+    "version": "6.0.1",
+    "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with Angular.",
+    "main": "lib/progress.data.angular.js",
+    "files": [
+        "LICENSE",
+        "notice.txt",
+        "readme.md",
+        "lib/",
+        "typings/"
+    ],
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/progress/JSDO.git"
+    },
+    "keywords": [
+        "JSDO",
+        "Progress",
+        "angular",
+        "DataSource",
+        "Data Source",
+        "Data Source for Angular"
+    ],
+    "author": "Progress Software",
+    "typings": "typings/progress.data.angular.d.ts",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/progress/JSDO/issues"
+    },
+    "homepage": "https://github.com/progress/JSDO#readme",
+    "dependencies": {
+        "@progress/jsdo-core": "^6.0.1"
+    },
+    "peerDependencies": {
+        "@angular/core": "^6.1.0",
+        "rxjs": "^6.0.1"
+    },
+    "optionalDependencies": {}
 }
