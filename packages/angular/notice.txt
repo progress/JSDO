@@ -3,9 +3,8 @@
 == the Apache License, Version 2.0, 						  ==
 == in this case for the Progress Data Source for Angular v6.0		  ==
 =========================================================================
-Progress Data Source for Angular v6.0
 
-Copyright © 2018 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+Copyright ï¿½ 2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
 For license information see the LICENSE file which accompanies this NOTICE.txt file.
 

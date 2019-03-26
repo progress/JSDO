@@ -1,11 +1,10 @@
 =========================================================================
 == NOTICE file corresponding to section 4 d of 			  	  ==
 == the Apache License, Version 2.0, 						  ==
-== in this case for the Progress JSDO Core Module v6.0		        ==
+== in this case for the Progress JSDO Core Module             ==
 =========================================================================
-Progress JSDO Core Module v6.0
 
-Copyright © 2012-2018 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
+Copyright © 2012-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
 For license information see the LICENSE file which accompanies this NOTICE.txt file.
 
