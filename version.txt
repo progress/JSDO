@@ -1,7 +1,7 @@
 ### JSDO FILE VERSIONS
 progress.js.................................Version: 6.0.1
 progress.auth.js............................Version: 6.0.1
-progress.auth.Bearer.js.....................Version: 4.4.0-3
+progress.auth.Bearer.js.....................Version: 6.0.1
 progress.auth.basic.js......................Version: 6.0.1
 progress.auth.form.js.......................Version: 6.0.1
 progress.auth.sso.js........................Version: 6.0.1
