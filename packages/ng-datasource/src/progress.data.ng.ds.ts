@@ -13,8 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-progress.data.ng.ds.ts    Version: v6.0.1
-
 Progress Data Source class for NativeScript, Angular. This will provide a seamless integration
 between OpenEdge (Progress Data Object) with NativeScript.
 

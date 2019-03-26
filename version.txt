@@ -11,7 +11,9 @@ progress.util.js............................Version: 6.0.1
 Progress Data Source for Angular:...........Version: 6.0.1
 Progress Data Source for NativeScript.......Version: 6.0.1 (the ï¿½Productï¿½)
 progress.data.ng.ds.ts......................Version: 6.0.1
-Progress JSDO Core Module...................Version: 6.0.1 
+Progress JSDO Core Module...................Version: 6.0.1
+progress.data.ng.ds.ts......................Version: 6.0.1
+
 
 ### JSDO and OpenEdge compatibility
 |-----------------------------------------|

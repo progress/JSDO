@@ -9,7 +9,7 @@ Copyright © 2018-2019 Progress Software Corporation or one of its subsidiaries 
 
 For license information see the LICENSE file which accompanies this NOTICE.txt file.
 
-Any open source software that may be delivered by Progress Software Corporation embedded in or in association with Progress Data Source for Angular v6.0 is provided pursuant to the open source license applicable to the software and subject to the disclaimers and limitations on liability set forth in such license. 
+Any open source software that may be delivered by Progress Software Corporation embedded in or in association with Progress Data Source for Angular is provided pursuant to the open source license applicable to the software and subject to the disclaimers and limitations on liability set forth in such license. 
 
 Updated 3/18/2019
 
