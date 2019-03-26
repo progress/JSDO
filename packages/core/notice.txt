@@ -3,7 +3,8 @@
 == the Apache License, Version 2.0, 						  ==
 == in this case for the Progress JSDO Core Module    	      ==
 =========================================================================
-        
+Progress JSDO Core Module
+
 Copyright © 2018-2019 Progress Software Corporation or one of its subsidiaries or affiliates. All Rights Reserved.
 
 For license information see the LICENSE file which accompanies this NOTICE.txt file.
