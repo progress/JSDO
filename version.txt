@@ -1,0 +1,23 @@
+### JSDO FILE VERSIONS
+progress.js.................................Version: 6.0.1
+progress.auth.js............................Version: 6.0.1
+progress.auth.Bearer.js.....................Version: 6.0.1
+progress.auth.basic.js......................Version: 6.0.1
+progress.auth.form.js.......................Version: 6.0.1
+progress.auth.sso.js........................Version: 6.0.1
+progress.data.kendo.js......................Version: 6.0.1
+progress.session.js.........................Version: 6.0.1
+progress.util.js............................Version: 6.0.1
+Progress Data Source for Angular:...........Version: 6.0.1
+Progress Data Source for NativeScript.......Version: 6.0.1 (the ï¿½Productï¿½)
+progress.data.ng.ds.ts......................Version: 6.0.1
+Progress JSDO Core Module...................Version: 6.0.1
+progress.data.ng.ds.ts......................Version: 6.0.1
+
+
+### JSDO and OpenEdge compatibility
+|-----------------------------------------|
+| JSDO version   | OpenEdge version       |
+|----------------|------------------------|
+| 6.0.1          |         11.7.x, 12.0.x |
+|-----------------------------------------|
