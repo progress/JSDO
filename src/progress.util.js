@@ -36,15 +36,13 @@ limitations under the License.
     // - xmlhttprequest
     // NativeScript:
     // - nativescript-localstorage
-    // - base-64
 
     var isNativeScript = false,
         isNodeJS = false;
 
     var pkg_xmlhttprequest              = "xmlhttprequest",
         pkg_nativescriptLocalstorage    = "nativescript-localstorage",
-        pkg_fileSystemAccess            = "file-system/file-system-access",
-        pkg_base64                      = "base-64"
+        pkg_fileSystemAccess            = "file-system/file-system-access"
         ;
 
     //In memory localStorage emulation used for node 
@@ -101,14 +99,13 @@ limitations under the License.
                 + "Please install nativescript-localstorage package.");
         }
 
-        // load module base-64
+        // Polyfill the btoa() function (which we use to encode BASIC authorization)
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("" + pkg_base64).encode;
+                btoa = function(str) { return Buffer.from(str).toString('base64'); }
             }
         } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in NativeScript.\n"
-                + "Please install base-64 package.");
+            console.error("Error: JSDO library requires toString('base-64') function in NativeScript.");
         }
     }
 
@@ -121,14 +118,13 @@ limitations under the License.
             sessionStorage = new LocalStorageEmulation();
         }
 
-        // load module base-64
+        // Polyfill the btoa() function (which we use to encode BASIC authorization)
         try {
             if (typeof btoa === "undefined") {
-                btoa = require("" + pkg_base64).encode;
+                btoa = function(str) { return Buffer.from(str).toString('base64'); }
             }
         } catch(exception3) {
-            console.error("Error: JSDO library requires btoa() function in Node.js.\n"
-                + "Please install base-64 package.");
+            console.error("Error: JSDO library requires toString('base-64')function in Node.js.");
         }
     }
 }());

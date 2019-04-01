@@ -9,8 +9,8 @@ chai.use(chaiAsPromised);
 describe('JSDOSession Smoke Tests', () => {
     // INFORMATION YEAH
     const options = {    
-        catalogURI: 'http://172.29.18.125:8894/OEMobileDemoServices/static/CustomerService.json',
-        serviceURI: 'http://172.29.18.125:8894/OEMobileDemoServices/',
+        catalogURI: 'https://oemobiledemo.progress.com/OEMobileDemoServices/static/CustomerService.json',
+        serviceURI: 'https://oemobiledemo.progress.com/OEMobileDemoServices/',
         authenticationModel: 'anonymous'
     };
 
@@ -38,11 +38,11 @@ describe('JSDOSession Smoke Tests', () => {
 
         it('should connect to an existing basic backend', function () {
             let getSession = progress.data.getSession({
-                serviceURI: 'http://172.29.18.125:8894/OEMobileDemoServicesBasic',
-                catalogURI: 'http://172.29.18.125:8894/OEMobileDemoServicesBasic/static/CustomerService.json',
+                serviceURI: 'https://oemobiledemo.progress.com/OEMobileDemoServicesBasic',
+                catalogURI: 'https://oemobiledemo.progress.com/OEMobileDemoServicesBasic/static/CustomerService.json',
                 authenticationModel: 'basic',
-                username: 'restuser',
-                password: 'password'
+                username: 'basicuser',
+                password: 'basicpassword'
             }).then((object) => {
                 object.jsdosession.invalidate();
                 return object.result; 

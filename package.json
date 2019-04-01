@@ -39,7 +39,6 @@
   "peerDependencies": {},
   "optionalDependencies": {},
   "devDependencies": {
-    "base-64": "^0.1.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "concat": "^1.0.3",
