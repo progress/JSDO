@@ -1,9 +1,16 @@
-   =========================================================================
-   ==  NOTICE file corresponding to section 4 d of               	  ==
-   ==  the Apache License, Version 2.0,                                   ==
-   ==  in this case for the Progress JSDO protocol	     	 	  ==
-   =========================================================================
+=========================================================================
+== NOTICE file corresponding to section 4 d of 				==
+== the Apache License, Version 2.0, 						   ==
+== in this case for the Progress JSDO protocol				==
+=========================================================================
 Progress JSDO protocol
-Copyright (C) [2013 - 2019] Progress Software Corporation
+
+Copyright (C) 2013-2019 Progress Software Corporation and/or one of its subsidiaries or affiliates. All rights reserved.
+
 For license information see the LICENSE file which accompanies this NOTICE.txt file.
+
 Any open source software that may be delivered by Progress Software Corporation embedded in or in association with Progress JSDO protocol is provided pursuant to the open source license applicable to the software and subject to the disclaimers and limitations on liability set forth in such license. 
+
+Updated 3/18/2019
+
+ 
