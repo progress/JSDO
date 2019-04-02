@@ -15,7 +15,7 @@ Progress® Data Objects, which include the JSDO on the client, represent the Pro
 
 ### Download<a name="download"></a>
 
-You can <a href="https://github.com/progress/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file or the individual files below.
+You can <a href="https://github.com/progress/JSDO/zipball/master">download a copy of the full JSDO </a> to a zip file.
 
 | Source File                                                                                                 | Purpose                                        |
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
