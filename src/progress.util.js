@@ -105,7 +105,7 @@ limitations under the License.
                 btoa = function(str) { return Buffer.from(str).toString('base64'); }
             }
         } catch(exception3) {
-            console.error("Error: JSDO library requires toString('base-64') function in NativeScript.");
+            console.error("Error: JSDO library requires toString('base64') function in NativeScript.");
         }
     }
 
@@ -124,7 +124,22 @@ limitations under the License.
                 btoa = function(str) { return Buffer.from(str).toString('base64'); }
             }
         } catch(exception3) {
-            console.error("Error: JSDO library requires toString('base-64')function in Node.js.");
+            console.error("Error: JSDO library requires toString('base64')function in Node.js.");
+        }
+    }
+
+    // If we're running in the browser, edit btoa() to properly encode Unicode strings
+    // taken from https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/btoa#Unicode_strings
+    if (!isNodeJS && !isNativeScript) {
+        if (typeof btoa !== "undefined") {
+            let btoaOriginal = btoa;
+
+            // this section of code is functionally identical to the toString('base-64')
+            // btoa() doesn't exist on node though, which is why we have different styles
+            // of encoding in NS/node
+            btoa = function (str) {
+                return btoaOriginal(unescape(encodeURIComponent(str)));
+            };
         }
     }
 }());
