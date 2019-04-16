@@ -6,12 +6,12 @@ const progress = require("../../build/progress.jsdo").progress;
 
 chai.use(chaiAsPromised);
 
-describe('JSDO Setup ADAS-7828', () => {
+describe('JSDO Setup', () => {
     // INFORMATION YEAH
     const options = {
-        catalogURI: "http://oemobiledemo.progress.com/OEMobileDemoServices/static/r_Salesrep_HyphenDate.json",
-        serviceURI: "http://oemobiledemo.progress.com/OEMobileDemoServices/",
-        resourceName: "SalesRep_HyphenDate",
+        catalogURI: "http://172.30.112.74:8810/datetimebug/static/dtService.json",
+        serviceURI: "http://172.30.112.74:8810/datetimebug/",
+        resourceName: "MySalesRep",
         authenticationModel: "anonymous"
     };
 
