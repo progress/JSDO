@@ -1,5 +1,5 @@
 # Progress Data Source for Angular
-The Progress Data Source for Angular is a TypeScript implementation that extends the JSDO for Angular. This provides a seamless integration between OpenEdge (Progress Data Object Service) with NativeScript and Angular.
+This package is a client side TypeScript implementation that extends the JSDO for Angular. This  provides a seamless integration between OpenEdge (Progress Data Object Service) with NativeScript and Angular.
 
 ### Documentation
 Progress® Data Objects in an OpenEdge business application can be accessed using the Progress Data Source on the client. For more information, see the <a href="https://docs.progress.com/bundle/data-object-guide/page/Overview-of-Progress-Data-Objects-Services-and-Catalogs.html">Progress Data Objects Guide and Reference.</a>
