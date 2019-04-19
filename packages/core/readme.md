@@ -1,6 +1,10 @@
 # JSDO Core Module
 
-The JSDO Core Module is an implementation of the JSDO used to access the Progress Data Source component. The JSDO can be used by hybrid mobile apps, mobile web apps, and web browser apps to access OpenEdge and Rollbase servers. Other implementations include a client in a mobile Hybrid App (a variation of the browser client), a Telerik® NativeScript client, a Node.js server, and a Java server. The JSDO has successfully been used with servers other than OpenEdge such as Node.js to export data to a Progress® Rollbase Application.
+This package is a client side typescript library for Progress Data Object Services. Its purpose is to provide an easy to understand API for querying, creating, updating and deleting Progress Data Objects as well as invoke server side business logic.
+
+The JSDO can be used by hybrid mobile apps, mobile web apps, and web browser apps to access OpenEdge and Rollbase servers. The JSDO has successfully been used with servers other than OpenEdge such as Node.js to export data to a Progress® Rollbase Application.
+
+Additional packages are available for Data Sources that further simplify the API for Angular, Telerik® NativeScript, and a Node.js server. 
 
 ### Getting Started
 
