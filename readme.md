@@ -3,8 +3,6 @@
 The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.
 The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.
 
-**Note**: A newer version of this repository can be found at <a href="https://www.npmjs.com/package/@progress/jsdo-core">JSDO Core Module</a>.
-
 ### Documentation
 
 Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
