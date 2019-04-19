@@ -1,11 +1,11 @@
 # JSDO
 
-The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.
+The JSDO is a client side typescript library for Progress Data Object Services published by Progress Software Corporation. Its purpose is to provide an easy to understand API for querying, creating, updating and deleting Progress Data Objects as well as invoke server side business logic. 
 The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.
 
 ### Documentation
 
-Progress® Data Objects, which include the JSDO on the client, represent the Progress-released implementation of Cloud Data Objects. For more information on the latest release, see the <a href="https://documentation.progress.com/output/pdo">Progress Data Objects Guide and Reference.</a>
+Progress® Data Objects in an OpenEdge business application can be accessed using the JSDO on the client. For more information, see the <a href="https://docs.progress.com/bundle/data-object-guide/page/Overview-of-Progress-Data-Objects-Services-and-Catalogs.html">Overview of Progress Data Objects, Services and Catalogs.</a>
 
 ### JSDO and OpenEdge compatibility
 
