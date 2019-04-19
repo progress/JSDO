@@ -2,16 +2,22 @@ const chai = require('chai');
 const expect = chai.expect; 
 const chaiAsPromised = require('chai-as-promised');
 
-const progress = require("../build/progress.jsdo").progress;
+const progress = require("../../build/progress.jsdo").progress;
 
 chai.use(chaiAsPromised);
 
-describe('JSDOSession Smoke Tests', () => {
+// This bug correlates to https://github.com/progress/JSDO/issues/231
+// Basically, international characters weren't being properly encoded in the
+// Authorization header for BASIC authentication. We switched to properly
+// encoding it using the node Buffer().toString('base64') method.
+describe('Unit Tests for BASIC Authentication with International Characters', () => {
     // INFORMATION YEAH
-    const options = {    
-        catalogURI: 'https://oemobiledemo.progress.com/OEMobileDemoServices/static/CustomerService.json',
-        serviceURI: 'https://oemobiledemo.progress.com/OEMobileDemoServices/',
-        authenticationModel: 'anonymous'
+    const options = {
+        catalogURI: 'https://oemobiledemo.progress.com/OEMobileDemoServicesBasic/static/CustomerService.json',
+        serviceURI: 'https://oemobiledemo.progress.com/OEMobileDemoServicesBasic/',
+        authenticationModel: 'basic',
+        username: 'basicusÃ©',
+        password: 'pÃ¤word'
     };
 
     let session;
@@ -22,36 +28,7 @@ describe('JSDOSession Smoke Tests', () => {
     });
 
     describe('getSession Tests', function () {
-        it('should fail to connect to a non-existent backend', function () {
-            let getSession = progress.data.getSession({
-                serviceURI: options.serviceURI + 'fake',
-                catalogURI: options.catalogURI,
-                authenticationModel: options.authenticationModel
-            }).then((object) => {
-                return expect.fail(null, null, 'getSession succeeded on a non-existent backend?');
-            }, (object) => {
-                return object.result;
-            }); 
-
-            return expect(getSession).to.eventually.equal(progress.data.Session.GENERAL_FAILURE);
-        });
-
         it('should connect to an existing basic backend', function () {
-            let getSession = progress.data.getSession({
-                serviceURI: 'https://oemobiledemo.progress.com/OEMobileDemoServicesBasic',
-                catalogURI: 'https://oemobiledemo.progress.com/OEMobileDemoServicesBasic/static/CustomerService.json',
-                authenticationModel: 'basic',
-                username: 'basicuser',
-                password: 'basicpassword'
-            }).then((object) => {
-                object.jsdosession.invalidate();
-                return object.result; 
-            });
-
-            return expect(getSession).to.eventually.equal(progress.data.Session.SUCCESS);
-        });
-
-        it('should connect to an existing anonymous backend', function () {
             let getSession = progress.data.getSession(options).then((object) => {
                 session = object.jsdosession;
                 return object.result; 

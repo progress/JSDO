@@ -1,8 +1,7 @@
 
-/* 
-progress.data.kendo.js    Version: 6.0.0
+/*
 
-Copyright (c) 2015-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2015-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

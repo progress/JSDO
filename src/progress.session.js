@@ -1,7 +1,6 @@
 /*
-progress.session.js    Version: 6.0.0
 
-Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -797,7 +796,9 @@ limitations under the License.
             // connects to online the last time it was checked?
             // (value is always false if session is not logged in)
             oepingAvailable = false,
-            defaultPartialPingURI = "/rest/_oeping",
+            hasResolvedPingURI = false,
+            defaultPartialPingURI = "/rest/_oepingService/_oeping",
+            classicPartialPingURI = "/rest/_oeping",
             partialPingURI = defaultPartialPingURI,
             _storageKey,
             _authProvider = null,
@@ -996,6 +997,7 @@ limitations under the License.
                         case progress.data.Session.AUTH_TYPE_BASIC:
                         case progress.data.Session.AUTH_TYPE_ANON:
                         case progress.data.Session.AUTH_TYPE_SSO:
+                        case progress.data.Session.AUTH_TYPE_BEARER:
                         case null:
                             _authenticationModel = newval;
                             storeSessionInfo("authenticationModel", newval);
@@ -2105,7 +2107,8 @@ limitations under the License.
                 xhr._jsdosession = jsdosession;  // in case the caller is a JSDOSession
                 xhr._deferred = deferred;  // in case the caller is a JSDOSession
                 if (this.authenticationModel === progress.data.Session.AUTH_TYPE_FORM ||
-                        this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                        this.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC ||
+                            this.authenticationModel === progress.data.Session.AUTH_TYPE_BEARER) {
                     if (isAsync) {
                         xhr.onreadystatechange = this._onReadyStateChangeGeneric;
                         xhr.onResponseFn = this._processLogoutResult;
@@ -2201,7 +2204,8 @@ limitations under the License.
             } else if (xhr.status !== 200) {
                 /* Determine whether an error returned from the server is really an error
                  */
-                if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC) {
+                if (pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BASIC ||
+                        pdsession.authenticationModel === progress.data.Session.AUTH_TYPE_BEARER) {
                     /* If the Auth model is Basic, we probably got back a 404 Not found.
                      * But that's OK, because logout from Basic is meaningless on the
                      * server side unless it happens to be stateful, which is the only
@@ -2917,40 +2921,71 @@ limitations under the License.
         this._onReadyStateChangePing = function () {
             var xhr = this;
             var args;
-
-            if (xhr.readyState === 4) {
-                args = {
-                    xhr: xhr,
-                    fireEventIfOfflineChange: true,
-                    offlineReason: null
-                };
-                that._processPingResult(args);
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(that._autoping, _pingInterval);
+            try {
+                if (xhr.readyState === 4) {
+                    args = {
+                        xhr: xhr,
+                        fireEventIfOfflineChange: true,
+                        offlineReason: null
+                    };
+                    that._processPingResult(args);
+                    if (_pingInterval > 0) {
+                        _timeoutID = setTimeout(that._autoping, _pingInterval);
+                    }
                 }
+            } catch(e) {
             }
         };
 
         this._pingtestOnReadyStateChange = function () {
             var xhr = this;
+            try {
+                if (xhr.readyState === 4) {
+                    var foundOeping = false;
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        foundOeping = true;
+                    } else {
+                        setPartialPingURI(that.loginTarget);
+                        console.warn("Default ping target not available, will use loginTarget instead.");
+                    }
+                    setOepingAvailable(foundOeping);
 
-            if (xhr.readyState === 4) {
-                var foundOeping = false;
-                if (xhr.status >= 200 && xhr.status < 300) {
-                    foundOeping = true;
-                } else {
-                    setPartialPingURI(that.loginTarget);
-                    console.warn("Default ping target not available, will use loginTarget instead.");
+                    // If we're here, we've just logged in. If pingInterval has been set, we need
+                    // to start autopinging
+                    if (_pingInterval > 0) {
+                        _timeoutID = setTimeout(that._autoping, _pingInterval);
+                    }
                 }
-                setOepingAvailable(foundOeping);
-
-                // If we're here, we've just logged in. If pingInterval has been set, we need
-                // to start autopinging
-                if (_pingInterval > 0) {
-                    _timeoutID = setTimeout(that._autoping, _pingInterval);
-                }
+            } catch(e) {
             }
         };
+
+        var resolvePingURI = () => {
+            var xhr = new XMLHttpRequest(),
+                deferred = new progress.util.Deferred();
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    // If we can't find the new ping endpoint, we go back to the Classic Ping URI.
+                    if (xhr.status === 404) {
+                        setPartialPingURI(classicPartialPingURI);
+                        deferred.reject(false);
+                    } else {
+                        deferred.resolve(true);
+                    }
+                    hasResolvedPingURI = true;
+                }
+            };
+
+            // if we've resolved the pingURI OR we haven't logged in, then we don't have to do anything 
+            if (hasResolvedPingURI || (this.loginResult !== progress.data.Session.LOGIN_SUCCESS && !this.authProvider)) {
+                deferred.resolve(true);
+            } else {
+                this._openRequest(xhr, "GET", partialPingURI, true, () => xhr.send());
+            }
+
+            return deferred.promise();
+        }
 
         /*
          * args: pingURI
@@ -2962,6 +2997,8 @@ limitations under the License.
         this._sendPing = function (args) {
             var xhr = new XMLHttpRequest(),
                 that = this;
+
+            args.xhr = xhr;
 
             function sendPingAfterOpen() {
                 if (args.async) {
@@ -2982,30 +3019,35 @@ limitations under the License.
                 xhr.send(null);
             }
 
-            try {
-                if (this._authProvider) {
-                    this._authProvider._openRequestAndAuthorize(
-                        xhr,
-                        'GET',
-                        args.pingURI,
-                        args.async,
-                        sendPingAfterOpen
-                    );
-                } else {
-                    // get rid of this if we do away with synchronous support (i.e., customer use of
-                    // old Session API)
-                    this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
-
-                    // Sending the XHR request after opening the channel
-                    if (xhr.readyState === 1) {
-                        sendPingAfterOpen();
+            resolvePingURI().then(() => {
+                // do nothing on success because the new oePingService was found
+            }, () => {
+                // re-create the pingURI since we changed to the old classic AppServer ping URI
+                args.pingURI = this._makePingURI(); 
+            }).then(() => {
+                try {
+                    if (this._authProvider) {
+                        this._authProvider._openRequestAndAuthorize(
+                            xhr,
+                            'GET',
+                            args.pingURI,
+                            args.async,
+                            sendPingAfterOpen
+                        );
+                    } else {
+                        // get rid of this if we do away with synchronous support (i.e., customer use of
+                        // old Session API)
+                        this._setXHRCredentials(xhr, "GET", args.pingURI, this.userName, _password, args.async);
+    
+                        // Sending the XHR request after opening the channel
+                        if (xhr.readyState === 1) {
+                            sendPingAfterOpen();
+                        }
                     }
+                } catch (e) {
+                    args.error = e;
                 }
-            } catch (e) {
-                args.error = e;
-            }
-
-            args.xhr = xhr;
+            })
         };
 
         this._makePingURI = function () {
@@ -3586,7 +3628,15 @@ limitations under the License.
                 enumerable: true
             }
         );
-
+        Object.defineProperty(
+            progress.data.Session,
+            'AUTH_TYPE_BEARER',
+            {
+                value: "bearer",
+                enumerable: true
+            }
+        );
+        
         Object.defineProperty(
             progress.data.Session,
             'DEVICE_OFFLINE',
@@ -3641,6 +3691,7 @@ limitations under the License.
         progress.data.Session.AUTH_TYPE_BASIC = "basic";
         progress.data.Session.AUTH_TYPE_FORM = "form";
         progress.data.Session.AUTH_TYPE_SSO = "sso";
+        progress.data.Session.AUTH_TYPE_BEARER = "bearer";
 
         /* deliberately not including the "offline reasons" that are defined in the
          * 1st part of the conditional. We believe that we can be used only in environments where
@@ -4464,34 +4515,36 @@ limitations under the License.
                                 var xhr = this,
                                     cbresult,
                                     info;
+                                try {
+                                    if (xhr.readyState === 4) {
+                                        info = {
+                                            xhr: xhr,
+                                            offlineReason: undefined,
+                                            fireEventIfOfflineChange: true,
+                                            usingOepingFormat: false
+                                        };
 
-                                if (xhr.readyState === 4) {
-                                    info = {
-                                        xhr: xhr,
-                                        offlineReason: undefined,
-                                        fireEventIfOfflineChange: true,
-                                        usingOepingFormat: false
-                                    };
+                                        // call _processPingResult because it has logic for
+                                        // detecting change in online/offline state
+                                        _pdsession._processPingResult(info);
 
-                                    // call _processPingResult because it has logic for
-                                    // detecting change in online/offline state
-                                    _pdsession._processPingResult(info);
-
-                                    if (xhr.status >= 200 && xhr.status < 300) {
-                                        deferred.resolve(
-                                            that,
-                                            progress.data.Session.SUCCESS,
-                                            info
-                                        );
-                                    } else {
-                                        if (xhr.status === 401) {
-                                            cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                        if (xhr.status >= 200 && xhr.status < 300) {
+                                            deferred.resolve(
+                                                that,
+                                                progress.data.Session.SUCCESS,
+                                                info
+                                            );
                                         } else {
-                                            cbresult = progress.data.Session.GENERAL_FAILURE;
+                                            if (xhr.status === 401) {
+                                                cbresult = progress.data.AuthenticationProvider._getAuthFailureReason(xhr);
+                                            } else {
+                                                cbresult = progress.data.Session.GENERAL_FAILURE;
+                                            }
+                                            deferred.reject(that, cbresult, info);
                                         }
-                                        deferred.reject(that, cbresult, info);
                                     }
-                                }
+                                    } catch (e) {
+                                    }
                             };
 
                             try {
@@ -4730,8 +4783,8 @@ limitations under the License.
     progress.data.getSession = function (options) {
         var deferred = new progress.util.Deferred(),
             authProvider,
-            promise,
-            authProviderInitObject = {};
+            authProviderInitObject = {},
+            session;
 
         // This is the reject handler for session-related operations
         // login, addCatalog, and logout
@@ -4759,26 +4812,23 @@ limitations under the License.
         }
 
         function loginHandler(object) {
-            var jsdosession;
+            let jsdosession;
 
             try {
-                jsdosession = new progress.data.JSDOSession(options);
-                try {
-                    jsdosession.isAuthorized()
-                        .then(function() {
-                            return jsdosession.addCatalog(options.catalogURI);
-                        }, sessionRejectHandler)
-                        .then(function (object, result, info) {
-                            object = progress.util.Deferred.getParamObject(object, result, info);
-                            deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
-                        }, sessionRejectHandler);
-                } catch (e) {
-                    sessionRejectHandler(
-                        jsdosession,
-                        progress.data.Session.GENERAL_FAILURE,
-                        {errorObject: e}
-                    );
+                if (typeof session === "undefined") {
+                    jsdosession = new progress.data.JSDOSession(options);
+                } else {
+                    jsdosession = session;
                 }
+
+                jsdosession.isAuthorized()
+                    .then(function() {
+                        return jsdosession.addCatalog(options.catalogURI);
+                    }, sessionRejectHandler)
+                    .then(function (object, result, info) {
+                        object = progress.util.Deferred.getParamObject(object, result, info);
+                        deferred.resolve(object.jsdosession, progress.data.Session.SUCCESS);
+                    }, sessionRejectHandler);
             } catch (ex) {
                 sessionRejectHandler(
                     jsdosession,
@@ -4904,7 +4954,33 @@ limitations under the License.
             options.authProvider = authProvider;
 
             if (authProvider.hasClientCredentials()) {
-                loginHandler(authProvider);
+                // FAKE SESSION
+                let jsdosession = new progress.data.JSDOSession(options),
+                    statusCode = 0; 
+
+                 // This is a band-aid. We need to refactor and re-modularize
+                 // getSession() now that the team has a better understanding 
+                 // of async operations --aestrada
+                jsdosession.isAuthorized().then(() => {
+                    session = jsdosession;
+                    return; 
+                }, (obj) => {
+                    statusCode = obj && obj.info && obj.info.xhr && obj.info.xhr.status;
+                    return progress.util.Deferred.when([
+                        jsdosession.invalidate(),
+                        options.authProvider.logout()
+                    ]);
+                }).then(() => {
+                    // If we have a 401, then we need to get rid of our old authProvider and try a fresh start
+                    // Otherwise, we still good.
+                    if (statusCode === 401) {
+                        authProvider = new progress.data.AuthenticationProvider(authProviderInitObject);
+                        options.authProvider = authProvider;
+                        callLogin(authProvider);
+                    } else {
+                        loginHandler(authProvider);
+                    }
+                });
             } else {
                 // If model is anon, just log in.
                 if (authProvider.authenticationModel === progress.data.Session.AUTH_TYPE_ANON) {
@@ -4971,4 +5047,3 @@ limitations under the License.
 if (typeof exports !== "undefined") {
     exports.progress = progress;
 }
-

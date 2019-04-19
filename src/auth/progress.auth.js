@@ -1,7 +1,6 @@
 /* 
-progress.auth.js    Version: 6.0.0
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -88,6 +87,9 @@ limitations under the License.
         case progress.data.Session.AUTH_TYPE_FORM_SSO:
             authProv = new progress.data.AuthenticationProviderSSO(initObject.uri);
             break;
+        case progress.data.Session.AUTH_TYPE_BEARER:
+            authProv = new progress.data.AuthenticationProviderBearer(initObject.uri);
+            break;
         default:
             // AuthenticationProvider: The 'init-object' parameter passed to the 'constructor' function
             //                          has an invalid value for the 'authenticationModel' property.
@@ -129,7 +131,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        that._processLoginResult(xhr, deferred);
+                        try {
+                            that._processLoginResult(xhr, deferred);
+                        } catch (e) {
+                        }
                     }
                 };
 
