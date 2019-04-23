@@ -14,8 +14,8 @@ chai.use(chaiAsPromised);
 describe('ADAS-7282: DataSource invokes count operation bug', function () {
     //options all the info required for creating a jsdo session
     const options = {
-        serviceURI: "http://172.29.18.125:8894/OEMobileDemoServices",
-        catalogURI: "http://172.29.18.125:8894/OEMobileDemoServices/static/SportsService.json",
+        serviceURI: "http://oemobiledemo.progress.com/OEMobileDemoServices",
+        catalogURI: "http://oemobiledemo.progress.com/OEMobileDemoServices/static/SportsService.json",
         resourceName: "SalesRep",
         authenticationModel: "anonymous",
         tableRef: "ttSalesRep"

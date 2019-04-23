@@ -13,8 +13,8 @@ describe('Datasource Smoke Tests', function () {
     //options all the info required for creating a jsdo session
     const options = {
         // These services are running in Docker
-        serviceURI: "http://172.29.18.125:8894/OEMobileDemoServices/",
-        catalogURI: "http://172.29.18.125:8894/OEMobileDemoServices/static/CustomerService.json",
+        serviceURI: "http://oemobiledemo.progress.com/OEMobileDemoServices/",
+        catalogURI: "http://oemobiledemo.progress.com/OEMobileDemoServices/static/CustomerService.json",
         resourceName: "Customer",
         authenticationModel: "anonymous",
         tableRef: "ttCustomer",

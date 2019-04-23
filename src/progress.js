@@ -1,7 +1,5 @@
 /* 
-progress.js    Version: 6.0.0
-
-Copyright (c) 2012-2018 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2012-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -6372,67 +6370,75 @@ limitations under the License.
             var xhr = this;
             if (xhr.readyState == 4) {
                 var request = xhr.request;
-
-                /* try to parse response even if request is considered "failed" due to http status */
                 try {
-                    request.response = JSON.parse(xhr.responseText);
-                    // in some cases the object back from appserver has a "response" property which represents
-                    // the real content of the JSON...happens when multiple output parameters are returned.
-                    // this of course assumes no one names their root object "response".
-                    if (request.response && request.response.response) {
-                        request.response = request.response.response;
+
+                    /* try to parse response even if request is considered "failed" due to http status */
+                    try {
+                        request.response = JSON.parse(xhr.responseText);
+                        // in some cases the object back from appserver has a "response" property which represents
+                        // the real content of the JSON...happens when multiple output parameters are returned.
+                        // this of course assumes no one names their root object "response".
+                        if (request.response && request.response.response) {
+                            request.response = request.response.response;
+                        }
+                    } catch (e) {
+                        request.response = undefined;
                     }
-                } catch (e) {
-                    request.response = undefined;
-                }
 
-                try {
-                    if ((xhr.status >= 200 && xhr.status < 300) 
-                        || (xhr.status === 0 && xhr.responseText !== "")) {
-                            
-                        request.success = true;
-                        // get the Client Context ID (AppServer ID)
-                        xhr.jsdo._session._saveClientContextId(xhr); 
-                        if ((typeof xhr.onSuccessFn) == 'function') {
-                            var operation;
-                            if (xhr.request.fnName !== undefined
-                                && xhr.jsdo._resource.fn[xhr.request.fnName] !== undefined) {
-                                operation = xhr.jsdo._resource.fn[xhr.request.fnName].operation;
+                    try {
+                        if ((xhr.status >= 200 && xhr.status < 300) 
+                            || (xhr.status === 0 && xhr.responseText !== "")) {
+                                
+                            request.success = true;
+                            // get the Client Context ID (AppServer ID)
+                            xhr.jsdo._session._saveClientContextId(xhr); 
+                            if ((typeof xhr.onSuccessFn) == 'function') {
+                                var operation;
+                                if (xhr.request.fnName !== undefined
+                                    && xhr.jsdo._resource.fn[xhr.request.fnName] !== undefined) {
+                                    operation = xhr.jsdo._resource.fn[xhr.request.fnName].operation;
+                                }
+                                else
+                                    operation = null;
+                                if ((operation === undefined) || (operation !== null && operation.mergeMode))
+                                    xhr.jsdo._mergeInvoke(request.response, xhr);
+                                if (request.success)
+                                    xhr.onSuccessFn(xhr.jsdo, request.success, request);
+                                else if ((typeof xhr.onErrorFn) == 'function')
+                                    xhr.onErrorFn(xhr.jsdo, request.success, request);
                             }
-                            else
-                                operation = null;
-                            if ((operation === undefined) || (operation !== null && operation.mergeMode))
-                                xhr.jsdo._mergeInvoke(request.response, xhr);
-                            if (request.success)
-                                xhr.onSuccessFn(xhr.jsdo, request.success, request);
-                            else if ((typeof xhr.onErrorFn) == 'function')
-                                xhr.onErrorFn(xhr.jsdo, request.success, request);
-                        }
 
-                    } else {
-                        request.success = false;
-                        if (xhr.status === 0) {
-                            request.exception = new Error(msg.getMsgText("jsdoMSG101"));
+                        } else {
+                            request.success = false;
+                            if (xhr.status === 0) {
+                                request.exception = new Error(msg.getMsgText("jsdoMSG101"));
+                            }
+                            if ((typeof xhr.onErrorFn) == 'function') {
+                                xhr.onErrorFn(xhr.jsdo, request.success, request);
+                            }
                         }
+                    } catch (e) {
+                        request.success = false;				
+                        request.exception = e;
                         if ((typeof xhr.onErrorFn) == 'function') {
                             xhr.onErrorFn(xhr.jsdo, request.success, request);
                         }
                     }
-                } catch (e) {
-                    request.success = false;				
-                    request.exception = e;
-                    if ((typeof xhr.onErrorFn) == 'function') {
-                        xhr.onErrorFn(xhr.jsdo, request.success, request);
+                    // get the Client Context ID (AppServer ID)
+                    xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
+
+                    if ((typeof xhr.onCompleteFn) == 'function') {
+                        xhr.onCompleteFn(xhr.jsdo, request.success, request);
                     }
-                }
-                // get the Client Context ID (AppServer ID)
-                xhr.jsdo._session._checkServiceResponse(xhr, request.success, request);
 
-                if ((typeof xhr.onCompleteFn) == 'function') {
-                    xhr.onCompleteFn(xhr.jsdo, request.success, request);
+                    } catch (e) {
+                        request.success = false;				
+                        request.exception = e;
+                        if ((typeof xhr.onErrorFn) == 'function') {
+                            xhr.onErrorFn(xhr.jsdo, request.success, request);
+                        }
+                    } 
                 }
-
-            }
         };
 
         /*
@@ -7175,8 +7181,17 @@ limitations under the License.
                     }
                 }
                 
+				// Christian Bryan - 10.02.2019 Add this back in
+                // Mike Fechner, Consultingwerk Ltd. 16.03.2016                
+                // Adding the tableRef property of the JSDO Parameters to
+                // the Filter Parameter so that the backend can use this
+                // information to actually know which Business Entity Table
+                // the query filter string is intended for ...
+
                 filter = JSON.stringify({
                     ablFilter: ablFilter,
+					tableRef: params.tableRef, 
+					viewTables: jsdo.viewTables, 
                     sqlQuery: sqlQuery,
                     orderBy: sortFields,
                     skip: params.skip,

@@ -1,7 +1,6 @@
 /* 
-progress.auth.sso.js    Version: 6.0.0
 
-Copyright (c) 2016-2017 Progress Software Corporation and/or its subsidiaries or affiliates.
+Copyright (c) 2016-2019 Progress Software Corporation and/or its subsidiaries or affiliates.
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -358,7 +357,10 @@ limitations under the License.
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState === 4) {
                         // process the response from the Web application
-                        processRefreshResult(xhr, deferred);
+                        try {
+                            processRefreshResult(xhr, deferred);
+                        } catch (e){
+                        }
                     }
                 };
 
