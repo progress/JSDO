@@ -19,8 +19,7 @@ Progress® Data Objects in an OpenEdge business application can be accessed usin
 
 | JSDO version | OpenEdge version |
 | ------------ | ---------------- |
-| 6.0.0, 5.0.1 | 11.6.4, 11.7.x   |
-| 6.0.1        | 12.0.x           |
+| 6.0.1        | 11.7.x, 12.0.x   |
 
 ### Download<a name="download"></a>
 
