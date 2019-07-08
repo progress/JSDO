@@ -15,39 +15,39 @@ To use the JSDO, you need to install a JSDO package depending on your environmen
 
 * For vanilla JS, e.g. running it in a browser:
 
-`npm install @progress/jsdo-core`
+    `npm install @progress/jsdo-core`
 
 * For usage with node:
 
-`npm install @progress/jsdo-node`
+    `npm install @progress/jsdo-node`
 
 * For usage with Angular:
 
-`npm install @progress/jsdo-angular`
+    `npm install @progress/jsdo-angular`
 
 * For usage with Nativescript:
 
-`npm install @progress/jsdo-nativescript`
+    `npm install @progress/jsdo-nativescript`
 
 If you want to add changes and build packages yourself from this repository, you will need to use the scripts in `package.json`. The package.json in the root folder corresponds to the `@progress/jsdo-core` package.
 
-Here is a quick overview:
-
-1. Install the necessary dependencies that the JSDO has and needs to be run with the following command:
+Here is a quick overview of the npm scripts:
 
 `npm install`
 
-2. Create a `build` folder and create a `progress.jsdo.js` file that you can use either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress` in your Node app:
+This installs the necessary dependencies that the JSDO has and needs to be run at least once. 
 
 `npm run build:jsdo`
 
-3. Run the `build:jsdo` script and then run the Mocha tests found in the `test` folder. You can also run this manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder:
+This creates a `build` folder and produces in it a `progress.jsdo.js` file that can be used either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress` in your Node app.
 
 `npm run test`
 
-4. Run `eslint` on the JSDO source files. 
+This runs the `build:jsdo` script and then runs the Mocha tests found in the `test` folder. This can also be run manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder. 
 
 `npm run lint`
+
+This runs `eslint` on the JSDO source files.
 
 
 ### JSDO and OpenEdge compatibility
