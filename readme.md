@@ -13,39 +13,42 @@ This is an npm package. This means that node and npm need to be installed to use
 
 To use the JSDO, you need to install a JSDO package depending on your environment:
 
-```
-# For vanilla JS, e.g. running it in a browser
-npm install @progress/jsdo-core
+* For vanilla JS, e.g. running it in a browser:
 
-# For usage with node
-npm install @progress/jsdo-node
+`npm install @progress/jsdo-core`
 
-# For usage with Angular
-npm install @progress/jsdo-angular
+* For usage with node:
 
-# For usage with Nativescript
-npm install @progress/jsdo-nativescript
-```
+`npm install @progress/jsdo-node`
+
+* For usage with Angular:
+
+`npm install @progress/jsdo-angular`
+
+* For usage with Nativescript:
+
+`npm install @progress/jsdo-nativescript`
 
 If you want to add changes and build packages yourself from this repository, you will need to use the scripts in `package.json`. The package.json in the root folder corresponds to the `@progress/jsdo-core` package.
 
 Here is a quick overview:
 
+1. Install the necessary dependencies that the JSDO has and needs to be run with the following command:
+
 `npm install`
 
-This will install the necessary dependencies that the JSDO has and needs to be run before you can do anything.
+2. Create a `build` folder and create a `progress.jsdo.js` file that you can use either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress` in your Node app:
 
 `npm run build:jsdo`
 
-This command will create a `build` folder and create a `progress.jsdo.js` file that you can use either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress` in your Node app.
+3. Run the `build:jsdo` script and then run the Mocha tests found in the `test` folder. You can also run this manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder:
 
 `npm run test`
 
-This will run the `build:jsdo` script and then run the Mocha tests found in the `test` folder. You can also run this manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder.
+4. Run `eslint` on the JSDO source files. 
 
 `npm run lint`
 
-This will run `eslint` on the JSDO source files. 
 
 ### JSDO and OpenEdge compatibility
 
