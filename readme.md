@@ -7,6 +7,26 @@ The JSDO is a free and open-source full-featured implementation that can be used
 
 Progress® Data Objects in an OpenEdge business application can be accessed using the JSDO on the client. For more information, see the <a href="https://docs.progress.com/bundle/data-object-guide/page/Overview-of-Progress-Data-Objects-Services-and-Catalogs.html">Overview of Progress Data Objects, Services and Catalogs.</a>
 
+### Usage
+
+This is an npm package. This means that node and npm need to be installed to use it.
+
+To use the JSDO, you need to install a JSDO package depending on your environment:
+
+```
+# For vanilla JS, e.g. running it in a browser
+npm install @progress/jsdo-core
+
+# For usage with node
+npm install @progress/jsdo-node
+
+# For usage with Angular
+npm install @progress/jsdo-angular
+
+# For usage with Nativescript
+npm install @progress/jsdo-nativescript
+```
+
 ### JSDO and OpenEdge compatibility
 
 | JSDO version | OpenEdge version |
