@@ -27,6 +27,26 @@ npm install @progress/jsdo-angular
 npm install @progress/jsdo-nativescript
 ```
 
+If you want to add changes and build packages yourself from this repository, you will need to use the scripts in `package.json`. The package.json in the root folder corresponds to the `@progress/jsdo-core` package.
+
+Here is a quick overview:
+
+`npm install`
+
+This will install the necessary dependencies that the JSDO has and needs to be run before you can do anything.
+
+`npm run build:jsdo`
+
+This command will create a `build` folder and create a `progress.jsdo.js` file that you can use either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress` in your Node app.
+
+`npm run test`
+
+This will run the `build:jsdo` script and then run the Mocha tests found in the `test` folder. You can also run this manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder.
+
+`npm run lint`
+
+This will run `eslint` on the JSDO source files. 
+
 ### JSDO and OpenEdge compatibility
 
 | JSDO version | OpenEdge version |
