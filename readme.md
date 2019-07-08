@@ -13,21 +13,19 @@ This is an npm package. This means that node and npm need to be installed to use
 
 To use the JSDO, you need to install a JSDO package depending on your environment:
 
-* For vanilla JS, e.g. running it in a browser:
+```
+#For vanilla JS, e.g. running it in a browser:
+`npm install @progress/jsdo-core`
 
-    `npm install @progress/jsdo-core`
+# For usage with node:
+`npm install @progress/jsdo-node`
 
-* For usage with node:
+# For usage with Angular:
+`npm install @progress/jsdo-angular`
 
-    `npm install @progress/jsdo-node`
-
-* For usage with Angular:
-
-    `npm install @progress/jsdo-angular`
-
-* For usage with Nativescript:
-
-    `npm install @progress/jsdo-nativescript`
+# For usage with Nativescript:
+`npm install @progress/jsdo-nativescript`
+```
 
 If you want to add changes and build packages yourself from this repository, you will need to use the scripts in `package.json`. The package.json in the root folder corresponds to the `@progress/jsdo-core` package.
 
