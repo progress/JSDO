@@ -35,19 +35,19 @@ Here is a quick overview of the npm scripts:
 
 `npm install`
 
-This installs the necessary dependencies that the JSDO has and needs to be run at least once. 
+    This installs the necessary dependencies that the JSDO has and needs to be run at least once. 
 
 `npm run build:jsdo`
 
-This creates a `build` folder and produces in it a `progress.jsdo.js` file that can be used either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress` in your Node app.
+    This creates a `build` folder and produces in it a `progress.jsdo.js` file that can be used either via including it in a `<script>` tag or via a `progress = require('/path/to/build/progress.jsdo.js').progress;` in your Node app.
 
 `npm run test`
 
-This runs the `build:jsdo` script and then runs the Mocha tests found in the `test` folder. This can also be run manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder. 
+    This runs the `build:jsdo` script and then runs the Mocha tests found in the `test` folder. This can also be run manually by installing Mocha on your environment and then running `mocha --recursive` in the JSDO folder. 
 
 `npm run lint`
 
-This runs `eslint` on the JSDO source files.
+    This runs `eslint` on the JSDO source files.
 
 
 ### JSDO and OpenEdge compatibility
