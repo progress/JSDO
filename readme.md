@@ -11,7 +11,7 @@ Progress® Data Objects in an OpenEdge business application can be accessed usin
 
 This is an npm package. This means that node and npm need to be installed to use it.
 
-To use the JSDO, you need to install a JSDO package depending on your environment:
+To use the JSDO, you normally will simply install it from the public NPM registry via an `npm install`. You'll need to select a JSDO package depending on your environment:
 
 ```
 # For vanilla JS, e.g. running it in a browser:
