@@ -6,6 +6,47 @@ Progress® Data Objects in an OpenEdge business application can be accessed usin
 
 The Data Source can be used by apps built as Node.js web apps.
 
+### Usage
+
+This is an npm package. This means that node and npm need to be installed to use it.
+
+To use this package, you would normally just install it from the public NPM registry via an `npm install` command. You'll need to select a JSDO package depending on your environment:
+
+```
+# For vanilla JS, e.g. running it in a browser:
+npm install @progress/jsdo-core
+
+# For usage with node:
+npm install @progress/jsdo-node
+
+# For usage with Angular:
+npm install @progress/jsdo-angular
+
+# For usage with Nativescript:
+npm install @progress/jsdo-nativescript
+```
+
+If you want to add changes and build packages yourself from this repository, you will need to use the scripts in `package.json`. The package.json in this folder corresponds to the `@progress/jsdo-node` package.
+
+Here is a quick overview of the npm scripts:
+
+`npm install`
+
+> This installs the necessary dependencies that this package has and needs to be run at least once. 
+
+`npm run build:ds`
+
+> This creates a `build` folder and produces in it a `progress.data.node.js` file that can be used either via including it in a `<script>` tag in an HTML file or via a `DataSource = require('/path/to/build/progress.data.node.js').DataSource;` in your Node app.
+> In order to run this, you will need to run `npm install; npm run build:ds` from the packages/ng-datasource folder. This is a temporary measure. 
+
+`npm run test`
+
+> This runs the `build:ds` script and then runs the Mocha tests found in the `test` folder. This can also be run manually by installing Mocha on your environment and then running `mocha --recursive` in the node folder. 
+
+`npm run lint`
+
+> This runs a linter on the DataSource source files.
+
 ### License
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
