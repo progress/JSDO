@@ -10,7 +10,7 @@ The Data Source can be used by apps built as Node.js web apps.
 
 This is an npm package. This means that node and npm need to be installed to use it.
 
-To use the JSDO, you normally will simply install it from the public NPM registry via an `npm install`. You'll need to select a JSDO package depending on your environment:
+To use this package, you would normally just install it from the public NPM registry via an `npm install` command. You'll need to select a JSDO package depending on your environment:
 
 ```
 # For vanilla JS, e.g. running it in a browser:
