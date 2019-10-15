@@ -45,7 +45,7 @@
         "xmlhttprequest": "^1.8.0"
     },
     "peerDependencies": {
-        "@angular/core": "^6.1.0",
+        "@angular/core": "^6.1.0 - ^8.0.0",
         "rxjs": "^6.0.0"
     },
     "optionalDependencies": {},
