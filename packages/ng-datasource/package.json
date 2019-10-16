@@ -14,7 +14,7 @@
         "build": "tsc",
         "build:ds": "tsc --p ../ng-datasource && mkdirp build && ncp ../ng-datasource/tsFiles/progress.data.ng.ds.js build/progress.data.ng.ds.js && ncp ../ng-datasource/tsFiles/progress.data.ng.ds.d.ts build/progress.data.ng.ds.d.ts",
         "build:jsdo-angular": "npm run build:ds && mkdirp build/packages && ncp ../angular build/packages/jsdo-angular && mkdirp build/packages/jsdo-angular/lib && ncp build/progress.data.ng.ds.js build/packages/jsdo-angular/lib/progress.data.angular.js && mkdirp build/packages/jsdo-angular/typings && ncp build/progress.data.ng.ds.d.ts build/packages/jsdo-angular/typings/progress.data.angular.d.ts && ncp ../../LICENSE build/packages/jsdo-angular/LICENSE",
-        "pack:jsdo-angular": "npm run build:jsdo-angular && cd build/packages && npm pack ./jsdo-angular",        
+        "pack:jsdo-angular": "npm run build:jsdo-angular && cd build/packages && npm pack ./jsdo-angular",
         "test": "npm run build:ds && mocha --recursive",
         "test:smokes": "npm run build:ds && mocha test/smoke*.js",
         "test:tc": "npm run build:ds && mocha --recursive --reporter mocha-teamcity-reporter",

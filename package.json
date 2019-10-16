@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js scripts/MobileClientApacheLicense.txt src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.bearer.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
-    "build:jsdo-core": "npm run build:jsdo && ncp packages/core build/packages/jsdo-core && mkdirp build/packages/jsdo-core/lib && ncp build/progress.jsdo.js build/packages/jsdo-core/lib/progress.core.js && mkdirp build/packages/jsdo-core/typings && ncp typings/progress.all.d.ts build/packages/jsdo-core/typings/progress.core.d.ts && ncp LICENSE build/packages/jsdo-core/LICENSE",
+    "build:jsdo-core": "npm run build:jsdo && mkdirp build/packages && ncp packages/core build/packages/jsdo-core && mkdirp build/packages/jsdo-core/lib && ncp build/progress.jsdo.js build/packages/jsdo-core/lib/progress.core.js && mkdirp build/packages/jsdo-core/typings && ncp typings/progress.all.d.ts build/packages/jsdo-core/typings/progress.core.d.ts && ncp LICENSE build/packages/jsdo-core/LICENSE",
     "pack:jsdo-core": "npm run build:jsdo-core && cd build/packages && npm pack ./jsdo-core",
     "lint": "eslint --quiet src/*",
     "test": "npm run build:jsdo && mocha --recursive",
