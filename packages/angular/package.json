@@ -1,6 +1,6 @@
 {
   "name": "@progress/jsdo-angular",
-  "version": "6.0.1",
+  "version": "7.0.0",
   "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with Angular.",
   "main": "lib/progress.data.angular.js",
   "files": [
@@ -37,7 +37,7 @@
   },
   "peerDependencies": {
     "@angular/core": "^6.1.0 - ^8.0.0",
-    "rxjs": "^6.0.0"
+    "rxjs": "^6.5.3"
   },
   "optionalDependencies": {}
 }

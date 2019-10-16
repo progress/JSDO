@@ -148,10 +148,12 @@ limitations under the License.
 
     /* Define these if not defined yet - they may already be defined if
      * progress.js was included first */
+    var _global = (0, eval)('this');
+
     if (typeof progress === "undefined") {
-        progress = {};
+        _global.progress = {};
     }
-    
+
     if (typeof progress.data === "undefined") {
         progress.data = {};
     }
