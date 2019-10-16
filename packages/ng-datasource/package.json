@@ -1,6 +1,6 @@
 {
     "name": "@progress/jsdo-nsds",
-    "version": "6.0.1",
+    "version": "7.0.0",
     "description": "The Progress Data Source is a TypeScript implementation - Progress Data Source class for NativeScript, Angular. This will provide a seamless integration between OpenEdge (Progress Data Object) with NativeScript",
     "main": "lib/progress.data.ng.ds.js",
     "files": [
@@ -12,7 +12,9 @@
     ],
     "scripts": {
         "build": "tsc",
-        "build:ds": "tsc --p ../ng-datasource && mkdirp build && concat -o build/progress.data.node.js ../ng-datasource/tsFiles/progress.data.ng.ds.js",
+        "build:ds": "tsc --p ../ng-datasource && mkdirp build && ncp ../ng-datasource/tsFiles/progress.data.ng.ds.js build/progress.data.ng.ds.js && ncp ../ng-datasource/tsFiles/progress.data.ng.ds.d.ts build/progress.data.ng.ds.d.ts",
+        "build:jsdo-angular": "npm run build:ds && mkdirp build/packages && ncp ../angular build/packages/jsdo-angular && mkdirp build/packages/jsdo-angular/lib && ncp build/progress.data.ng.ds.js build/packages/jsdo-angular/lib/progress.data.angular.js && mkdirp build/packages/jsdo-angular/typings && ncp build/progress.data.ng.ds.d.ts build/packages/jsdo-angular/typings/progress.data.angular.d.ts && ncp ../../LICENSE build/packages/jsdo-angular/LICENSE",
+        "pack:jsdo-angular": "npm run build:jsdo-angular && cd build/packages && npm pack ./jsdo-angular",
         "test": "npm run build:ds && mocha --recursive",
         "test:smokes": "npm run build:ds && mocha test/smoke*.js",
         "test:tc": "npm run build:ds && mocha --recursive --reporter mocha-teamcity-reporter",
@@ -41,12 +43,12 @@
     },
     "homepage": "https://github.com/progress/JSDO#readme",
     "dependencies": {
-        "@progress/jsdo-core": "^6.0.1",
+        "@progress/jsdo-core": "^7.0.0",
         "xmlhttprequest": "^1.8.0"
     },
     "peerDependencies": {
-        "@angular/core": "^6.1.0 - ^8.0.0",
-        "rxjs": "^6.0.0"
+        "@angular/core": "^8.0.0",
+        "rxjs": "^6.5.3"
     },
     "optionalDependencies": {},
     "devDependencies": {
@@ -56,6 +58,7 @@
         "mkdirp": "^0.5.1",
         "mocha": "^5.2.0",
         "mocha-teamcity-reporter": "^2.4.0",
+        "ncp": "^2.0.0",
         "tslint": "^5.11.0",
         "typescript": "^3.1.3"
     }

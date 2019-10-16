@@ -1,6 +1,6 @@
 {
   "name": "@progress/jsdo",
-  "version": "6.0.1",
+  "version": "7.0.0",
   "description": "The JSDO is a JavaScript implementation of the CDO Specification published by Progress Software Corporation.\r The JSDO is a free and open-source full-featured implementation that can be used in web, mobile web and hybrid mobile apps.",
   "main": "lib/progress.all.min.js",
   "files": [
@@ -11,7 +11,9 @@
     "typings/"
   ],
   "scripts": {
-    "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "build:jsdo": "mkdirp build && concat -o build/progress.jsdo.js scripts/MobileClientApacheLicense.txt src/progress.util.js src/progress.js src/progress.session.js src/auth/progress.auth.js src/auth/progress.auth.basic.js src/auth/progress.auth.bearer.js src/auth/progress.auth.form.js src/auth/progress.auth.sso.js",
+    "build:jsdo-core": "npm run build:jsdo && mkdirp build/packages && ncp packages/core build/packages/jsdo-core && mkdirp build/packages/jsdo-core/lib && ncp build/progress.jsdo.js build/packages/jsdo-core/lib/progress.core.js && mkdirp build/packages/jsdo-core/typings && ncp typings/progress.all.d.ts build/packages/jsdo-core/typings/progress.core.d.ts && ncp LICENSE build/packages/jsdo-core/LICENSE",
+    "pack:jsdo-core": "npm run build:jsdo-core && cd build/packages && npm pack ./jsdo-core",
     "lint": "eslint --quiet src/*",
     "test": "npm run build:jsdo && mocha --recursive",
     "test:smokes": "npm run build:jsdo && mocha test/smoke*.js",
@@ -46,6 +48,7 @@
     "mkdirp": "^0.5.1",
     "mocha": "^5.2.0",
     "mocha-teamcity-reporter": "^2.4.0",
+    "ncp": "^2.0.0",
     "xmlhttprequest": "^1.8.0"
   }
 }
