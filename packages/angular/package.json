@@ -36,7 +36,7 @@
     "@progress/jsdo-core": "^6.0.1"
   },
   "peerDependencies": {
-    "@angular/core": "^6.1.0",
+    "@angular/core": ">= 6",
     "rxjs": "^6.0.0"
   },
   "optionalDependencies": {}
