@@ -305,13 +305,13 @@ limitations under the License.
                     this.hasRefreshToken() &&    
                     date.getTime() > retrieveAccessTokenExpiration()) {
                     try {
-                        var callback = function (params, result, info) {
+                        var callback_Refresh = function (params, result, info) {
                             params = progress.util.Deferred.getParamObject(params, result, info);
                             afterRefreshCheck(params.provider, params.result, params.info);
                         };
                         // finally
                         this.refresh()
-                            .then(callback, callback);
+                            .then(callback_Refresh, callback_Refresh);
                     } catch (e) {
                         callback(e);
                     }
